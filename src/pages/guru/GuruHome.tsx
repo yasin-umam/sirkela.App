@@ -21,6 +21,7 @@ import { Pratinjau } from './Pratinjau'
 // Kepala: ☰ · judul formulir · status simpan · pratinjau · Kirim, lalu tab
 // Pertanyaan · Jawaban · Setelan. Semua yang lain (formulir lain, impor, arsip,
 // akun) ada di laci ☰ atau dialog, bukan halaman terpisah.
+// test //
 
 type Tab = 'pertanyaan' | 'jawaban' | 'setelan'
 
