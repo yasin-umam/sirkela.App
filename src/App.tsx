@@ -15,10 +15,10 @@ export function App() {
 
   if (authLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-indigo-600">
+      <div className="h-full flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-          <p className="text-white/80 text-sm">Memuat...</p>
+          <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="text-teks-2 text-sm">Memuat...</p>
         </div>
       </div>
     )

@@ -40,8 +40,6 @@ export interface Formulir {
   deskripsi: string
   durasiMenit: number
   kunciLayar: boolean
-  /** formId Google Form asal impor terakhir. */
-  gformId: string | null
   dibuatPada: string
   diperbaruiPada: string
 }

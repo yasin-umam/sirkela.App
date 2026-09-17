@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useKembali } from '../../context/NavContext'
-import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
+import { Dialog } from '../../components/ui/Dialog'
+import { Ikon } from '../../components/ui/Ikon'
+import { HalamanResponden, KartuKepalaResponden, KartuSoalResponden } from '../../components/FormulirResponden'
 import { Spinner } from '../../components/ui/Spinner'
 import { useZoomKontrol, TombolZoomMengambang } from '../../components/TombolZoom'
 import {
@@ -13,7 +15,6 @@ import {
   useSensorSesi, usePengunciPerangkat, bisaLayarPenuh, mintaLayarPenuh,
   JENIS_PENGUNCI, type JenisPeristiwa,
 } from '../../lib/kunciLayar'
-import { hurufPilihan } from '../../lib/soal'
 
 // Denyut lebih rapat daripada polling status: denyut cuma satu UPDATE kecil.
 // Ambang "senyap" di layar guru (45 detik) = dua kali jarak denyut.
@@ -53,7 +54,7 @@ function Hitung({ tenggat, onHabis }: { tenggat: string; onHabis: () => void }) 
   const menit = Math.floor(detik / 60)
   const mepet = detik < 300
   return (
-    <div className={`px-3 py-1.5 rounded-xl font-mono text-sm font-bold shrink-0 ${mepet ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>
+    <div className={`px-3 py-1 rounded-full font-mono text-sm font-medium shrink-0 ${mepet ? 'bg-red-50 text-salah' : 'bg-indigo-50 text-indigo-700'}`}>
       {String(menit).padStart(2, '0')}:{String(detik % 60).padStart(2, '0')}
     </div>
   )
@@ -70,26 +71,22 @@ function LayarTerkunci({ judul, tenggat, terkunciPada, onHabis }: {
     ? new Date(terkunciPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : null
   return (
-    <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-5 px-6 py-12 text-center select-none">
-      <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-4xl">🔒</div>
-      <div>
-        <p className="text-xl font-bold text-slate-800">Layar terkunci</p>
-        <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-          Kamu keluar dari layar sesi <strong className="text-slate-700">{judul}</strong>.<br />
-          Minta gurumu membuka kuncinya.
-        </p>
-      </div>
-      {tenggat && (
-        <div className="flex flex-col items-center gap-1.5">
-          <p className="text-xs text-slate-400">Waktu tetap berjalan</p>
-          <Hitung tenggat={tenggat} onHabis={onHabis} />
+    <HalamanResponden className="select-none">
+      <KartuKepalaResponden judul="Layar terkunci">
+        <div className="flex flex-col gap-3 text-teks">
+          <p className="flex items-start gap-2">
+            <Ikon nama="kunci" className="w-5 h-5 text-amber-700 mt-px" />
+            <span>Kamu keluar dari layar sesi <strong className="font-medium">{judul}</strong>. Minta gurumu membuka kuncinya.</span>
+          </p>
+          {tenggat && (
+            <p className="flex items-center gap-2 text-teks-2">Waktu tetap berjalan <Hitung tenggat={tenggat} onHabis={onHabis} /></p>
+          )}
+          <p className="text-teks-2">
+            {sejak && <>Terkunci sejak {sejak}. </>}Jawaban yang sudah kamu pilih tetap tersimpan.
+          </p>
         </div>
-      )}
-      <div className="flex flex-col gap-1">
-        {sejak && <p className="text-xs text-slate-400">Terkunci sejak {sejak}</p>}
-        <p className="text-xs text-slate-400">Jawaban yang sudah kamu pilih tetap tersimpan.</p>
-      </div>
-    </div>
+      </KartuKepalaResponden>
+    </HalamanResponden>
   )
 }
 
@@ -355,52 +352,59 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
 
   if (fase === 'selesai' && hasil) {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-5 px-6 py-12">
-        <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
-          <svg className="w-10 h-10 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-slate-500">Jawaban terkirim</p>
-          <p className="text-5xl font-bold text-slate-800 mt-2">{hasil.nilai}</p>
-          <p className="text-sm text-slate-500 mt-1">{hasil.benar} benar dari {hasil.total} soal</p>
-        </div>
-        <Button variant="ghost" onClick={onKeluar}>Kembali</Button>
-      </div>
+      <HalamanResponden>
+        <KartuKepalaResponden judul={sesi.judul}>
+          <div className="flex flex-col gap-4 text-teks">
+            <p>Jawaban kamu telah direkam.</p>
+            <div className="flex items-end gap-3">
+              <p className="text-5xl leading-none text-teks">{hasil.nilai}</p>
+              <p className="text-teks-2 pb-1">nilai · {hasil.benar} benar dari {hasil.total} soal</p>
+            </div>
+            <button type="button" onClick={onKeluar} className="self-start text-indigo-600 underline underline-offset-2">
+              Kembali ke halaman kode
+            </button>
+          </div>
+        </KartuKepalaResponden>
+      </HalamanResponden>
     )
   }
 
   if (fase === 'memuat') {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-3 py-20">
+      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-3 py-20 text-indigo-600">
         <Spinner size={28} />
-        <p className="text-sm text-slate-500">Memuat soal...</p>
+        <p className="text-sm text-teks-2">Memuat soal...</p>
       </div>
     )
   }
 
   if (fase === 'gagal') {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-4 px-6 py-20">
-        <p className="text-sm text-red-600 text-center">{pesan}</p>
-        <Button variant="ghost" onClick={onKeluar}>Kembali</Button>
-      </div>
+      <HalamanResponden>
+        <KartuKepalaResponden judul={sesi.judul}>
+          <p className="text-salah">{pesan}</p>
+          <button type="button" onClick={onKeluar} className="mt-3 text-indigo-600 underline underline-offset-2">Kembali</button>
+        </KartuKepalaResponden>
+      </HalamanResponden>
     )
   }
 
   if (fase === 'menunggu') {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-4 px-6 py-20">
-        <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
-          <div className="w-3 h-3 rounded-full bg-indigo-500 animate-ping" />
+      <HalamanResponden>
+        <KartuKepalaResponden judul={sesi.judul} deskripsi={sesi.deskripsi}>
+          <div className="flex items-center gap-3 text-teks">
+            <span className="relative flex w-3 h-3 shrink-0">
+              <span className="absolute inset-0 rounded-full bg-indigo-400 animate-ping" />
+              <span className="relative w-3 h-3 rounded-full bg-indigo-600" />
+            </span>
+            Kamu sudah bergabung. Menunggu guru memulai sesi.
+          </div>
+        </KartuKepalaResponden>
+        <div>
+          <Button variant="teks" onClick={onKeluar}>Keluar</Button>
         </div>
-        <div className="text-center">
-          <p className="font-bold text-slate-800">{sesi.judul}</p>
-          <p className="text-sm text-slate-500 mt-1">Kamu sudah bergabung.<br />Menunggu guru memulai sesi.</p>
-        </div>
-        <Button variant="ghost" onClick={onKeluar}>Keluar</Button>
-      </div>
+      </HalamanResponden>
     )
   }
 
@@ -416,22 +420,23 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
   // kali lewat layar kunci.
   if (kunciLayar && !diberitahu && fase === 'kerjakan') {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-5 px-6 py-12 text-center">
-        <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-4xl">🔒</div>
+      <HalamanResponden>
+        <KartuKepalaResponden judul="Gurumu menyalakan kunci layar">
+          <div className="flex flex-col gap-3 text-teks">
+            <p className="leading-relaxed">
+              Mulai sekarang, kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu terkunci sampai
+              gurumu membukanya. <strong className="font-medium">Waktu tetap berjalan</strong> selama terkunci.
+            </p>
+            {/* Hitung mundur ikut dirender: murid yang belum mengetuk saat waktu
+                habis tetap harus terkirim. */}
+            {tenggat && <p className="flex items-center gap-2 text-teks-2">Sisa waktu <Hitung tenggat={tenggat} onHabis={() => void kirim()} /></p>}
+            <p className="text-teks-2">Jawaban yang sudah kamu pilih tetap tersimpan.</p>
+          </div>
+        </KartuKepalaResponden>
         <div>
-          <p className="text-xl font-bold text-slate-800">Gurumu menyalakan kunci layar</p>
-          <p className="text-sm text-slate-500 mt-2 leading-relaxed max-w-xs">
-            Mulai sekarang, kalau kamu keluar dari layar ini atau membuka aplikasi lain,
-            layarmu terkunci sampai gurumu membukanya. <strong className="text-slate-700">Waktu
-            tetap berjalan</strong> selama terkunci.
-          </p>
+          <Button onClick={pahamiKunci}>Mengerti, lanjutkan</Button>
         </div>
-        {/* Hitung mundur ikut dirender: murid yang belum mengetuk saat waktu habis
-            tetap harus terkirim. */}
-        {tenggat && <Hitung tenggat={tenggat} onHabis={() => void kirim()} />}
-        <p className="text-xs text-slate-400 max-w-xs">Jawaban yang sudah kamu pilih tetap tersimpan.</p>
-        <Button variant="primary" size="lg" onClick={pahamiKunci}>Mengerti, lanjutkan</Button>
-      </div>
+      </HalamanResponden>
     )
   }
 
@@ -446,99 +451,75 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
       onCopy={kunciLayar ? e => e.preventDefault() : undefined}
       onContextMenu={kunciLayar ? e => e.preventDefault() : undefined}
     >
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 border-t-4 border-t-indigo-600 px-4 py-2.5 flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800 truncate">{sesi.judul}</p>
-          {soalList.length > 0 && <p className="text-[11px] text-slate-400">{terjawab} dari {soalList.length} terjawab</p>}
-        </div>
-        {belumTersimpan.size > 0 && (
-          <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg shrink-0">menyimpan...</span>
-        )}
+      <div className="shrink-0 bg-white border-b border-garis px-4 h-12 flex items-center gap-3">
+        <p className="flex-1 min-w-0 text-sm text-teks-2 truncate">
+          {soalList.length > 0 ? `${terjawab} dari ${soalList.length} terjawab` : sesi.judul}
+        </p>
+        {belumTersimpan.size > 0 && <span className="text-xs text-teks-2 shrink-0">Menyimpan…</span>}
         {tenggat && <Hitung tenggat={tenggat} onHabis={() => void kirim()} />}
       </div>
-
-      {perluAktifkanKunci && (
-        <div className="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
-          <span className="text-sm shrink-0">🔒</span>
-          <p className="text-xs text-amber-800 flex-1 leading-relaxed">Sesi ini memakai kunci layar. Ketuk Aktifkan untuk layar penuh.</p>
-          <button onClick={mintaLayarPenuh} className="text-[11px] font-bold text-amber-700 px-2 py-1 rounded-lg active:bg-amber-100 shrink-0">
-            Aktifkan
-          </button>
+      {soalList.length > 0 && (
+        <div className="shrink-0 h-1 bg-indigo-100">
+          <div className="h-full bg-indigo-600 transition-all" style={{ width: `${(terjawab / soalList.length) * 100}%` }} />
         </div>
       )}
 
-      {/* Daftar soal bisa berubah panjang di tengah pengerjaan; tanpa pemberitahuan
-          murid mengira aplikasinya rusak. */}
-      {kontenBaru && (
-        <div className="mx-4 mt-3 px-3 py-2.5 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center gap-2">
-          <p className="text-xs text-indigo-700 flex-1 leading-relaxed">Gurumu mengubah soal di sesi ini.</p>
-          <button onClick={() => setKontenBaru(false)} className="text-[11px] font-bold text-indigo-600 px-2 py-1 rounded-lg active:bg-indigo-100 shrink-0">
-            Tutup
-          </button>
-        </div>
-      )}
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar">
+        <HalamanResponden>
+          <KartuKepalaResponden judul={sesi.judul} deskripsi={sesi.deskripsi}>
+            {soalList.length} pertanyaan · jawaban tersimpan otomatis
+            <span className="block text-salah mt-1">* Menunjukkan pertanyaan yang wajib diisi</span>
+          </KartuKepalaResponden>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 flex flex-col gap-3">
-        {soalList.length === 0 && (
-          <Card><p className="text-sm text-slate-500 text-center py-6">Sesi ini belum berisi soal.</p></Card>
-        )}
-
-        {soalList.map((soal, i) => (
-          <Card key={soal.id} className="flex flex-col gap-3">
-            <div className="flex gap-2">
-              <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-              <p className="text-sm text-slate-800 leading-snug flex-1 whitespace-pre-wrap">{soal.pertanyaan}</p>
+          {perluAktifkanKunci && (
+            <div className="bg-white rounded-lg border border-garis px-5 py-3 flex items-center gap-3">
+              <Ikon nama="kunci" className="w-5 h-5 text-amber-700" />
+              <p className="flex-1 text-sm text-teks">Sesi ini memakai kunci layar. Aktifkan layar penuh.</p>
+              <Button variant="teks" size="sm" onClick={mintaLayarPenuh}>Aktifkan</Button>
             </div>
-            <div className="flex flex-col gap-2">
-              {soal.pilihan.map((p, j) => {
-                const dipilih = jawaban[soal.id] === j
-                return (
-                  <button key={j} onClick={() => void pilih(soal.id, j)} role="radio" aria-checked={dipilih}
-                    className={`flex items-center gap-3 px-2 py-2.5 rounded-lg text-left transition-colors ${
-                      dipilih ? 'text-indigo-700' : 'text-slate-700 active:bg-slate-100'}`}>
-                    <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                      dipilih ? 'border-indigo-600' : 'border-slate-400'}`}>
-                      {dipilih && <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
-                    </span>
-                    <span className="text-sm"><span className="font-semibold">{hurufPilihan(j)}.</span> {p}</span>
-                  </button>
-                )
-              })}
+          )}
+
+          {/* Daftar soal bisa berubah panjang di tengah pengerjaan; tanpa
+              pemberitahuan murid mengira aplikasinya rusak. */}
+          {kontenBaru && (
+            <div className="bg-white rounded-lg border border-garis px-5 py-3 flex items-center gap-3">
+              <p className="flex-1 text-sm text-teks">Gurumu mengubah soal di sesi ini.</p>
+              <Button variant="teks" size="sm" onClick={() => setKontenBaru(false)}>Tutup</Button>
             </div>
-          </Card>
-        ))}
+          )}
 
-        {pesan && <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">{pesan}</div>}
+          {soalList.length === 0 && (
+            <div className="bg-white rounded-lg border border-garis px-5 py-8 text-sm text-teks-2 text-center">Sesi ini belum berisi soal.</div>
+          )}
 
-        {soalList.length > 0 && (
-          <>
-            {!semuaTerjawab && (
-              <p className="text-xs text-amber-600 text-center">Masih ada {soalList.length - terjawab} soal yang belum dijawab</p>
-            )}
-            <Button variant="primary" size="lg" fullWidth disabled={fase === 'mengirim'} onClick={() => setKonfirmasiKirim(true)}>
-              {fase === 'mengirim' ? 'Mengirim...' : 'Kirim Jawaban'}
-            </Button>
-          </>
-        )}
+          {soalList.map(soal => (
+            <KartuSoalResponden key={soal.id} pertanyaan={soal.pertanyaan} pilihan={soal.pilihan}
+              dipilih={jawaban[soal.id]} onPilih={j => void pilih(soal.id, j)} />
+          ))}
 
-        <div className="h-6" />
+          {pesan && <p className="text-sm text-salah px-1">{pesan}</p>}
+
+          {soalList.length > 0 && (
+            <div className="flex items-center gap-3 pt-1 pb-24">
+              <Button disabled={fase === 'mengirim'} onClick={() => setKonfirmasiKirim(true)}>
+                {fase === 'mengirim' ? 'Mengirim...' : 'Kirim'}
+              </Button>
+              {!semuaTerjawab && <p className="text-xs text-teks-2">{soalList.length - terjawab} soal belum dijawab</p>}
+            </div>
+          )}
+        </HalamanResponden>
       </div>
 
       {konfirmasiKirim && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm flex flex-col gap-3">
-            <p className="font-bold text-slate-800">Kirim sekarang?</p>
-            <p className="text-sm text-slate-500">
-              {semuaTerjawab
-                ? 'Semua soal sudah dijawab. Jawaban tidak bisa diubah setelah dikirim.'
-                : `Masih ada ${soalList.length - terjawab} soal kosong. Jawaban tidak bisa diubah setelah dikirim.`}
-            </p>
-            <div className="flex gap-2 mt-1">
-              <Button variant="ghost" fullWidth onClick={() => setKonfirmasiKirim(false)}>Batal</Button>
-              <Button variant="primary" fullWidth onClick={() => { setKonfirmasiKirim(false); void kirim() }}>Kirim</Button>
-            </div>
-          </div>
-        </div>
+        <Dialog judul="Kirim jawaban?" onTutup={() => setKonfirmasiKirim(false)}
+          aksi={<>
+            <Button variant="teks" onClick={() => setKonfirmasiKirim(false)}>Batal</Button>
+            <Button onClick={() => { setKonfirmasiKirim(false); void kirim() }}>Kirim</Button>
+          </>}>
+          {semuaTerjawab
+            ? 'Semua soal sudah dijawab. Jawaban tidak bisa diubah setelah dikirim.'
+            : `Masih ada ${soalList.length - terjawab} soal kosong. Jawaban tidak bisa diubah setelah dikirim.`}
+        </Dialog>
       )}
     </div>
     {/* Di LUAR div yang di-zoom -- tombolnya tidak ikut membesar. */}

@@ -23,12 +23,14 @@ export function sekarangServerMs(): number {
 export interface SesiRingkas {
   id: string
   judul: string
+  /** Deskripsi formulir asal, untuk kartu kepala ala Google Form. */
+  deskripsi: string
   durasiMenit: number
   status: 'aktif' | 'selesai'
   mulaiPada: string | null
   /** null selama guru belum menekan "Mulai Sesi". */
   tenggat: string | null
-  jumlahKonten: number
+  jumlahSoal: number
   /** Nilai EFEKTIF dari server (sakelar sesi DAN sakelar darurat global). */
   kunciLayar: boolean
 }
@@ -91,11 +93,12 @@ export async function gabungSesi(kode: string): Promise<SesiRingkas> {
   return {
     id: d.id as string,
     judul: d.judul as string,
+    deskripsi: ambil(d, 'deskripsi', ''),
     durasiMenit: d.durasi_menit as number,
     status: d.status as 'aktif' | 'selesai',
     mulaiPada: (d.mulai_pada as string) ?? null,
     tenggat: (d.tenggat as string) ?? null,
-    jumlahKonten: ambil(d, 'jumlah_konten', 0),
+    jumlahSoal: ambil(d, 'jumlah_soal', 0),
     kunciLayar: ambil(d, 'kunci_layar', false),
   }
 }

@@ -20,7 +20,7 @@ const JEDA_KETIK_MS = 600
 const KUNCI_TERAKHIR = 'sesi-soal:formulir_terakhir'
 
 export type StatusSimpan = 'tersimpan' | 'menyimpan' | 'gagal'
-export type UbahanFormulir = Partial<Pick<Formulir, 'judul' | 'deskripsi' | 'durasiMenit' | 'kunciLayar' | 'gformId'>>
+export type UbahanFormulir = Partial<Pick<Formulir, 'judul' | 'deskripsi' | 'durasiMenit' | 'kunciLayar'>>
 export interface RingkasFormulir extends Formulir { jumlahSoal: number }
 
 interface FormulirContextValue {
@@ -55,7 +55,7 @@ const FormulirContext = createContext<FormulirContextValue | null>(null)
 function petakanFormulir(r: DbFormulir): Formulir {
   return {
     id: r.id, judul: r.judul, deskripsi: r.deskripsi, durasiMenit: r.durasi_menit,
-    kunciLayar: r.kunci_layar, gformId: r.gform_id, dibuatPada: r.created_at, diperbaruiPada: r.diperbarui_pada,
+    kunciLayar: r.kunci_layar, dibuatPada: r.created_at, diperbaruiPada: r.diperbarui_pada,
   }
 }
 
@@ -72,7 +72,6 @@ function barisFormulir(u: UbahanFormulir): Partial<DbFormulir> {
   if (u.deskripsi !== undefined) b.deskripsi = u.deskripsi
   if (u.durasiMenit !== undefined) b.durasi_menit = u.durasiMenit
   if (u.kunciLayar !== undefined) b.kunci_layar = u.kunciLayar
-  if (u.gformId !== undefined) b.gform_id = u.gformId
   return b
 }
 
@@ -229,13 +228,17 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
 
   const aktifkan = useCallback((id: string | null, opsi?: { kosong?: boolean }) => {
     flushSemua()
+    // Ref diperbarui SEKARANG, bukan menunggu render: `await buatFormulir()` lalu
+    // langsung `imporSoal()` harus sudah melihat formulir yang baru.
+    aktifIdRef.current = id
     setAktifId(id)
-    if (!id) { ++nomorMuat.current; setSoal([]); setMemuatSoal(false); return }
+    if (!id) { ++nomorMuat.current; soalRef.current = []; setSoal([]); setMemuatSoal(false); return }
     tulisTerakhir(id)
     if (opsi?.kosong) {
       // Formulir yang BARU dibuat pasti kosong. Tanpa jalan pintas ini, fetch-nya
       // bisa sampai SETELAH soal impor ditambahkan dan menimpanya dengan [].
       ++nomorMuat.current
+      soalRef.current = []
       setSoal([])
       setMemuatSoal(false)
     } else {
@@ -287,7 +290,8 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.from('formulir').insert(barisFormulir(awal)).select().single()
     if (error || !data) throw new Error(error?.message ?? 'Gagal membuat formulir')
     const baru = { ...petakanFormulir(data as DbFormulir), jumlahSoal: 0 }
-    setDaftarMentah(prev => [baru, ...prev])
+    daftarRef.current = [baru, ...daftarRef.current]
+    setDaftarMentah(daftarRef.current)
     aktifkan(baru.id, { kosong: true })
     return baru.id
   }, [aktifkan])

@@ -1,13 +1,5 @@
 import type { IsiSoal } from '../types'
 
-/**
- * Huruf pilihan ke-i: A, B, C, ... Dihitung, bukan array tetap ['A'..'E'] seperti
- * di Luang -- soal dari Google Form bisa punya lebih dari lima pilihan.
- */
-export function hurufPilihan(i: number): string {
-  return String.fromCharCode(65 + i)
-}
-
 /** Batas MENAMBAH opsi di editor. Soal impor yang punya lebih tetap tampil utuh. */
 export const MAKS_PILIHAN = 10
 

@@ -1,11 +1,11 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useKembali, useNav } from '../../context/NavContext'
-import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { Input } from '../../components/ui/Input'
 import { Spinner } from '../../components/ui/Spinner'
+import { Ikon } from '../../components/ui/Ikon'
 import { PageFallback } from '../../components/PageFallback'
+import { HalamanResponden, KartuKepalaResponden } from '../../components/FormulirResponden'
 import { KerjakanSesi } from './KerjakanSesi'
 import { gabungSesi, setNamaPeserta, type SesiRingkas } from '../../lib/sesiMurid'
 import { bacaSesiPending, hapusSesiPending, ekstrakKodeDariTeks } from '../../lib/sesiCapture'
@@ -13,8 +13,11 @@ import { mintaLayarPenuh } from '../../lib/kunciLayar'
 import { NAMA_APLIKASI } from '../../lib/aplikasi'
 
 // jsQR membawa decoder Reed-Solomon lengkap -- cuma dibutuhkan pada satu ketukan
-// "Scan QR", jadi tidak ikut dimuat murid yang mengetik kode manual.
+// "Pindai QR", jadi tidak ikut dimuat murid yang mengetik kode manual.
 const ScannerQr = lazy(() => import('../../components/ScannerQr').then(m => ({ default: m.ScannerQr })))
+
+/** Kolom jawaban singkat Google Form: garis bawah, bukan kotak. */
+const KOLOM = 'w-full py-2 bg-transparent text-teks outline-none border-b border-garis focus:border-b-2 focus:border-indigo-600 placeholder:text-teks-2'
 
 // ─── Konfirmasi sebelum mulai ────────────────────────────────────────────────
 // Yang membatasi murid bukan perangkat lunaknya -- PWA tidak bisa mencegah siapa
@@ -52,70 +55,55 @@ function KonfirmasiMulai({ sesi, namaAwal, onMulai, onBatal }: {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 flex flex-col px-5 py-8 gap-5">
-      <div className="text-center">
-        <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Siap memulai</p>
-        <h2 className="font-bold text-slate-800 text-xl mt-1">{sesi.judul}</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          {sesi.durasiMenit} menit
-          {sesi.jumlahKonten > 0 && ` · ${sesi.jumlahKonten} bagian`}
-        </p>
-      </div>
+    <HalamanResponden>
+      <KartuKepalaResponden judul={sesi.judul} deskripsi={sesi.deskripsi}>
+        {sesi.jumlahSoal} pertanyaan · {sesi.durasiMenit} menit
+        <span className="block text-salah mt-1">* Menunjukkan pertanyaan yang wajib diisi</span>
+      </KartuKepalaResponden>
 
-      <Card accent className="flex flex-col gap-2">
-        <Input
-          label="Nama kamu"
-          placeholder="Nama lengkap"
-          value={nama}
+      <div className={`bg-white rounded-lg border p-5 desktop:p-6 ${error ? 'border-salah' : 'border-garis'}`}>
+        <label htmlFor="nama-murid" className="block text-base text-teks">Nama kamu<span className="text-salah"> *</span></label>
+        <p className="text-xs text-teks-2 mt-1">Nama ini yang muncul di daftar hasil gurumu.</p>
+        <input id="nama-murid" value={nama} placeholder="Jawaban Anda" autoComplete="name"
           onChange={e => { setNama(e.target.value); setError(null) }}
-          autoComplete="name"
-          error={error ?? undefined}
-        />
-        <p className="text-xs text-slate-400">Nama ini yang akan muncul di daftar hasil gurumu.</p>
-      </Card>
+          onKeyDown={e => { if (e.key === 'Enter') void mulai() }}
+          className={`${KOLOM} mt-4 max-w-sm text-sm`} />
+        {error && <p className="mt-3 flex items-center gap-1.5 text-xs text-salah"><Ikon nama="galat" className="w-4 h-4" />{error}</p>}
+      </div>
 
       {/* Aturan kunci dinyatakan SEBELUM Mulai. "Waktu tetap berjalan" wajib
           tertulis: itu satu-satunya akibat kunci yang benar-benar merugikan murid. */}
       {sesi.kunciLayar && (
-        <Card className="flex flex-col gap-2 border-amber-200 bg-amber-50">
-          <p className="text-sm font-bold text-amber-900">🔒 Sesi ini memakai kunci layar</p>
-          <p className="text-sm text-amber-800 leading-relaxed">
-            Kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu
-            terkunci sampai gurumu membukanya. <strong>Waktu tetap berjalan</strong> selama terkunci.
+        <div className="bg-white rounded-lg border border-garis border-l-4 border-l-amber-500 p-5 desktop:p-6">
+          <p className="flex items-center gap-2 text-base text-teks"><Ikon nama="kunci" className="w-5 h-5 text-amber-700" />Sesi ini memakai kunci layar</p>
+          <p className="text-sm text-teks mt-2 leading-relaxed">
+            Kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu terkunci sampai gurumu
+            membukanya. <strong className="font-medium">Waktu tetap berjalan</strong> selama terkunci.
           </p>
-        </Card>
+        </div>
       )}
 
-      <Card className="flex flex-col gap-3">
-        <p className="text-sm font-bold text-slate-700">Selama sesi ini, guru bisa melihat:</p>
-        <ul className="flex flex-col gap-2 text-sm text-slate-600">
-          <li className="flex gap-2">
-            <span className="text-slate-300">•</span>
-            <span>kalau kamu <strong>keluar dari layar ini</strong> atau <strong>membuka aplikasi lain</strong> di sampingnya</span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-slate-300">•</span>
-            <span>kalau perangkatmu <strong>berhenti mengirim sinyal</strong></span>
-          </li>
-          <li className="flex gap-2">
-            <span className="text-slate-300">•</span>
-            <span>jawaban yang kamu pilih, tersimpan otomatis</span>
-          </li>
+      <div className="bg-white rounded-lg border border-garis p-5 desktop:p-6 text-sm text-teks">
+        <p className="text-base">Selama sesi ini, guru bisa melihat:</p>
+        <ul className="mt-2 flex flex-col gap-1.5 list-disc pl-5 leading-relaxed">
+          <li>kalau kamu <strong className="font-medium">keluar dari layar ini</strong> atau <strong className="font-medium">membuka aplikasi lain</strong> di sampingnya</li>
+          <li>kalau perangkatmu <strong className="font-medium">berhenti mengirim sinyal</strong></li>
+          <li>jawaban yang kamu pilih, tersimpan otomatis</li>
         </ul>
-        <p className="text-sm font-bold text-slate-700 mt-1">Yang tidak terlihat:</p>
-        <p className="text-sm text-slate-500">Aplikasi apa yang kamu buka, isi layarmu, atau apa pun di luar halaman ini.</p>
-        <p className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+        <p className="text-base mt-4">Yang tidak terlihat:</p>
+        <p className="mt-1 text-teks-2">Aplikasi apa yang kamu buka, isi layarmu, atau apa pun di luar halaman ini.</p>
+        <p className="text-xs text-teks-2 border-t border-garis mt-4 pt-3">
           Catatan ini tidak mengubah nilaimu sendiri — gurumu yang membacanya dan menilai.
         </p>
-      </Card>
-
-      <div className="flex flex-col gap-2 mt-auto">
-        <Button variant="primary" size="lg" fullWidth disabled={!nama.trim() || mengirim} onClick={() => void mulai()}>
-          {mengirim ? <><Spinner size={18} />Menyimpan...</> : 'Saya mengerti, Mulai'}
-        </Button>
-        <Button variant="ghost" fullWidth onClick={onBatal} disabled={mengirim}>Batal</Button>
       </div>
-    </div>
+
+      <div className="flex items-center justify-between gap-3 pt-1 pb-8">
+        <Button disabled={!nama.trim() || mengirim} onClick={() => void mulai()}>
+          {mengirim ? <><Spinner size={16} />Menyimpan...</> : 'Saya mengerti, mulai'}
+        </Button>
+        <Button variant="teks" onClick={onBatal} disabled={mengirim}>Batal</Button>
+      </div>
+    </HalamanResponden>
   )
 }
 
@@ -227,66 +215,48 @@ export function MuridSesiPage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-50 flex flex-col">
-      <div className="bg-indigo-600 px-4 pt-10 pb-6">
-        {user?.nama ? (
-          <>
-            <p className="text-indigo-200 text-xs">Halo,</p>
-            <h1 className="text-white font-bold text-lg">{user.nama}</h1>
-          </>
-        ) : (
-          <>
-            <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">{NAMA_APLIKASI}</p>
-            <h1 className="text-white font-bold text-lg">Gabung ke sesi kelas</h1>
-          </>
-        )}
+    <HalamanResponden>
+      <KartuKepalaResponden
+        judul="Gabung ke sesi kelas"
+        deskripsi={user?.nama
+          ? `Halo, ${user.nama}. Masukkan kode dari gurumu.`
+          : 'Masukkan kode dari gurumu. Tidak perlu akun atau login.'}
+      />
+
+      <div className={`bg-white rounded-lg border p-5 desktop:p-6 ${error ? 'border-salah' : 'border-garis'}`}>
+        <label htmlFor="kode-sesi" className="block text-base text-teks">Kode sesi<span className="text-salah"> *</span></label>
+        <input
+          id="kode-sesi"
+          className={`${KOLOM} mt-4 max-w-56 font-mono text-2xl tracking-[0.2em] uppercase placeholder:text-slate-300`}
+          placeholder="ABC-123"
+          maxLength={7}
+          inputMode="text"
+          autoCapitalize="characters"
+          autoComplete="off"
+          value={kode}
+          onChange={e => { setKode(e.target.value.toUpperCase()); setError(null) }}
+          onKeyDown={e => { if (e.key === 'Enter') void gabung() }}
+        />
+        {error && <p className="mt-3 flex items-center gap-1.5 text-xs text-salah"><Ikon nama="galat" className="w-4 h-4" />{error}</p>}
+        <p className="text-xs text-teks-2 mt-3">Kode hanya berlaku selama sesinya masih dibuka gurumu.</p>
       </div>
 
-      <div className="flex-1 px-4 py-6 flex flex-col gap-4 desktop:max-w-md desktop:w-full desktop:mx-auto">
-        <Card accent className="flex flex-col items-center gap-2 py-6 text-center">
-          <h2 className="font-bold text-slate-800 text-lg">Masukkan Kode Sesi</h2>
-          <p className="text-sm text-slate-500">Minta kode dari gurumu. Tidak perlu akun atau login.</p>
-        </Card>
-
-        <Button variant="primary" size="lg" fullWidth onClick={() => { setError(null); setShowScanner(true) }}>
-          Scan QR dari Guru
+      <div className="flex flex-wrap items-center gap-2">
+        <Button disabled={!kode.trim() || memproses} onClick={() => void gabung()}>
+          {memproses ? <><Spinner size={16} />Mencari sesi...</> : 'Gabung'}
         </Button>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-xs text-slate-400">atau ketik kode</span>
-          <div className="flex-1 h-px bg-slate-200" />
-        </div>
-
-        <Card>
-          <div className="flex flex-col gap-3">
-            <input
-              className="w-full px-4 py-3.5 rounded-xl border border-slate-200 text-center text-xl font-mono font-bold tracking-[0.2em] text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="ABC-123"
-              maxLength={7}
-              inputMode="text"
-              autoCapitalize="characters"
-              value={kode}
-              onChange={e => { setKode(e.target.value.toUpperCase()); setError(null) }}
-              onKeyDown={e => { if (e.key === 'Enter') void gabung() }}
-            />
-            {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-            <Button variant="primary" size="lg" fullWidth disabled={!kode.trim() || memproses} onClick={() => void gabung()}>
-              {memproses ? <><Spinner size={18} />Mencari sesi...</> : 'Gabung'}
-            </Button>
-          </div>
-        </Card>
-
-        <p className="text-xs text-slate-400 text-center">Kode hanya berlaku selama sesinya masih dibuka gurumu.</p>
-
-        <div className="mt-auto pt-6 text-center">
-          <span className="text-sm text-slate-500">Kamu guru? </span>
-          <button type="button" onClick={() => goTo({ name: 'login' })}
-            className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
-            Masuk
-          </button>
-        </div>
+        <Button variant="secondary" onClick={() => { setError(null); setShowScanner(true) }}>
+          <Ikon nama="qr" className="w-5 h-5" />Pindai QR
+        </Button>
       </div>
-    </div>
+
+      <div className="pt-10 pb-4 text-center text-sm text-teks-2">
+        Kamu guru?{' '}
+        <button type="button" onClick={() => goTo({ name: 'login' })} className="font-medium text-indigo-600 hover:underline">
+          Masuk
+        </button>
+        <p className="mt-3 text-xs">{NAMA_APLIKASI}</p>
+      </div>
+    </HalamanResponden>
   )
 }

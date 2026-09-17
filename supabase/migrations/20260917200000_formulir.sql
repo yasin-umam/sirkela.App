@@ -31,8 +31,6 @@ create table public.formulir (
   -- Setelan sesi yang dibuka dari formulir ini (tab Setelan).
   durasi_menit    int         not null default 45 check (durasi_menit between 1 and 600),
   kunci_layar     boolean     not null default false,
-  -- formId Google Form asal impor terakhir. Penanda saja, tidak disinkronkan.
-  gform_id        text,
   created_at      timestamptz not null default now(),
   -- Urutan daftar formulir di menu. Disentuh trigger, termasuk saat SOALNYA berubah.
   diperbarui_pada timestamptz not null default now()

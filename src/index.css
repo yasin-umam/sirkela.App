@@ -110,6 +110,15 @@
   to { opacity: 1; }
 }
 
+/* Laci ☰ meluncur dari kiri. Aman memakai transform di sini: isinya tidak punya
+   anak `position: fixed` (lihat catatan .tab-masuk di atas). */
+.laci-masuk { animation: laci-masuk .2s ease-out; }
+
+@keyframes laci-masuk {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tab-masuk { animation: none; }
+  .tab-masuk, .laci-masuk { animation: none; }
 }

@@ -7,7 +7,6 @@ export interface DbFormulir {
   deskripsi: string
   durasi_menit: number
   kunci_layar: boolean
-  gform_id: string | null
   created_at: string
   diperbarui_pada: string
 }

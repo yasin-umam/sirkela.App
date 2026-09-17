@@ -5,32 +5,36 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { NAMA_APLIKASI } from '../../lib/aplikasi'
 
-// Empat layar auth dalam satu berkas: bentuknya sama (judul + kartu form), dan
-// panel branding dua-nada Luang (AuthLayout/AuthBrandPanel) tidak ikut disalin.
+// Empat layar auth dalam satu berkas: bentuknya sama (kartu kepala berpita +
+// kartu form, gaya Google Form), dan panel branding dua-nada Luang
+// (AuthLayout/AuthBrandPanel) tidak ikut disalin.
 // Semuanya KHUSUS GURU: murid bergabung ke sesi tanpa akun (MuridSesiPage).
 
 function Kerangka({ judul, subjudul, children }: { judul: string; subjudul: string; children: ReactNode }) {
   return (
-    <div className="h-full overflow-y-auto bg-linear-to-b from-indigo-600 to-indigo-700">
-      <div className="min-h-full flex flex-col justify-center px-5 py-10 max-w-md mx-auto">
-        <div className="text-center mb-6">
-          <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">{NAMA_APLIKASI}</p>
-          <h1 className="text-2xl font-bold text-white mt-1">{judul}</h1>
-          <p className="text-indigo-200 text-sm mt-1">{subjudul}</p>
+    <div className="h-full overflow-y-auto bg-slate-50">
+      <div className="min-h-full flex flex-col justify-center gap-3 px-3 py-10 max-w-md mx-auto">
+        <div className="bg-white rounded-lg border border-garis overflow-hidden">
+          <div className="h-2.5 bg-indigo-600" />
+          <div className="px-6 pt-5 pb-5">
+            <p className="text-xs text-teks-2">{NAMA_APLIKASI}</p>
+            <h1 className="text-[28px] leading-tight text-teks mt-1">{judul}</h1>
+            <p className="text-sm text-teks-2 mt-2">{subjudul}</p>
+          </div>
         </div>
-        <div className="bg-white rounded-2xl shadow-2xl px-5 py-6">{children}</div>
+        <div className="bg-white rounded-lg border border-garis px-6 py-6">{children}</div>
       </div>
     </div>
   )
 }
 
 function Galat({ teks }: { teks: string }) {
-  return <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{teks}</div>
+  return <p className="text-sm text-salah">{teks}</p>
 }
 
 function TautanTeks({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+    <button type="button" onClick={onClick} className="text-sm font-medium text-indigo-600 hover:underline">
       {children}
     </button>
   )
@@ -66,11 +70,11 @@ export function LoginPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Masuk...' : 'Masuk'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-slate-500">Belum punya akun? </span>
+        <span className="text-sm text-teks-2">Belum punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'register' })}>Daftar</TautanTeks>
       </div>
-      <div className="mt-3 pt-4 border-t border-slate-100 text-center">
-        <span className="text-sm text-slate-500">Murid? </span>
+      <div className="mt-3 pt-4 border-t border-garis text-center">
+        <span className="text-sm text-teks-2">Murid? </span>
         <TautanTeks onClick={() => goTo({ name: 'murid' })}>Gabung sesi dengan kode</TautanTeks>
       </div>
     </Kerangka>
@@ -113,7 +117,7 @@ export function RegisterPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Mendaftar...' : 'Daftar'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-slate-500">Sudah punya akun? </span>
+        <span className="text-sm text-teks-2">Sudah punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'login' })}>Masuk</TautanTeks>
       </div>
     </Kerangka>
@@ -201,7 +205,7 @@ export function ResetPasswordPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Menyimpan...' : 'Simpan Password Baru'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-slate-400 hover:text-slate-500">
+        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-slate-400 hover:text-teks-2">
           Batal, kembali ke Masuk
         </button>
       </div>
