@@ -10,6 +10,9 @@ dist
 supabase/.temp
 supabase/.branches
 
+# Wrangler
+.wrangler
+
 # Editor
 .vscode/*
 !.vscode/extensions.json
