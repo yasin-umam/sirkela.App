@@ -47,14 +47,38 @@ Di dashboard (config.toml hanya berlaku untuk `supabase start` lokal):
   belakang satu wifi sekolah = satu IP. Naikkan (config lokal memakai 500).
 - **Site URL** = alamat deploy (dipakai link reset password).
 
+### Deploy: Cloudflare Pages, sama dengan Luang
+Project **Pages** yang dibuat lewat **Workers & Pages → Create → tab Pages →
+Connect to Git** (`yasin-umam/sirkela.App`, branch `main`). Tiap push ke `main`
+dibangun ulang otomatis. Build command `npm run build`, output `dist`, versi Node
+dari `.node-version`. Environment variables (Production & Preview):
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — nilainya ditanam Vite SAAT build,
+jadi mengubahnya butuh build ulang (Retry deployment atau push baru).
+- Repo harus masuk daftar akses aplikasi GitHub **Cloudflare Workers and Pages**
+  (github.com/settings/installations). Repo baru TIDAK ikut otomatis kalau
+  aksesnya "Only select repositories" — tanpa itu push tidak memicu apa pun.
+- JANGAN dibuat sebagai Worker (tombol Create membuka Workers lebih dulu). Project
+  pertama `sirkela-app.…workers.dev` salah jalur begitu: tidak tersambung ke Git,
+  sempat diberi `wrangler.jsonc`, dan tidak pernah dibangun dari push. Tanda
+  project yang benar di daftar dashboard: ikon petir, alamat `….pages.dev`, dan
+  pesan commit terakhir tampil di bawah namanya.
+- Tidak ada router URL (cuma `?sesi=` di query), jadi tidak perlu `_redirects`.
+
 ### Impor dari Google Form
 Tanpa OAuth, tanpa API, tanpa setup Google Cloud apa pun — dan karenanya tanpa
 batas jumlah guru atau status Testing/Published untuk diurus. Guru menyalin teks
 dari halaman **responden** Google Form (Ctrl+A, Ctrl+C) dan menempelnya di satu
-kotak (`DialogImpor`, parser di `lib/tempelSoal.ts`). Aturannya cuma satu — soal
-dipisah **baris kosong**, baris pertama tiap blok jadi pertanyaan, sisanya jadi
-opsi; baris sampah baku Google Form (tombol, footer, penanda wajib/poin) disaring
-lewat daftar regex terbaik-usaha, belum diuji dengan tempelan nyata.
+kotak (`DialogImpor`, parser di `lib/tempelSoal.ts`). Dua gaya, dipilih otomatis:
+- **Bernomor** (ada baris `1.` / `2)`): baris bernomor memulai soal baru, baris
+  sesudahnya opsi. Baris kosong DIABAIKAN — gaya dokumen lazim punya baris kosong
+  di antara pertanyaan dan opsinya, dan memakainya sebagai pemisah membuat opsi A
+  terbaca sebagai pertanyaan (bug nyata, sudah ditemukan guru).
+- **Tanpa nomor**: soal dipisah **baris kosong**, baris pertama tiap blok jadi
+  pertanyaan, sisanya opsi.
+
+Di kedua gaya, awalan `1.` dibuang dari pertanyaan dan `A.` / `b)` dari opsi
+(layar murid memang tanpa huruf). Baris sampah baku Google Form (tombol, footer,
+penanda wajib/poin) disaring lewat daftar regex terbaik-usaha.
 
 Kunci jawaban kuis TIDAK PERNAH ikut tersalin — itu ikon di Google Form, bukan
 teks, baik dari halaman edit maupun responden. Karena itu layar Tinjau di
@@ -144,8 +168,9 @@ kunci dinyalakan, supaya murid tidak terkunci oleh aturan yang belum ia lihat.
 Pengujian: skema awal diuji di PGlite dengan skema `auth` tiruan (63 skenario:
 RLS, A1, K7, jeda, veto, pemakaian ulang kode); M1/M2/F1–F3 plus alur murid anonim
 dan backfill data lama diuji dengan cara yang sama (53 skenario); `uraikanTempelan`
-(lib/tempelSoal.ts) diuji dengan teks contoh (8 skenario: pemisah baris kosong,
-CRLF, baris sampah, blok kurang dari 2 opsi, batas 10 opsi). Skema awal sudah
+(lib/tempelSoal.ts) diuji dengan teks contoh (12 skenario: pemisah baris kosong,
+CRLF, baris sampah, blok kurang dari 2 opsi, batas 10 opsi, gaya bernomor dengan
+baris kosong sebelum opsi, `1)`/`a)`, judul sebelum nomor pertama). Skema awal sudah
 terpasang di project Supabase `lpddqyfarfdakmudfhbf`; `murid_tanpa_akun` dan
 `formulir` BELUM.
 
