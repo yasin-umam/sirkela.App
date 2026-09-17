@@ -3,18 +3,27 @@ import { MAKS_PILIHAN } from './soal'
 
 // ─── Tempel teks -> soal, TANPA Google (tidak ada OAuth, tidak ada API) ───────
 // Satu-satunya cara impor dari Google Form di aplikasi ini: salin teks dari
-// halaman RESPONDEN Google Form (Ctrl+A, Ctrl+C), tempel di satu kotak.
-// Aturannya cuma satu -- soal dipisah BARIS KOSONG, baris pertama tiap blok =
-// pertanyaan, sisanya = pilihan.
+// halaman RESPONDEN Google Form (Ctrl+A, Ctrl+C) -- atau tempel soal bergaya
+// dokumen/Word/PDF yang sudah bernomor -- lalu tempel di satu kotak.
 //
 // Kunci jawaban TIDAK PERNAH ikut lewat cara ini: teks polos yang tersalin dari
 // Google Form tidak pernah membawa info "ini yang benar" (itu ikon, bukan teks),
 // baik dari halaman edit maupun responden. Guru menandainya sendiri di layar
-// Tinjau (DialogImpor) lewat kartu soal yang sama seperti editor biasa.
+// Tinjau (DialogImpor) lewat kartu soal yang sama seperti editor biasa -- yang
+// karenanya juga jadi jaring pengaman kalau pemisahan di bawah ini meleset.
 //
-// Parsernya sengaja sederhana (pisah baris kosong), bukan "pintar" menebak-nebak
-// struktur -- hasil yang salah pisah tetap gampang dibetulkan di layar Tinjau
-// karena kartunya bisa disunting, dihapus, dan ditambah manual.
+// Dua GAYA pemisah, dipilih otomatis dari isi teksnya:
+//   bernomor    -- ada baris berawalan "1." / "2)" dst. Pemisah soalnya baris
+//                  bernomor itu SENDIRI, bukan baris kosong -- gaya dokumen
+//                  sering punya baris kosong di ANTARA pertanyaan dan opsinya
+//                  ("1. Soal?\n\nA. Opsi"), jadi baris kosong tidak boleh
+//                  dipakai sebagai pemisah di gaya ini atau soal & opsi
+//                  pertamanya kepisah jadi dua blok.
+//   baris kosong -- bawaan (tanpa nomor sama sekali, gaya paste Google Form
+//                  polos): baris pertama tiap blok = pertanyaan, sisanya = opsi.
+// Awalan "A. " / "b) " di opsi selalu dibuang di kedua gaya -- tampilan murid
+// memang tanpa huruf (lihat FormulirResponden), jadi teks yang tersimpan pun
+// tanpa huruf.
 
 export interface HasilTempel {
   soal: IsiSoal[]
@@ -48,14 +57,29 @@ const BARIS_ABAIKAN: RegExp[] = [
   /^(lihat skor anda setelah mengirim|view score after submission)$/i,
 ]
 
-export function uraikanTempelan(teks: string): HasilTempel {
-  const baris = teks
-    .replace(/\r\n?/g, '\n')
-    .split('\n')
-    .map(b => b.trim())
-    .filter(b => !BARIS_ABAIKAN.some(re => re.test(b)))
+/** "1. ", "2) " -- nomor soal gaya dokumen. */
+const AWALAN_NOMOR = /^\d{1,3}[.)]\s+/
+/** "A. ", "b) " -- label opsi gaya dokumen, dibuang (murid tidak melihat huruf). */
+const AWALAN_HURUF = /^[A-Za-z][.)]\s+/
 
-  // Kelompokkan baris NON-KOSONG yang berurutan jadi satu blok.
+function kelompokkanBernomor(baris: string[]): string[][] {
+  const blok: string[][] = []
+  let sekarang: string[] | null = null
+  for (const b of baris) {
+    if (b === '') continue // baris kosong BUKAN pemisah di gaya ini
+    if (AWALAN_NOMOR.test(b)) {
+      if (sekarang) blok.push(sekarang)
+      sekarang = [b]
+    } else if (sekarang) {
+      sekarang.push(b)
+    }
+    // baris sebelum nomor pertama (judul formulir dsb.) diabaikan
+  }
+  if (sekarang) blok.push(sekarang)
+  return blok
+}
+
+function kelompokkanBarisKosong(baris: string[]): string[][] {
   const blok: string[][] = []
   let sekarang: string[] = []
   for (const b of baris) {
@@ -66,15 +90,31 @@ export function uraikanTempelan(teks: string): HasilTempel {
     }
   }
   if (sekarang.length) blok.push(sekarang)
+  return blok
+}
+
+export function uraikanTempelan(teks: string): HasilTempel {
+  const baris = teks
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map(b => b.trim())
+    .filter(b => !BARIS_ABAIKAN.some(re => re.test(b)))
+
+  const bernomor = baris.some(b => AWALAN_NOMOR.test(b))
+  const blok = bernomor ? kelompokkanBernomor(baris) : kelompokkanBarisKosong(baris)
 
   const soal: IsiSoal[] = []
   const dilewati = new Map<string, number>()
   const lewati = (alasan: string) => dilewati.set(alasan, (dilewati.get(alasan) ?? 0) + 1)
 
   for (const b of blok) {
-    const [pertanyaan, ...pilihan] = b
-    if (pilihan.length < 2) { lewati('kurang dari 2 opsi'); continue }
-    soal.push({ pertanyaan, pilihan: pilihan.slice(0, MAKS_PILIHAN), jawabanBenar: null })
+    const [pertanyaanMentah, ...pilihanMentah] = b
+    if (pilihanMentah.length < 2) { lewati('kurang dari 2 opsi'); continue }
+    soal.push({
+      pertanyaan: pertanyaanMentah.replace(AWALAN_NOMOR, '').trim(),
+      pilihan: pilihanMentah.slice(0, MAKS_PILIHAN).map(p => p.replace(AWALAN_HURUF, '').trim()),
+      jawabanBenar: null,
+    })
   }
 
   return { soal, dilewati: [...dilewati].map(([alasan, jumlah]) => ({ alasan, jumlah })) }
