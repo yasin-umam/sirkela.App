@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* `desktop:` (440px) = "lebih lebar dari kartu HP 430px". Di bawahnya <body>
+   dikunci selebar kartu dan ditengahkan; di atasnya layar memakai lebar penuh
+   dengan kolom isi `desktop:max-w-2xl`. Harus sama dengan @media di bawah dan
+   dengan LapisMengambang.tsx. */
+@theme {
+  --breakpoint-desktop: 27.5rem;
+
+  /* Palet "indigo" ditimpa jadi ungu Google Forms (#673AB7) supaya SEMUA
+     pemakaian bg/text/border-indigo-* yang sudah ada di app (Button, Badge,
+     radio jawaban, dst.) ikut berubah tanpa menyentuh tiap berkas satu-satu. */
+  --color-indigo-50: #F3EEFC;
+  --color-indigo-100: #E4D9F7;
+  --color-indigo-200: #C9B3EF;
+  --color-indigo-300: #A886E3;
+  --color-indigo-400: #8B62D3;
+  --color-indigo-500: #7847C2;
+  --color-indigo-600: #673AB7;
+  --color-indigo-700: #56309A;
+  --color-indigo-800: #46277D;
+  --color-indigo-900: #382061;
+
+  /* Latar "kartu" (slate-50) diberi rona lavender tipis -- dipakai nyaris di
+     semua bg layar penuh, jadi cukup ganti token-nya, bukan tiap berkas. */
+  --color-slate-50: #F2EEFA;
+
+  /* Warna fungsional Google Form yang tidak punya padanan di palet Tailwind:
+     garis kartu, penanda kartu yang sedang disunting (biru, BUKAN warna tema),
+     teks utama/sekunder, dan latar kolom isian. */
+  --color-garis: #DADCE0;
+  --color-fokus: #4285F4;
+  --color-teks: #202124;
+  --color-teks-2: #5F6368;
+  --color-isian: #F8F9FA;
+  --color-benar: #1E8E3E;
+  --color-salah: #D93025;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #F2EEFA;
+    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+    overscroll-behavior: none;
+    /* Tiap layar mengurus scroll-nya sendiri lewat wadah internal; dokumen tidak
+       pernah sengaja discroll. */
+    overflow: hidden;
+    /* Light-theme only. Tanpa ini "auto dark mode" browser meng-invert warna
+       secara algoritmik dan warna Tailwind meleset. */
+    color-scheme: light;
+  }
+
+  body {
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  @media (min-width: 440px) {
+    body {
+      max-width: none;
+    }
+  }
+
+  input, textarea, select {
+    font-size: 16px; /* cegah auto-zoom iOS */
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Di layar lebar scrollbar tipis tetap tampil: pemakai mouse/trackpad tidak
+     punya penanda lain bahwa area itu bisa digulung. */
+  @media (min-width: 440px) {
+    .hide-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(148 163 184) transparent;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+      display: block;
+      width: 6px;
+    }
+    .hide-scrollbar::-webkit-scrollbar-thumb {
+      background: rgb(148 163 184);
+      border-radius: 9999px;
+    }
+  }
+}
+
+/* Perpindahan tab cuma MEMUDAR, tidak menggeser: transform pada wadah tab akan
+   menjadikannya containing block untuk semua `position: fixed` di dalamnya
+   (lembar konfirmasi, QR layar penuh, tombol zoom) dan semuanya tersentak. */
+.tab-masuk { animation: tab-masuk .16s ease-out; }
+
+@keyframes tab-masuk {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-masuk { animation: none; }
+}
