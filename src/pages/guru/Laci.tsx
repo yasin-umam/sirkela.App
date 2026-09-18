@@ -43,7 +43,7 @@ export function Laci({ onTutup, onBaru, onImpor, onArsip, onKeluar, membuat }: {
 
         <div className="flex-1 overflow-y-auto overscroll-contain py-2">
           <ItemLaci ikon="tambah" label={membuat ? 'Membuat…' : 'Formulir kosong'} onClick={onBaru} />
-          <ItemLaci ikon="impor" label="Impor dari Google Form" onClick={onImpor} />
+          <ItemLaci ikon="impor" label="Impor soal" onClick={onImpor} />
 
           <div className="my-2 border-t border-garis" />
           <p className="px-6 py-2 text-xs font-medium text-teks-2">Formulir</p>

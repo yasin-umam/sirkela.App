@@ -2,9 +2,9 @@
 
 Aplikasi terpisah yang HANYA memuat **Formulir Soal + Sesi Kelas + Kunci Layar Sesi**,
 disalin dari Luang (`C:\Users\yasin\Projects\Luang`) per 2026-09-17. Guru menulis
-soal pilihan ganda (atau mengimpornya dari Google Form), menekan Kirim untuk membuka
-sesi, murid bergabung lewat kode/QR/link, mengerjakan, dinilai di server, guru
-meninjau dan mem-veto nilai.
+soal pilihan ganda (atau mengimpornya dari Google Form / PDF), menekan Kirim untuk
+membuka sesi, murid bergabung lewat kode/QR/link, mengerjakan, dinilai di server,
+guru meninjau dan mem-veto nilai.
 
 **Tampilan meniru Google Form**, untuk guru & murid yang sudah terbiasa di sana:
 halaman guru adalah SATU editor formulir (kartu kepala berpita ungu, kartu
@@ -17,10 +17,13 @@ Identitas anonim itu hidup di localStorage perangkat dan dibuang begitu jawaban
 dinilai (`lepasIdentitas` di MuridSesiPage), supaya teman yang memakai HP yang sama
 sesudahnya bergabung sebagai orang baru.
 
-Yang TIDAK ikut dari Luang: semua generator AI (Scan Buku, Generate Soal, Modul,
-RPM, LKPD, PPT, dst), kredit/Duitku/referral, LKPD & Game di dalam sesi, Tab Nilai
-lintas sesi, Riwayat murid, Inbox, aplikasi native Luang Sesi, landing page, PWA
-(service worker/manifest), mode malam, hapus akun.
+Yang TIDAK ikut dari Luang: semua generator AI yang MENGARANG soal dari nol (Scan
+Buku, Generate Soal, Modul, RPM, LKPD, PPT, dst), kredit/Duitku/referral, LKPD &
+Game di dalam sesi, Tab Nilai lintas sesi, Riwayat murid, Inbox, aplikasi native
+Luang Sesi, landing page, PWA (service worker/manifest), mode malam, hapus akun.
+**Pengecualian ditambah 2026-09-18: Impor PDF** (lihat di bawah) MEMBACA dokumen
+yang guru sudah punya (bukan mengarang soal baru), jadi tidak kena batasan "tanpa
+generator AI" di atas — tetap tanpa Scan Buku/Generate Soal/dst yang lain.
 
 ## Stack & perintah
 
@@ -38,6 +41,8 @@ npm run build            # tsc + vite build
 ```bash
 supabase link --project-ref <ref-project-baru>
 supabase db push         # menjalankan supabase/migrations/
+supabase secrets set OPENROUTER_API_KEY=<kunci-openrouter>   # untuk Impor PDF, lihat di bawah
+supabase functions deploy impor-pdf
 ```
 Di dashboard (config.toml hanya berlaku untuk `supabase start` lokal):
 - **Authentication → Providers → Email → matikan "Confirm email"** (sama dengan
@@ -89,6 +94,36 @@ Sebelumnya ada juga jalur OAuth + Google Forms API (kunci ikut otomatis) tapi
 itu ditinggalkan karena setupnya (Google Cloud project, OAuth consent screen,
 batas 100 test user selama status Testing) terlalu berat untuk manfaatnya.
 
+### Impor PDF (AI, ditambah 2026-09-18)
+Jalur kedua di `DialogImpor` (guru memilih Tempel teks vs Unggah PDF di layar
+pertama), untuk migrasi dari Microsoft 365 atau Google Form yang diekspor/dicetak
+jadi PDF, atau dokumen soal apa pun. Beda dari Impor teks: bukan cuma regex, PDF-nya
+dibaca AI (`anthropic/claude-haiku-4.5` lewat **OpenRouter**, dipilih karena murah
+dan mendukung dokumen PDF native tanpa OCR terpisah).
+
+- **Klien** (`lib/imporPdf.ts`): baca berkas jadi data URL base64, kirim ke Edge
+  Function lewat `supabase.functions.invoke('impor-pdf', ...)` — otomatis membawa
+  JWT sesi guru, jadi tidak perlu pegang token manual. Batas 15 MB di klien DAN
+  server (`MAKS_BYTE_PDF`, dua tempat, cermin satu sama lain).
+- **Server** (`supabase/functions/impor-pdf/index.ts`, Deno Edge Function): kunci
+  `OPENROUTER_API_KEY` cuma hidup di sini (secret, lihat setup di atas) — TIDAK
+  PERNAH ke klien, beda dari Impor teks yang murni klien. Peran guru dicek lewat
+  RPC `adalah_guru()` yang SAMA dengan RLS (bukan diturunkan ulang), jadi murid
+  anonim ditolak 403 sebelum PDF-nya dikirim ke OpenRouter. AI dipaksa balas lewat
+  **tool call** (`catat_soal`, bukan minta AI menulis JSON mentah) supaya bentuknya
+  selalu valid; server lalu memvalidasi tiap soal (buang blok tanpa pertanyaan atau
+  kurang dari 2 opsi, potong opsi ke-11 dst, clamp kunci ke rentang opsi) sebelum
+  dikirim balik — jangan percaya keluaran AI mentah-mentah.
+- Hasilnya berbentuk `HasilTempel` yang SAMA dengan `uraikanTempelan()` (Impor
+  teks), jadi memakai layar Tinjau (`KartuPertanyaan`) yang SAMA persis.
+- **Kunci jawaban dari AI cuma TEBAKAN**, sama seperti Impor teks yang memang tidak
+  pernah membawanya sama sekali — bedanya di sini AI KADANG menebak benar (kalau
+  dokumennya menandai kunci dengan jelas) tapi juga bisa salah (diuji manual: AI
+  sempat menjawab "5 + 7 = 11"). Guru tetap WAJIB menandai/memeriksa kunci di layar
+  Tinjau sebelum Impor — pesan di layar itu disesuaikan per sumber (`metode` di
+  `DialogImpor`) supaya guru tahu mana yang "tidak pernah ada kuncinya" (teks) vs
+  "ada tebakan, periksa lagi" (PDF).
+
 Sakelar darurat kunci layar (membebaskan SEMUA murid di semua sesi tanpa rilis):
 ```sql
 update public.pengaturan_sesi set kunci_layar_aktif = false where id = 1;
@@ -102,6 +137,7 @@ src/
   lib/       sesiMurid (RPC murid + antrean offline) · sesiGuru (jawaban & veto)
              kunciLayar (sensor + fullscreen + wake lock) · sesiCapture (?sesi=)
              soal (masalahSoal = cermin validasi server, uuid) · tempelSoal (impor teks)
+             imporPdf (panggil Edge Function impor-pdf)
   components/
     ui/      Button · Card · Dialog · Input · Sakelar · Ikon (SVG Material) · TeksOtomatis
     FormulirResponden (tampilan responden, dipakai murid & pratinjau guru)
@@ -116,6 +152,8 @@ supabase/migrations/
   20260917000000_skema_awal.sql       # skema lengkap, lihat kepalanya
   20260917100000_murid_tanpa_akun.sql # M1, M2
   20260917200000_formulir.sql         # F1, F2, F3
+supabase/functions/
+  impor-pdf/index.ts                  # PDF -> soal lewat OpenRouter, lihat Impor PDF di atas
 ```
 
 Tidak ada router. `AppScreen` (`types.ts`): `login | register | forgotPassword |
@@ -208,7 +246,8 @@ membuka nilainya lagi.
 - **Satu halaman editor ala Google Form** menggantikan tab Sesi · Bank Soal · Saya.
   Tidak ada lagi menambah/mengeluarkan grup soal di sesi yang sedang berjalan —
   sesi memuat seluruh formulir saat Kirim.
-- **Impor dari Google Form** lewat tempel teks, tanpa OAuth/API apa pun (lihat penjelasan di atas).
+- **Impor dari Google Form** lewat tempel teks, tanpa OAuth/API apa pun, DAN **Impor PDF**
+  lewat AI di server (lihat penjelasan di atas).
 - **Murid tanpa akun** (Luang: murid mendaftar dengan email). Pendaftaran tidak
   lagi punya pilihan peran.
 - Layar murid tanpa huruf A/B/C di opsi — sama dengan responden Google Form.
@@ -219,7 +258,10 @@ membuka nilainya lagi.
 - Murid yang menutup aplikasi sebelum Kirim tidak punya baris nilai
   (`akhiri_sesi` tidak menyelesaikan murid yang tertinggal) — sama dengan Luang.
 - Soal satu formulir dimuat tanpa paginasi; `max_rows` 1000 memotong diam-diam.
-- Gambar di soal (termasuk dari impor Google Form) belum didukung.
+- Gambar di soal (termasuk dari impor Google Form/PDF) belum didukung — Impor PDF
+  cuma mengambil teksnya, gambar di dalam PDF diabaikan AI.
+- Impor PDF tidak punya batas biaya/kuota per guru — satu guru yang mengunggah PDF
+  besar berkali-kali memakai kredit OpenRouter yang sama untuk semua guru.
 - Tidak ada seret-lepas untuk mengurutkan soal; baru tombol naik/turun.
 - Batas simpan log `sesi_peristiwa` (data perilaku anak, UU PDP).
 - Akun anonim murid menumpuk di `auth.users` (satu per perangkat per sesi yang

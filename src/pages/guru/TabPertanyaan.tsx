@@ -142,7 +142,7 @@ export function TabPertanyaan({ sorot, onImpor }: {
           <p className="text-base text-teks">Formulir ini belum punya pertanyaan</p>
           <div className="flex flex-wrap justify-center gap-2">
             <Button variant="secondary" onClick={tambah}><Ikon nama="tambah" className="w-5 h-5" />Tambah pertanyaan</Button>
-            <Button variant="secondary" onClick={onImpor}><Ikon nama="impor" className="w-5 h-5" />Impor dari Google Form</Button>
+            <Button variant="secondary" onClick={onImpor}><Ikon nama="impor" className="w-5 h-5" />Impor soal</Button>
           </div>
         </div>
       )}
@@ -153,7 +153,7 @@ export function TabPertanyaan({ sorot, onImpor }: {
       <div className="sticky bottom-3 z-20 flex justify-center min-[900px]:justify-end pointer-events-none min-[900px]:-mr-16">
         <div className="pointer-events-auto flex min-[900px]:flex-col bg-white rounded-lg border border-garis shadow-md p-1">
           <TombolIkon nama="tambahLingkar" label="Tambah pertanyaan" onClick={tambah} />
-          <TombolIkon nama="impor" label="Impor dari Google Form" onClick={onImpor} />
+          <TombolIkon nama="impor" label="Impor soal" onClick={onImpor} />
         </div>
       </div>
 

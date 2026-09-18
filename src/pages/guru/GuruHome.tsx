@@ -257,14 +257,14 @@ function Sambutan({ nama, membuat, onBaru, onImpor }: {
 }) {
   const pilihan: { ikon: NamaIkon; judul: string; onClick: () => void }[] = [
     { ikon: 'tambah', judul: membuat ? 'Membuat…' : 'Formulir kosong', onClick: onBaru },
-    { ikon: 'impor', judul: 'Impor dari Google Form', onClick: onImpor },
+    { ikon: 'impor', judul: 'Impor soal', onClick: onImpor },
   ]
   return (
     <div className="max-w-192.5 mx-auto px-3 py-6 desktop:py-10 flex flex-col gap-4">
       <Card accent>
         <h1 className="text-[28px] leading-tight text-teks">Halo{nama && `, ${nama}`}</h1>
         <p className="text-sm text-teks-2 mt-2 leading-relaxed">
-          Tulis soal pilihan ganda di sini atau ambil dari Google Form, lalu tekan Kirim untuk membuka sesi.
+          Tulis soal pilihan ganda di sini atau impor dari Google Form/PDF, lalu tekan Kirim untuk membuka sesi.
           Murid bergabung dengan kode — tanpa akun.
         </p>
       </Card>
