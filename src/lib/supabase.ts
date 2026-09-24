@@ -5,6 +5,8 @@ export interface DbFormulir {
   guru_id: string
   judul: string
   deskripsi: string
+  kelas: string
+  mapel: string
   durasi_menit: number
   kunci_layar: boolean
   created_at: string
@@ -40,6 +42,9 @@ export interface DbSesiKelas {
   kunci_layar: boolean
   kunci_layar_sejak: string | null
   created_at: string
+  /** Non-null = lahir dari mulai_super_sesi(), lihat SesiKelas.superSesiId. */
+  super_sesi_id: string | null
+  super_sesi_judul: string | null
 }
 
 export interface DbSesiMurid {

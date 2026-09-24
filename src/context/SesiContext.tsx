@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import type { SesiKelas, KontenItem, PesertaSesi } from '../types'
+import type { SesiKelas, KontenItem, PesertaSesi, KelasSuperSesiTersedia } from '../types'
 import { supabase } from '../lib/supabase'
 import type { DbSesiKelas, DbSesiMurid } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -19,10 +19,22 @@ interface SesiContextValue {
   bukaSesi: (formulirId: string) => Promise<SesiKelas>
   mulaiSesi: (id: string) => Promise<void>
   akhiriSesi: (id: string) => Promise<void>
+  /** Hanya boleh SEBELUM mulaiSesi -- server menolak begitu mulai_pada terisi. */
+  aturDurasiSesi: (id: string, menit: number) => Promise<void>
   /** Mematikan = membebaskan semua murid yang sedang terkunci (atur_kunci_layar). */
   aturKunciLayar: (id: string, aktif: boolean) => Promise<void>
   bukaKunciMurid: (sesiId: string, muridId: string) => Promise<void>
   bukaKunciSemua: (sesiId: string) => Promise<void>
+  /**
+   * Kelas hasil distribusi Super Sesi yang BELUM diklaim siapa pun, dipoling
+   * tiap 10 detik selama akun ini guru/kepala sekolah (bukan murid) -- lihat
+   * ambil_kelas_tersedia_super_sesi(). Tidak ada Realtime di sini: baris
+   * sesi_kelas belum punya guru_id, jadi tidak ada kanal per-guru yang bisa
+   * dipasangi listener.
+   */
+  kelasTersedia: KelasSuperSesiTersedia[]
+  /** MELEMPAR "Kelas ini sudah diambil guru lain" kalau kalah rebutan (SS9). */
+  klaimKelasSuper: (sesiId: string) => Promise<SesiKelas>
 }
 
 // Jenis peristiwa yang dihitung di baris peserta. Peristiwa lain (kembali_*,
@@ -46,18 +58,66 @@ function petakanSesi(s: DbSesiKelas, peserta: PesertaSesi[]): SesiKelas {
     kunciLayar: s.kunci_layar,
     muridJoined: peserta,
     dibuatPada: s.created_at,
+    superSesiId: s.super_sesi_id,
+    superSesiJudul: s.super_sesi_judul,
+  }
+}
+
+interface KelasTersediaServer {
+  sesi_id: string
+  mapel: string
+  kelas: string
+  judul: string
+  super_sesi_judul: string
+  durasi_menit: number
+  created_at: string
+}
+
+function petakanKelasTersedia(k: KelasTersediaServer): KelasSuperSesiTersedia {
+  return {
+    sesiId: k.sesi_id, mapel: k.mapel, kelas: k.kelas, judul: k.judul,
+    superSesiJudul: k.super_sesi_judul, durasiMenit: k.durasi_menit, dibuatPada: k.created_at,
   }
 }
 
 export function SesiProvider({ children }: { children: ReactNode }) {
+  if (import.meta.env.VITE_UJI_TAMPILAN) {
+    const [semuaSesi, setSemuaSesi] = useState<SesiKelas[]>([{
+      id: 'sesi1', formulirId: 'f1', judul: 'Ulangan Harian Bab 3', deskripsi: '', durasiMenit: 45,
+      mulaiPada: null, selesaiPada: null, status: 'aktif', kontenList: [], kodeJoin: 'AB12CD',
+      kunciLayar: false, muridJoined: [], dibuatPada: new Date().toISOString(),
+      superSesiId: null, superSesiJudul: null,
+    }])
+    const [fokusId, setFokusId] = useState<string | null>(null)
+    const fokus = semuaSesi.find(s => s.id === fokusId) ?? null
+    const ubah = (id: string, fn: (s: SesiKelas) => SesiKelas) =>
+      setSemuaSesi(prev => prev.map(s => s.id === id ? fn(s) : s))
+    const value: SesiContextValue = {
+      semuaSesi, fokus, fokuskan: setFokusId,
+      bukaSesi: async () => semuaSesi[0],
+      mulaiSesi: async id => { ubah(id, s => ({ ...s, mulaiPada: new Date().toISOString() })) },
+      akhiriSesi: async id => { ubah(id, s => ({ ...s, status: 'selesai' })) },
+      aturDurasiSesi: async (id, menit) => { ubah(id, s => ({ ...s, durasiMenit: menit })) },
+      aturKunciLayar: async (id, aktif) => { ubah(id, s => ({ ...s, kunciLayar: aktif })) },
+      bukaKunciMurid: async () => {},
+      bukaKunciSemua: async () => {},
+      kelasTersedia: [],
+      klaimKelasSuper: async () => semuaSesi[0],
+    }
+    return <SesiContext.Provider value={value}>{children}</SesiContext.Provider>
+  }
+
   const { user } = useAuth()
   const [semuaSesi, setSemuaSesi] = useState<SesiKelas[]>([])
   const [fokusId, setFokusId] = useState<string | null>(null)
+  const [kelasTersedia, setKelasTersedia] = useState<KelasSuperSesiTersedia[]>([])
 
   useEffect(() => {
     setSemuaSesi([])
     setFokusId(null)
-    if (!user || user.role !== 'guru') return
+    // kepala_sekolah tetap guru mapel biasa untuk sesinya sendiri (2026-09-24),
+    // dan juga jadi pengawas sesi hasil Super Sesi -- cuma murid yang tidak pernah.
+    if (!user || user.role === 'murid') return
     let batal = false
     void (async () => {
       const { data: sesiData, error } = await supabase
@@ -101,6 +161,24 @@ export function SesiProvider({ children }: { children: ReactNode }) {
       setSemuaSesi(rows.map(s => petakanSesi(s, pesertaPer.get(s.id) ?? [])))
     })()
     return () => { batal = true }
+  }, [user])
+
+  // Kelas Super Sesi yang sudah didistribusikan tapi belum diklaim siapa pun --
+  // dipoling, bukan Realtime (baris belum punya guru_id untuk dijadikan kanal
+  // per-guru). Dipoling untuk guru DAN kepala sekolah (adalah_guru() di server
+  // sudah melonggarkan itu sejak kepsek_guru_gabung), tidak untuk murid.
+  useEffect(() => {
+    setKelasTersedia([])
+    if (!user || user.role === 'murid') return
+    let batal = false
+    async function muat() {
+      const { data, error } = await supabase.rpc('ambil_kelas_tersedia_super_sesi')
+      if (batal || error) return
+      setKelasTersedia((data as KelasTersediaServer[] ?? []).map(petakanKelasTersedia))
+    }
+    void muat()
+    const id = setInterval(() => void muat(), 10_000)
+    return () => { batal = true; clearInterval(id) }
   }, [user])
 
   const ubahSesi = useCallback((id: string, ubah: (s: SesiKelas) => SesiKelas) => {
@@ -188,6 +266,12 @@ export function SesiProvider({ children }: { children: ReactNode }) {
     ubahSesi(id, s => ({ ...s, status: 'selesai', selesaiPada }))
   }, [ubahSesi])
 
+  const aturDurasiSesi = useCallback(async (id: string, menit: number) => {
+    const { error } = await supabase.rpc('atur_durasi_sesi', { p_sesi_id: id, p_menit: menit })
+    if (error) throw new Error(error.message)
+    ubahSesi(id, s => ({ ...s, durasiMenit: menit }))
+  }, [ubahSesi])
+
   // ── Kunci Layar Sesi ──
   // Status kunci murid TIDAK diubah optimistis: yang benar-benar membuka kunci
   // adalah baris sesi_murid, dan perubahannya sampai lewat Realtime UPDATE di
@@ -209,10 +293,23 @@ export function SesiProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error('Gagal membuka kunci. Coba lagi.')
   }, [])
 
+  // SS9: server menolak atomik kalau kelasnya sudah diklaim guru lain --
+  // pesannya diteruskan apa adanya supaya UI bisa menampilkannya langsung.
+  const klaimKelasSuper = useCallback(async (sesiId: string): Promise<SesiKelas> => {
+    const { data, error } = await supabase.rpc('klaim_kelas_super_sesi', { p_sesi_id: sesiId })
+    if (error) throw new Error(error.message)
+    const sesi = petakanSesi(data as DbSesiKelas, [])
+    setSemuaSesi(prev => [sesi, ...prev])
+    setKelasTersedia(prev => prev.filter(k => k.sesiId !== sesiId))
+    return sesi
+  }, [])
+
   const value = useMemo<SesiContextValue>(() => ({
     semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi,
-    aturKunciLayar, bukaKunciMurid, bukaKunciSemua,
-  }), [semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi, aturKunciLayar, bukaKunciMurid, bukaKunciSemua])
+    aturDurasiSesi, aturKunciLayar, bukaKunciMurid, bukaKunciSemua,
+    kelasTersedia, klaimKelasSuper,
+  }), [semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi, aturDurasiSesi, aturKunciLayar, bukaKunciMurid, bukaKunciSemua,
+      kelasTersedia, klaimKelasSuper])
 
   return <SesiContext.Provider value={value}>{children}</SesiContext.Provider>
 }

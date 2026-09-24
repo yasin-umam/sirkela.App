@@ -1,40 +1,41 @@
 import { useState, type ReactNode } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNav } from '../../context/NavContext'
+import { cekKodeSekolah } from '../../lib/sekolah'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
-import { NAMA_APLIKASI } from '../../lib/aplikasi'
+import { Logo } from '../../components/Logo'
 
-// Empat layar auth dalam satu berkas: bentuknya sama (kartu kepala berpita +
-// kartu form, gaya Google Form), dan panel branding dua-nada Luang
-// (AuthLayout/AuthBrandPanel) tidak ikut disalin.
+// Empat layar auth dalam satu berkas: bentuknya sama (logo + kartu kepala +
+// kartu form), dan panel branding dua-nada milik Luang tidak ikut disalin --
+// aplikasi ini cuma sekolah/guru perorangan, bukan produk yang perlu dijual
+// lewat panel testimoni.
 // Semuanya KHUSUS GURU: murid bergabung ke sesi tanpa akun (MuridSesiPage).
 
 function Kerangka({ judul, subjudul, children }: { judul: string; subjudul: string; children: ReactNode }) {
   return (
-    <div className="h-full overflow-y-auto bg-slate-50">
-      <div className="min-h-full flex flex-col justify-center gap-3 px-3 py-10 max-w-md mx-auto">
-        <div className="bg-white rounded-lg border border-garis overflow-hidden">
-          <div className="h-2.5 bg-indigo-600" />
-          <div className="px-6 pt-5 pb-5">
-            <p className="text-xs text-teks-2">{NAMA_APLIKASI}</p>
-            <h1 className="text-[28px] leading-tight text-teks mt-1">{judul}</h1>
-            <p className="text-sm text-teks-2 mt-2">{subjudul}</p>
-          </div>
+    <div className="h-full overflow-y-auto hide-scrollbar bg-slate-50 tekstur-latar">
+      <div className="min-h-full flex flex-col justify-center gap-4 px-4 py-10 max-w-md mx-auto">
+        <div className="flex justify-center">
+          <Logo />
         </div>
-        <div className="bg-white rounded-lg border border-garis px-6 py-6">{children}</div>
+        <div className="text-center px-2">
+          <h1 className="text-xl font-bold text-slate-800">{judul}</h1>
+          <p className="text-sm text-slate-500 mt-1">{subjudul}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">{children}</div>
       </div>
     </div>
   )
 }
 
 function Galat({ teks }: { teks: string }) {
-  return <p className="text-sm text-salah">{teks}</p>
+  return <p className="text-sm text-red-600">{teks}</p>
 }
 
 function TautanTeks({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="text-sm font-medium text-indigo-600 hover:underline">
+    <button type="button" onClick={onClick} className="text-sm font-semibold text-indigo-600 hover:underline">
       {children}
     </button>
   )
@@ -70,11 +71,11 @@ export function LoginPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Masuk...' : 'Masuk'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-teks-2">Belum punya akun? </span>
+        <span className="text-sm text-slate-500">Belum punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'register' })}>Daftar</TautanTeks>
       </div>
-      <div className="mt-3 pt-4 border-t border-garis text-center">
-        <span className="text-sm text-teks-2">Murid? </span>
+      <div className="mt-3 pt-4 border-t border-slate-100 text-center">
+        <span className="text-sm text-slate-500">Murid? </span>
         <TautanTeks onClick={() => goTo({ name: 'murid' })}>Gabung sesi dengan kode</TautanTeks>
       </div>
     </Kerangka>
@@ -88,6 +89,7 @@ export function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [konfirmasi, setKonfirmasi] = useState('')
+  const [kodeSekolah, setKodeSekolah] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -97,13 +99,21 @@ export function RegisterPage() {
     if (password !== konfirmasi) { setError('Password tidak cocok'); return }
     if (password.length < 6) { setError('Password minimal 6 karakter'); return }
     setLoading(true)
-    const errMsg = await register(nama.trim(), email.trim(), password)
+    // Dicek dulu di sini, bukan menunggu handle_new_user() menolaknya di tengah
+    // signUp() -- pesan trigger belum tentu tembus apa adanya lewat GoTrue.
+    const namaSekolah = await cekKodeSekolah(kodeSekolah.trim())
+    if (!namaSekolah) {
+      setError('Kode sekolah tidak ditemukan. Tanyakan ke kepala sekolah atau admin.')
+      setLoading(false)
+      return
+    }
+    const errMsg = await register(nama.trim(), email.trim(), password, kodeSekolah.trim())
     if (errMsg) setError(errMsg)
     setLoading(false)
   }
 
   return (
-    <Kerangka judul="Daftar Guru" subjudul="Murid tidak perlu mendaftar — cukup kode sesi">
+    <Kerangka judul="Daftar Guru" subjudul="Murid tidak perlu mendaftar, cukup kode sesi">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Nama Lengkap" type="text" value={nama} onChange={e => setNama(e.target.value)} autoComplete="name" required />
         <Input label="Email" type="email" placeholder="nama@sekolah.sch.id" value={email}
@@ -112,12 +122,14 @@ export function RegisterPage() {
           onChange={e => setPassword(e.target.value)} autoComplete="new-password" required />
         <Input label="Konfirmasi Password" type="password" placeholder="Ulangi password" value={konfirmasi}
           onChange={e => setKonfirmasi(e.target.value)} autoComplete="new-password" required />
+        <Input label="Kode Sekolah" type="text" placeholder="Tanyakan ke kepala sekolah/admin" value={kodeSekolah}
+          onChange={e => setKodeSekolah(e.target.value)} autoComplete="off" required />
 
         {error && <Galat teks={error} />}
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Mendaftar...' : 'Daftar'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-teks-2">Sudah punya akun? </span>
+        <span className="text-sm text-slate-500">Sudah punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'login' })}>Masuk</TautanTeks>
       </div>
     </Kerangka>
@@ -205,7 +217,7 @@ export function ResetPasswordPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Menyimpan...' : 'Simpan Password Baru'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-slate-400 hover:text-teks-2">
+        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-slate-400 hover:text-slate-600">
           Batal, kembali ke Masuk
         </button>
       </div>

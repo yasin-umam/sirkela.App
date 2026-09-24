@@ -10,8 +10,12 @@ interface AuthContextValue {
   passwordRecovery: boolean
   clearPasswordRecovery: () => void
   login: (email: string, password: string) => Promise<string | null>
-  /** Pendaftaran email = akun GURU. Murid tidak mendaftar (lihat masukTamu). */
-  register: (nama: string, email: string, password: string) => Promise<string | null>
+  /**
+   * Pendaftaran email = akun GURU (kepala sekolah dipromosikan manual sesudahnya,
+   * lihat CLAUDE.md). Murid tidak mendaftar (lihat masukTamu). kodeSekolah WAJIB
+   * -- handle_new_user() menolak akun non-anonim tanpa sekolah yang valid.
+   */
+  register: (nama: string, email: string, password: string, kodeSekolah: string) => Promise<string | null>
   /**
    * Pastikan perangkat ini punya identitas murid. Idempoten: sesi yang sudah ada
    * dipakai, bukan diganti akun anonim baru.
@@ -26,6 +30,17 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  if (import.meta.env.VITE_UJI_TAMPILAN) {
+    const value: AuthContextValue = {
+      user: { id: 'g1', nama: 'Guru Uji', email: 'guru@uji.test', role: 'guru' },
+      authLoading: false, passwordRecovery: false,
+      clearPasswordRecovery: () => {}, login: async () => null, register: async () => null,
+      masukTamu: async () => null, logout: async () => {}, updateNama: async () => null,
+      sendPasswordReset: async () => null, updatePassword: async () => null,
+    }
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  }
+
   const [user, setUser] = useState<User | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [passwordRecovery, setPasswordRecovery] = useState(false)
@@ -79,14 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null
   }, [])
 
-  // nama dikirim lewat metadata; trigger on_auth_user_created yang menulis
-  // barisnya ke profiles. Peran TIDAK dikirim: trigger menurunkannya dari jenis
-  // akun (email = guru, anonim = murid), karena metadata ditulis klien.
-  const register = useCallback(async (nama: string, email: string, password: string): Promise<string | null> => {
+  // nama & kode_sekolah dikirim lewat metadata; trigger on_auth_user_created
+  // yang menulis barisnya ke profiles. Peran TIDAK dikirim: trigger
+  // menurunkannya dari jenis akun (email = guru, anonim = murid), karena
+  // metadata ditulis klien -- kode_sekolah cuma menentukan AFILIASI sekolah,
+  // bukan peran (promosi ke kepala_sekolah tetap manual lewat SQL editor).
+  const register = useCallback(async (nama: string, email: string, password: string, kodeSekolah: string): Promise<string | null> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { nama } },
+      options: { data: { nama, kode_sekolah: kodeSekolah } },
     })
     if (error) return error.message
     if (!data.user) return 'Gagal membuat akun'

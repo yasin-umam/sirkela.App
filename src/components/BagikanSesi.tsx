@@ -16,6 +16,15 @@ async function buatQr(kode: string, lebar: number): Promise<string> {
   return QRCode.toDataURL(urlGabungSesi(kode), { width: lebar, margin: 1, errorCorrectionLevel: 'M' })
 }
 
+function TombolKecil({ ikon, label, onClick }: { ikon: 'qr' | 'duplikat' | 'bagikan'; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold active:scale-95 hover:bg-indigo-100 transition-all">
+      <Ikon nama={ikon} className="w-3.5 h-3.5" tebal={2} />{label}
+    </button>
+  )
+}
+
 export function BagikanSesi({ kode, qrSebaris = false }: { kode: string; qrSebaris?: boolean }) {
   const [status, setStatus] = useState<string | null>(null)
   const [qrPenuh, setQrPenuh] = useState<string | null>(null)
@@ -62,60 +71,52 @@ export function BagikanSesi({ kode, qrSebaris = false }: { kode: string; qrSebar
       // 720px supaya tetap tajam saat diproyeksikan ke layar kelas.
       setQrPenuh(await buatQr(kode, 720))
     } catch {
-      kabari('QR gagal dibuat — pakai kode')
+      kabari('QR gagal dibuat, pakai kode')
     }
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
         {qrSebaris && (
           <button type="button" onClick={() => void tampilkanQr()} aria-label="Perbesar QR"
-            className="w-28 h-28 shrink-0 rounded-md border border-garis bg-white p-1 flex items-center justify-center">
-            {qrKecil ? <img src={qrKecil} alt="QR sesi" className="w-full h-full" /> : <Ikon nama="qr" className="w-10 h-10 text-slate-300" />}
+            className="w-24 h-24 shrink-0 rounded-2xl border border-slate-100 bg-white p-1.5 flex items-center justify-center active:scale-95 transition-transform">
+            {qrKecil
+              ? <img src={qrKecil} alt="QR sesi" className="w-full h-full" />
+              : <Ikon nama="qr" className="w-9 h-9 text-slate-200" />}
           </button>
         )}
         <div className="min-w-0">
-          <p className="text-xs text-teks-2">Kode sesi</p>
-          <p className="text-3xl desktop:text-4xl font-mono font-bold text-teks tracking-[0.12em] select-all">{kode}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Kode sesi</p>
+          <p className="text-3xl font-mono font-bold text-slate-800 tracking-[0.12em] select-all">{kode}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 border-b border-garis pb-1.5">
-        <Ikon nama="tautan" className="w-5 h-5 text-teks-2" />
+      <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+        <Ikon nama="tautan" className="w-4 h-4 text-slate-400 shrink-0" />
         <input readOnly value={url} onFocus={e => e.currentTarget.select()}
-          className="flex-1 min-w-0 bg-transparent text-sm text-teks outline-none" />
+          className="flex-1 min-w-0 bg-transparent text-xs text-slate-600 outline-none" />
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => void tampilkanQr()}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-garis text-sm font-medium text-indigo-600 hover:bg-indigo-50">
-          <Ikon nama="qr" className="w-4.5 h-4.5" />QR layar penuh
-        </button>
-        <button type="button" onClick={() => void salin()}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-garis text-sm font-medium text-indigo-600 hover:bg-indigo-50">
-          <Ikon nama="duplikat" className="w-4.5 h-4.5" />Salin link
-        </button>
-        {bisaShare && (
-          <button type="button" onClick={() => void bagikan()}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-garis text-sm font-medium text-indigo-600 hover:bg-indigo-50">
-            <Ikon nama="bagikan" className="w-4.5 h-4.5" />Bagikan
-          </button>
-        )}
+        <TombolKecil ikon="qr" label="QR layar penuh" onClick={() => void tampilkanQr()} />
+        <TombolKecil ikon="duplikat" label="Salin link" onClick={() => void salin()} />
+        {bisaShare && <TombolKecil ikon="bagikan" label="Bagikan" onClick={() => void bagikan()} />}
       </div>
-      {status && <p className="text-xs text-benar -mt-2">{status}</p>}
+      {status && <p className="text-xs font-medium text-emerald-600 -mt-1">{status}</p>}
 
       {/* Dihadapkan ke kelas: QR sebesar mungkin, dan KODE tetap tercetak besar
           untuk kamera yang tidak bisa membacanya. */}
       {qrPenuh && (
-        <div className="fixed inset-0 z-60 bg-white flex flex-col items-center justify-center gap-5 px-6" onClick={() => setQrPenuh(null)}>
-          <p className="text-sm font-medium text-teks-2 uppercase tracking-widest">Pindai untuk bergabung</p>
+        <div className="fixed inset-0 z-60 bg-white flex flex-col items-center justify-center gap-5 px-6"
+          onClick={() => setQrPenuh(null)}>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pindai untuk bergabung</p>
           <img src={qrPenuh} alt="QR sesi" className="w-full max-w-xs sm:max-w-md aspect-square object-contain" />
           <div className="text-center">
-            <p className="text-xs text-teks-2 uppercase tracking-widest">atau masukkan kode</p>
-            <p className="text-5xl sm:text-6xl font-mono font-bold text-teks tracking-[0.15em] mt-1">{kode}</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">atau masukkan kode</p>
+            <p className="text-5xl sm:text-6xl font-mono font-bold text-slate-800 tracking-[0.15em] mt-1">{kode}</p>
           </div>
-          <p className="text-xs text-teks-2">Ketuk di mana saja untuk menutup</p>
+          <p className="text-xs text-slate-400">Ketuk di mana saja untuk menutup</p>
         </div>
       )}
     </div>

@@ -3,7 +3,7 @@ import { useKembali } from '../../context/NavContext'
 import { Button } from '../../components/ui/Button'
 import { Dialog } from '../../components/ui/Dialog'
 import { Ikon } from '../../components/ui/Ikon'
-import { HalamanResponden, KartuKepalaResponden, KartuSoalResponden } from '../../components/FormulirResponden'
+import { HalamanMurid, KartuKepalaMurid, KartuSoalMurid } from '../../components/LayarMurid'
 import { Spinner } from '../../components/ui/Spinner'
 import { useZoomKontrol, TombolZoomMengambang } from '../../components/TombolZoom'
 import {
@@ -54,7 +54,8 @@ function Hitung({ tenggat, onHabis }: { tenggat: string; onHabis: () => void }) 
   const menit = Math.floor(detik / 60)
   const mepet = detik < 300
   return (
-    <div className={`px-3 py-1 rounded-full font-mono text-sm font-medium shrink-0 ${mepet ? 'bg-red-50 text-salah' : 'bg-indigo-50 text-indigo-700'}`}>
+    <div className={`px-2.5 py-1 rounded-lg font-mono text-sm font-bold tabular-nums shrink-0 ${
+      mepet ? 'bg-red-50 text-red-600' : 'bg-indigo-50 text-indigo-700'}`}>
       {String(menit).padStart(2, '0')}:{String(detik % 60).padStart(2, '0')}
     </div>
   )
@@ -71,22 +72,25 @@ function LayarTerkunci({ judul, tenggat, terkunciPada, onHabis }: {
     ? new Date(terkunciPada).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     : null
   return (
-    <HalamanResponden className="select-none">
-      <KartuKepalaResponden judul="Layar terkunci">
-        <div className="flex flex-col gap-3 text-teks">
-          <p className="flex items-start gap-2">
-            <Ikon nama="kunci" className="w-5 h-5 text-amber-700 mt-px" />
-            <span>Kamu keluar dari layar sesi <strong className="font-medium">{judul}</strong>. Minta gurumu membuka kuncinya.</span>
-          </p>
-          {tenggat && (
-            <p className="flex items-center gap-2 text-teks-2">Waktu tetap berjalan <Hitung tenggat={tenggat} onHabis={onHabis} /></p>
-          )}
-          <p className="text-teks-2">
-            {sejak && <>Terkunci sejak {sejak}. </>}Jawaban yang sudah kamu pilih tetap tersimpan.
-          </p>
-        </div>
-      </KartuKepalaResponden>
-    </HalamanResponden>
+    <div className="min-h-full bg-slate-50 tekstur-latar px-4 py-4 select-none flex flex-col justify-center">
+      <div className="max-w-sm w-full mx-auto bg-white rounded-2xl border border-amber-200 shadow-sm p-6 flex flex-col items-center gap-3 text-center">
+        <span className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <Ikon nama="kunci" className="w-7 h-7" tebal={1.6} />
+        </span>
+        <p className="text-lg font-bold text-slate-800">Layar terkunci</p>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          Kamu keluar dari layar sesi <strong className="font-semibold">{judul}</strong>. Minta gurumu membuka kuncinya.
+        </p>
+        {tenggat && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            Waktu tetap berjalan <Hitung tenggat={tenggat} onHabis={onHabis} />
+          </div>
+        )}
+        <p className="text-xs text-slate-400 border-t border-slate-100 pt-3 w-full">
+          {sejak && <>Terkunci sejak {sejak}. </>}Jawaban yang sudah kamu pilih tetap tersimpan.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -352,59 +356,62 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
 
   if (fase === 'selesai' && hasil) {
     return (
-      <HalamanResponden>
-        <KartuKepalaResponden judul={sesi.judul}>
-          <div className="flex flex-col gap-4 text-teks">
-            <p>Jawaban kamu telah direkam.</p>
-            <div className="flex items-end gap-3">
-              <p className="text-5xl leading-none text-teks">{hasil.nilai}</p>
-              <p className="text-teks-2 pb-1">nilai · {hasil.benar} benar dari {hasil.total} soal</p>
-            </div>
-            <button type="button" onClick={onKeluar} className="self-start text-indigo-600 underline underline-offset-2">
-              Kembali ke halaman kode
-            </button>
-          </div>
-        </KartuKepalaResponden>
-      </HalamanResponden>
+      <HalamanMurid className="flex flex-col justify-center">
+        <div className="rounded-2xl bg-linear-to-br from-indigo-600 to-indigo-700 text-white shadow-sm shadow-indigo-200 p-6 flex flex-col items-center gap-2 text-center">
+          <span className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
+            <Ikon nama="centangLingkar" className="w-7 h-7" tebal={1.6} />
+          </span>
+          <p className="text-sm text-indigo-100">Jawaban kamu telah direkam</p>
+          <p className="text-6xl font-bold leading-none mt-1">{hasil.nilai}</p>
+          <p className="text-sm text-indigo-100">{hasil.benar} benar dari {hasil.total} soal</p>
+        </div>
+        <p className="text-center text-xs text-slate-400 px-4 leading-relaxed">
+          Gurumu masih bisa meninjau dan mengubah nilai ini.
+        </p>
+        <div className="flex justify-center pt-1">
+          <Button variant="secondary" onClick={onKeluar}>Kembali ke halaman kode</Button>
+        </div>
+      </HalamanMurid>
     )
   }
 
   if (fase === 'memuat') {
     return (
-      <div className="min-h-full bg-slate-50 flex flex-col items-center justify-center gap-3 py-20 text-indigo-600">
+      <div className="min-h-full bg-slate-50 tekstur-latar flex flex-col items-center justify-center gap-3 py-20 text-indigo-500">
         <Spinner size={28} />
-        <p className="text-sm text-teks-2">Memuat soal...</p>
+        <p className="text-sm text-slate-400">Memuat soal...</p>
       </div>
     )
   }
 
   if (fase === 'gagal') {
     return (
-      <HalamanResponden>
-        <KartuKepalaResponden judul={sesi.judul}>
-          <p className="text-salah">{pesan}</p>
-          <button type="button" onClick={onKeluar} className="mt-3 text-indigo-600 underline underline-offset-2">Kembali</button>
-        </KartuKepalaResponden>
-      </HalamanResponden>
+      <HalamanMurid className="flex flex-col justify-center">
+        <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5 flex flex-col items-center gap-3 text-center">
+          <Ikon nama="galat" className="w-8 h-8 text-red-500" tebal={1.6} />
+          <p className="text-sm font-medium text-slate-700">{pesan}</p>
+          <Button variant="secondary" onClick={onKeluar}>Kembali</Button>
+        </div>
+      </HalamanMurid>
     )
   }
 
   if (fase === 'menunggu') {
     return (
-      <HalamanResponden>
-        <KartuKepalaResponden judul={sesi.judul} deskripsi={sesi.deskripsi}>
-          <div className="flex items-center gap-3 text-teks">
-            <span className="relative flex w-3 h-3 shrink-0">
-              <span className="absolute inset-0 rounded-full bg-indigo-400 animate-ping" />
-              <span className="relative w-3 h-3 rounded-full bg-indigo-600" />
+      <HalamanMurid>
+        <KartuKepalaMurid judul={sesi.judul} deskripsi={sesi.deskripsi}>
+          <span className="flex items-center gap-2.5">
+            <span className="relative flex w-2.5 h-2.5 shrink-0">
+              <span className="absolute inset-0 rounded-full bg-white animate-ping" />
+              <span className="relative w-2.5 h-2.5 rounded-full bg-white" />
             </span>
             Kamu sudah bergabung. Menunggu guru memulai sesi.
-          </div>
-        </KartuKepalaResponden>
-        <div>
-          <Button variant="teks" onClick={onKeluar}>Keluar</Button>
+          </span>
+        </KartuKepalaMurid>
+        <div className="flex justify-start">
+          <Button variant="ghost" onClick={onKeluar}>Keluar</Button>
         </div>
-      </HalamanResponden>
+      </HalamanMurid>
     )
   }
 
@@ -420,23 +427,28 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
   // kali lewat layar kunci.
   if (kunciLayar && !diberitahu && fase === 'kerjakan') {
     return (
-      <HalamanResponden>
-        <KartuKepalaResponden judul="Gurumu menyalakan kunci layar">
-          <div className="flex flex-col gap-3 text-teks">
-            <p className="leading-relaxed">
-              Mulai sekarang, kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu terkunci sampai
-              gurumu membukanya. <strong className="font-medium">Waktu tetap berjalan</strong> selama terkunci.
+      <HalamanMurid className="flex flex-col justify-center">
+        <div className="bg-amber-50 rounded-2xl border border-amber-200 p-5 flex flex-col gap-3">
+          <p className="flex items-center gap-2.5 text-base font-bold text-amber-900">
+            <Ikon nama="kunci" className="w-5 h-5" />Gurumu menyalakan kunci layar
+          </p>
+          <p className="text-sm text-amber-900 leading-relaxed">
+            Mulai sekarang, kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu terkunci sampai
+            gurumu membukanya. <strong className="font-bold">Waktu tetap berjalan</strong> selama terkunci.
+          </p>
+          {/* Hitung mundur ikut dirender: murid yang belum mengetuk saat waktu
+              habis tetap harus terkirim. */}
+          {tenggat && (
+            <p className="flex items-center gap-2 text-xs text-amber-800">
+              Sisa waktu <Hitung tenggat={tenggat} onHabis={() => void kirim()} />
             </p>
-            {/* Hitung mundur ikut dirender: murid yang belum mengetuk saat waktu
-                habis tetap harus terkirim. */}
-            {tenggat && <p className="flex items-center gap-2 text-teks-2">Sisa waktu <Hitung tenggat={tenggat} onHabis={() => void kirim()} /></p>}
-            <p className="text-teks-2">Jawaban yang sudah kamu pilih tetap tersimpan.</p>
-          </div>
-        </KartuKepalaResponden>
-        <div>
-          <Button onClick={pahamiKunci}>Mengerti, lanjutkan</Button>
+          )}
+          <p className="text-xs text-amber-800">Jawaban yang sudah kamu pilih tetap tersimpan.</p>
         </div>
-      </HalamanResponden>
+        <div className="flex justify-start">
+          <Button size="lg" onClick={pahamiKunci}>Mengerti, lanjutkan</Button>
+        </div>
+      </HalamanMurid>
     )
   }
 
@@ -451,11 +463,11 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
       onCopy={kunciLayar ? e => e.preventDefault() : undefined}
       onContextMenu={kunciLayar ? e => e.preventDefault() : undefined}
     >
-      <div className="shrink-0 bg-white border-b border-garis px-4 h-12 flex items-center gap-3">
-        <p className="flex-1 min-w-0 text-sm text-teks-2 truncate">
+      <div className="shrink-0 bg-white border-b border-slate-100 px-4 h-12 flex items-center gap-3">
+        <p className="flex-1 min-w-0 text-xs font-semibold text-slate-500 truncate">
           {soalList.length > 0 ? `${terjawab} dari ${soalList.length} terjawab` : sesi.judul}
         </p>
-        {belumTersimpan.size > 0 && <span className="text-xs text-teks-2 shrink-0">Menyimpan…</span>}
+        {belumTersimpan.size > 0 && <span className="text-[11px] text-slate-400 shrink-0">Menyimpan…</span>}
         {tenggat && <Hitung tenggat={tenggat} onHabis={() => void kirim()} />}
       </div>
       {soalList.length > 0 && (
@@ -465,55 +477,56 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
       )}
 
       <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar">
-        <HalamanResponden>
-          <KartuKepalaResponden judul={sesi.judul} deskripsi={sesi.deskripsi}>
+        <HalamanMurid>
+          <KartuKepalaMurid judul={sesi.judul} deskripsi={sesi.deskripsi}>
             {soalList.length} pertanyaan · jawaban tersimpan otomatis
-            <span className="block text-salah mt-1">* Menunjukkan pertanyaan yang wajib diisi</span>
-          </KartuKepalaResponden>
+          </KartuKepalaMurid>
 
           {perluAktifkanKunci && (
-            <div className="bg-white rounded-lg border border-garis px-5 py-3 flex items-center gap-3">
-              <Ikon nama="kunci" className="w-5 h-5 text-amber-700" />
-              <p className="flex-1 text-sm text-teks">Sesi ini memakai kunci layar. Aktifkan layar penuh.</p>
-              <Button variant="teks" size="sm" onClick={mintaLayarPenuh}>Aktifkan</Button>
+            <div className="bg-amber-50 rounded-2xl border border-amber-200 px-4 py-3 flex items-center gap-3">
+              <Ikon nama="kunci" className="w-5 h-5 text-amber-700 shrink-0" />
+              <p className="flex-1 text-xs text-amber-900">Sesi ini memakai kunci layar. Aktifkan layar penuh.</p>
+              <Button variant="ghost" size="sm" onClick={mintaLayarPenuh} className="shrink-0">Aktifkan</Button>
             </div>
           )}
 
           {/* Daftar soal bisa berubah panjang di tengah pengerjaan; tanpa
               pemberitahuan murid mengira aplikasinya rusak. */}
           {kontenBaru && (
-            <div className="bg-white rounded-lg border border-garis px-5 py-3 flex items-center gap-3">
-              <p className="flex-1 text-sm text-teks">Gurumu mengubah soal di sesi ini.</p>
-              <Button variant="teks" size="sm" onClick={() => setKontenBaru(false)}>Tutup</Button>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
+              <p className="flex-1 text-xs text-slate-600">Gurumu mengubah soal di sesi ini.</p>
+              <Button variant="ghost" size="sm" onClick={() => setKontenBaru(false)}>Tutup</Button>
             </div>
           )}
 
           {soalList.length === 0 && (
-            <div className="bg-white rounded-lg border border-garis px-5 py-8 text-sm text-teks-2 text-center">Sesi ini belum berisi soal.</div>
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-8 text-sm text-slate-400 text-center">
+              Sesi ini belum berisi soal.
+            </div>
           )}
 
-          {soalList.map(soal => (
-            <KartuSoalResponden key={soal.id} pertanyaan={soal.pertanyaan} pilihan={soal.pilihan}
+          {soalList.map((soal, i) => (
+            <KartuSoalMurid key={soal.id} nomor={i + 1} pertanyaan={soal.pertanyaan} pilihan={soal.pilihan}
               dipilih={jawaban[soal.id]} onPilih={j => void pilih(soal.id, j)} />
           ))}
 
-          {pesan && <p className="text-sm text-salah px-1">{pesan}</p>}
+          {pesan && <p className="text-sm text-red-600 px-1">{pesan}</p>}
 
           {soalList.length > 0 && (
             <div className="flex items-center gap-3 pt-1 pb-24">
-              <Button disabled={fase === 'mengirim'} onClick={() => setKonfirmasiKirim(true)}>
-                {fase === 'mengirim' ? 'Mengirim...' : 'Kirim'}
+              <Button size="lg" disabled={fase === 'mengirim'} onClick={() => setKonfirmasiKirim(true)}>
+                {fase === 'mengirim' ? 'Mengirim...' : 'Kirim jawaban'}
               </Button>
-              {!semuaTerjawab && <p className="text-xs text-teks-2">{soalList.length - terjawab} soal belum dijawab</p>}
+              {!semuaTerjawab && <p className="text-xs text-slate-400">{soalList.length - terjawab} soal belum dijawab</p>}
             </div>
           )}
-        </HalamanResponden>
+        </HalamanMurid>
       </div>
 
       {konfirmasiKirim && (
         <Dialog judul="Kirim jawaban?" onTutup={() => setKonfirmasiKirim(false)}
           aksi={<>
-            <Button variant="teks" onClick={() => setKonfirmasiKirim(false)}>Batal</Button>
+            <Button variant="ghost" onClick={() => setKonfirmasiKirim(false)}>Batal</Button>
             <Button onClick={() => { setKonfirmasiKirim(false); void kirim() }}>Kirim</Button>
           </>}>
           {semuaTerjawab

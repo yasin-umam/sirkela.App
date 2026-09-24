@@ -1,12 +1,44 @@
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
-export type Role = 'guru' | 'murid'
+export type Role = 'guru' | 'murid' | 'kepala_sekolah'
 
 export interface User {
   id: string
   nama: string
   email: string
   role: Role
+}
+
+// ─── Pengajuan Kepala Sekolah ─────────────────────────────────────────────────
+// Swadaya: guru mengajukan diri (tab Saya), admin TUNGGAL (dicek dari email di
+// auth.users, lihat adalah_admin_utama()) menyetujui/menolak lewat layar admin
+// minimal. Promosi manual lewat SQL editor tetap ada sebagai jalur cadangan.
+
+/** Status pengajuan MILIK SENDIRI, dibaca guru langsung dari tabelnya (RLS). */
+export interface StatusPengajuanKepsek {
+  status: 'menunggu' | 'disetujui' | 'ditolak'
+  dibuatPada: string
+}
+
+/** Satu sekolah, dari sudut pandang admin (`ambil_semua_sekolah()`). */
+export interface SekolahAdmin {
+  id: string
+  nama: string
+  kodeSekolah: string
+  dibuatPada: string
+  jumlahGuru: number
+}
+
+/** Bentuk lengkap untuk layar admin, dirakit RPC ambil_pengajuan_kepsek(). */
+export interface PengajuanKepsek {
+  id: string
+  guruId: string
+  guruNama: string
+  sekolahId: string
+  sekolahNama: string
+  status: 'menunggu' | 'disetujui' | 'ditolak'
+  dibuatPada: string
+  diputuskanPada: string | null
 }
 
 // ─── Navigasi ───────────────────────────────────────────────────────────────
@@ -38,6 +70,8 @@ export interface Formulir {
   id: string
   judul: string
   deskripsi: string
+  kelas: string
+  mapel: string
   durasiMenit: number
   kunciLayar: boolean
   dibuatPada: string
@@ -109,4 +143,81 @@ export interface SesiKelas {
   muridJoined: PesertaSesi[]
   /** ISO `created_at`. Pembeda dua sesi dari formulir yang sama. */
   dibuatPada: string
+  /**
+   * Non-null = sesi ini lahir dari mulai_super_sesi(), bukan dari Kirim milik
+   * pengawas sendiri (SS2/SS3 -- lihat migrasi super_sesi). guru_id sudah
+   * berupa pengawas, jadi baris ini tidak beda dari sesi biasa selain dua
+   * field ini.
+   */
+  superSesiId: string | null
+  superSesiJudul: string | null
+}
+
+// ─── Super Sesi ─────────────────────────────────────────────────────────────
+// Ulangan lintas guru: kepala sekolah mengumpulkan kiriman dari beberapa guru
+// mapel jadi satu Super Sesi, menugaskan pengawas per kiriman, lalu satu aksi
+// "Mulai" mendistribusikannya jadi sesi_kelas biasa milik masing-masing
+// pengawas. Lihat CLAUDE.md & supabase/migrations/20260924100000_super_sesi.sql.
+
+export interface SuperSesi {
+  id: string
+  judul: string
+  deskripsi: string
+  status: 'mengumpulkan' | 'berjalan' | 'selesai'
+  mulaiPada: string | null
+  dibuatPada: string
+}
+
+/** Bentuk ringkas dipakai DialogKirim untuk memilih tujuan kirim. */
+export type SuperSesiRingkas = Pick<SuperSesi, 'id' | 'judul' | 'deskripsi'>
+
+/**
+ * Satu murid di satu kiriman, dari sudut pandang kepala sekolah -- laporan
+ * yang sama dengan PesertaSesi yang dilihat pengawas (keluarLayar/hilangFokus
+ * adalah KESAKSIAN, bukan tuduhan, A4 tetap berlaku), plus wewenang buka
+ * kunci untuk sesi Super Sesi kini ADA DI SINI, bukan di sisi pengawas.
+ */
+export interface MuridSuperSesi {
+  muridId: string
+  nama: string
+  terkunciPada: string | null
+  terakhirDenyut: string | null
+  keluarLayar: number
+  hilangFokus: number
+}
+
+/**
+ * Satu kelas hasil distribusi Super Sesi yang BELUM diklaim guru mana pun --
+ * daftar ini metadata SAJA (TANPA konten_list/kunci jawaban, lihat SS8 di
+ * migrasi 20260925000000_klaim_kelas_super_sesi.sql), dilihat SEMUA guru di
+ * sekolah yang sama lewat ambil_kelas_tersedia_super_sesi(). Begitu diklaim
+ * (klaimKelasSuper di SesiContext), baris ini lenyap dari sini dan muncul
+ * sebagai SesiKelas biasa di semuaSesi.
+ */
+export interface KelasSuperSesiTersedia {
+  sesiId: string
+  mapel: string
+  kelas: string
+  judul: string
+  superSesiJudul: string
+  durasiMenit: number
+  dibuatPada: string
+}
+
+/** Satu kiriman formulir di dalam satu Super Sesi, dari sudut pandang kepala sekolah. */
+export interface SubmisiSuperSesi {
+  id: string
+  mapel: string
+  kelas: string
+  judul: string
+  guruMapelNama: string
+  pengawasId: string | null
+  pengawasNama: string | null
+  sesiId: string | null
+  kodeJoin: string | null
+  sesiStatus: 'aktif' | 'selesai' | null
+  mulaiPadaSesi: string | null
+  kunciLayar: boolean
+  jumlahMurid: number
+  murid: MuridSuperSesi[]
 }

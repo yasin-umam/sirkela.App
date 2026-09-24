@@ -1,64 +1,83 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactElement, UIEvent } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { useKembali } from '../../context/NavContext'
-import { useFormulir, type StatusSimpan } from '../../context/FormulirContext'
+import { LayarAktif, useKembali } from '../../context/NavContext'
+import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
-import { NAMA_APLIKASI } from '../../lib/aplikasi'
-import { Ikon, TombolIkon, type NamaIkon } from '../../components/ui/Ikon'
-import { Button } from '../../components/ui/Button'
-import { Card } from '../../components/ui/Card'
-import { Spinner } from '../../components/ui/Spinner'
+import { BottomNav, type TabGuru } from '../../components/BottomNav'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
-import { TabPertanyaan, type PermintaanSorot } from './TabPertanyaan'
-import { TabJawaban } from './TabJawaban'
-import { TabSetelan } from './TabSetelan'
-import { DialogKirim } from './DialogKirim'
+import { MenuPage } from './MenuPage'
+import { RiwayatPage } from './RiwayatPage'
+import { SesiPage } from './SesiPage'
+import { SuperSesiPage } from './SuperSesiPage'
+import { ProfilePage } from './ProfilePage'
+import { AdminPage } from './AdminPage'
+import { EditorFormulir } from './EditorFormulir'
 import { DialogImpor } from './DialogImpor'
-import { Laci } from './Laci'
-import { Pratinjau } from './Pratinjau'
 
-// ─── Halaman guru: SATU halaman editor ala Google Form ───────────────────────
-// Kepala: ☰ · judul formulir · status simpan · pratinjau · Kirim, lalu tab
-// Pertanyaan · Jawaban · Setelan. Semua yang lain (formulir lain, impor, arsip,
-// akun) ada di laci ☰ atau dialog, bukan halaman terpisah.
-// test //
+// ─── Rumah guru: Riwayat · Menu · Saya ───────────────────────────────────────
+// Shell yang sama dengan Luang, sampai ke pembagian tabnya:
+//   Riwayat -- arsip yang pernah dibuat (di Luang: dokumen; di sini: formulir & sesi)
+//   Menu    -- peluncur: yang sedang berjalan, lanjutkan, buat baru, kartu Sesi
+//   Saya    -- akun
+// Dan seperti di Luang, **Sesi bukan slot tab sendiri**: ia layar takeover yang
+// dibuka dari kartu di Menu dan menumpang sorotan slot Menu
+// (`tabUntukSorotan` di BottomNav).
+//
+// Tab yang PERNAH dibuka tetap ter-mount selamanya, disembunyikan lewat CSS --
+// bukan conditional-render. Tanpa itu tiap pindah tab membongkar-pasang isinya
+// dari nol dan daftar yang sudah ter-fetch "reload" lagi tiap kali kembali.
+// `LayarAktif` membungkus tiap tab supaya penangan tombol kembali milik tab
+// yang TIDAK terlihat tidak ikut menanggapi -- kalau tidak, satu tekanan
+// kembali bisa menutup lapisan di tab yang sedang tersembunyi.
+//
+// Editor formulir adalah cabang render TERPISAH (di luar bilah tab): ia layar
+// kerja penuh, dan bilah tab di bawahnya cuma mengundang guru keluar di tengah
+// mengetik soal.
 
-type Tab = 'pertanyaan' | 'jawaban' | 'setelan'
-
-const TAB: { id: Tab; label: string }[] = [
-  { id: 'pertanyaan', label: 'Pertanyaan' },
-  { id: 'jawaban', label: 'Jawaban' },
-  { id: 'setelan', label: 'Setelan' },
-]
-
-/**
- * Penangan tombol kembali perangkat. Penangan diperiksa dari yang TERAKHIR
- * ter-mount, jadi posisinya di pohon menentukan prioritasnya -- lihat pemakaian.
- */
 function Penjaga({ tangani }: { tangani: () => boolean }) {
   useKembali(tangani)
   return null
 }
 
 export function GuruHome() {
-  const { user, logout } = useAuth()
-  const { memuat, aktif, soal, statusSimpan, cobaSimpanLagi, buatFormulir, hapusFormulir, simpanSekarang } = useFormulir()
-  const { semuaSesi } = useSesi()
-  const [tab, setTab] = useState<Tab>('pertanyaan')
-  const [laci, setLaci] = useState(false)
-  const [arsip, setArsip] = useState(false)
-  const [kirim, setKirim] = useState(false)
-  const [impor, setImpor] = useState<'baru' | 'ini' | null>(null)
-  const [pratinjau, setPratinjau] = useState(false)
-  const [konfirmasi, setKonfirmasi] = useState<'hapus' | 'keluar' | null>(null)
-  const [sibuk, setSibuk] = useState(false)
-  const [galatKonfirmasi, setGalatKonfirmasi] = useState<string | null>(null)
-  const [membuat, setMembuat] = useState(false)
-  const [sorot, setSorot] = useState<PermintaanSorot | null>(null)
-  const [kabar, setKabar] = useState<string | null>(null)
+  const { logout } = useAuth()
+  const { aktif, pilihFormulir, buatFormulir, simpanSekarang } = useFormulir()
+  const { semuaSesi, fokuskan } = useSesi()
 
-  // Pindah formulir = mulai dari tab Pertanyaan, seperti membuka formulir lain.
-  useEffect(() => { setTab('pertanyaan'); setSorot(null) }, [aktif?.id])
+  const [tab, setTab] = useState<TabGuru>('menu')
+  /** id formulir yang sedang disunting layar penuh. null = tidak ada. */
+  const [editor, setEditor] = useState<string | null>(null)
+  /** Layar Admin terbuka -- cabang terpisah, sama pola dengan editor. */
+  const [admin, setAdmin] = useState(false)
+  const [impor, setImpor] = useState<{ tujuan: 'baru' | 'ini'; metode?: 'teks' | 'pdf' | 'ai' } | null>(null)
+  const [membuat, setMembuat] = useState(false)
+  const [keluar, setKeluar] = useState(false)
+  const [sibuk, setSibuk] = useState(false)
+  const [galatKeluar, setGalatKeluar] = useState<string | null>(null)
+  const [kabar, setKabar] = useState<string | null>(null)
+  /**
+   * Satu sesi dibuka di tab Sesi, atau sub-halaman layar penuh terbuka di tab
+   * Saya (Akun Saya) -- bilah tab meluncur keluar. Sama pola dengan `navHidden`
+   * di Luang: BottomNav sendiri yang baca sinyal ini dan geser dirinya lewat
+   * CSS transition, bukan di-unmount.
+   */
+  const [navHidden, setNavHidden] = useState(false)
+  /**
+   * Bilah tab ikut menyembunyikan diri saat isi tab digulir ke bawah (konten
+   * naik), muncul lagi saat digulir ke atas -- pola umum aplikasi mobile,
+   * supaya bilah tidak menutupi konten saat guru sedang membaca daftar
+   * panjang. Digabung dengan `navHidden` di bawah: kalau salah satu benar,
+   * bilahnya tersembunyi.
+   */
+  const [gulirTersembunyi, setGulirTersembunyi] = useState(false)
+  const posisiGulir = useRef<{ target: EventTarget | null; y: number }>({ target: null, y: 0 })
+
+  // Sama dengan `dikunjungi` di App.tsx Luang: tab yang pernah dibuka tetap
+  // ter-mount. Ref, bukan state, supaya "ditandai pernah dibuka" langsung
+  // berlaku di render yang sama saat tab berubah.
+  const dikunjungi = useRef(new Set<TabGuru>(['menu']))
+  dikunjungi.current.add(tab)
 
   useEffect(() => {
     if (!kabar) return
@@ -66,17 +85,40 @@ export function GuruHome() {
     return () => clearTimeout(t)
   }, [kabar])
 
-  const sesiFormulir = useMemo(() => aktif ? semuaSesi.filter(s => s.formulirId === aktif.id) : [], [semuaSesi, aktif])
-  const sesiArsip = useMemo(() => semuaSesi.filter(s => !s.formulirId), [semuaSesi])
-  const pesertaBerjalan = sesiFormulir.filter(s => s.status === 'aktif').reduce((n, s) => n + s.muridJoined.length, 0)
+  // Bilah kembali muncul begitu pindah tab -- guru tidak boleh mendarat di
+  // tab baru dengan bilah yang sudah tersembunyi gara-gara gulir di tab lain.
+  useEffect(() => { setGulirTersembunyi(false) }, [tab])
+
+  const AMBANG_GULIR_PX = 8
+  const ZONA_ATAS_PX = 24
+
+  // Scroll TIDAK bubble, tapi capture-phase di ancestor tetap menangkapnya
+  // dari elemen `overflow-y-auto` mana pun di dalam tab yang aktif -- satu
+  // penangan di sini cukup untuk semua halaman, tidak perlu diteruskan lewat
+  // props ke tiap RiwayatPage/MenuPage/ProfilePage satu-satu.
+  function tanganiGulir(e: UIEvent<HTMLDivElement>) {
+    const el = e.target as HTMLElement
+    if (typeof el.scrollTop !== 'number') return
+    const posisi = posisiGulir.current
+    const yLama = posisi.target === el ? posisi.y : el.scrollTop
+    const y = el.scrollTop
+    posisiGulir.current = { target: el, y }
+    if (y < ZONA_ATAS_PX) { setGulirTersembunyi(false); return }
+    const delta = y - yLama
+    if (delta > AMBANG_GULIR_PX) setGulirTersembunyi(true)
+    else if (delta < -AMBANG_GULIR_PX) setGulirTersembunyi(false)
+  }
+
+  function bukaEditor(id: string) {
+    pilihFormulir(id)
+    setEditor(id)
+  }
 
   async function formulirBaru() {
     if (membuat) return
     setMembuat(true)
     try {
-      await buatFormulir()
-      setLaci(false)
-      setArsip(false)
+      setEditor(await buatFormulir())
     } catch {
       setKabar('Gagal membuat formulir. Coba lagi.')
     } finally {
@@ -84,200 +126,179 @@ export function GuruHome() {
     }
   }
 
-  async function jalankanKonfirmasi() {
-    setSibuk(true); setGalatKonfirmasi(null)
+  function bukaSesi(id?: string) {
+    fokuskan(id ?? null)
+    setTab('sesi')
+  }
+
+  function bukaSuperSesi() {
+    setTab('superSesi')
+  }
+
+  function pantauSesi(id: string) {
+    setEditor(null)
+    bukaSesi(id)
+  }
+
+  async function jalankanKeluar() {
+    setSibuk(true); setGalatKeluar(null)
     try {
-      if (konfirmasi === 'hapus' && aktif) {
-        await hapusFormulir(aktif.id)
-      } else if (konfirmasi === 'keluar') {
-        await simpanSekarang()
-        await logout()
-      }
-      setKonfirmasi(null)
+      await simpanSekarang()
+      await logout()
     } catch (e) {
-      setGalatKonfirmasi(e instanceof Error ? e.message : 'Gagal, coba lagi.')
+      setGalatKeluar(e instanceof Error ? e.message : 'Gagal keluar, coba lagi.')
     } finally {
       setSibuk(false)
     }
   }
 
-  const judulKepala = arsip ? 'Arsip sesi' : aktif ? (aktif.judul.trim() || 'Formulir tanpa judul') : NAMA_APLIKASI
+  // ── Editor formulir: cabang terpisah, tanpa bilah tab ──
+  if (editor) {
+    return (
+      <>
+        <EditorFormulir
+          onKeluar={() => setEditor(null)}
+          onPantauSesi={pantauSesi}
+          onImpor={() => setImpor({ tujuan: 'ini' })}
+          onTerhapus={() => { setEditor(null); setKabar('Formulir dihapus') }}
+        />
+        {impor && (
+          <DialogImpor tujuan={impor.tujuan} metodeAwal={impor.metode} onTutup={() => setImpor(null)}
+            onSelesai={n => { setImpor(null); setKabar(`${n} pertanyaan diimpor`) }} />
+        )}
+        <Kabar teks={kabar} />
+      </>
+    )
+  }
+
+  // ── Admin: cabang terpisah, tanpa bilah tab ──
+  // Dibuka lewat pintasan di header MenuPage (cuma tampil untuk satu email
+  // admin, lihat EMAIL_ADMIN_UTAMA) atau baris "Admin" di tab Saya -- dua
+  // pintu, satu state, supaya tidak ada dua sumber kebenaran soal "admin
+  // sedang terbuka atau tidak".
+  if (admin) {
+    return (
+      <>
+        <AdminPage onKembali={() => setAdmin(false)} />
+        <Kabar teks={kabar} />
+      </>
+    )
+  }
+
+  const sesiBerjalan = semuaSesi.filter(s => s.status === 'aktif').length
 
   return (
-    <div className="h-full flex flex-col bg-slate-50">
-      {/* Anak PERTAMA = diperiksa paling akhir: tab & arsip baru ditutup setelah
-          semua lapisan di atasnya. */}
+    <div className="relative h-full flex flex-col bg-slate-50">
+      {/* Anak PERTAMA = diperiksa paling akhir: pulang ke Menu baru dikerjakan
+          setelah semua lapisan di atasnya sempat menutup diri. Tab Sesi &
+          Super Sesi punya penangannya sendiri (SesiPage/SuperSesiPage), jadi
+          tidak ikut di sini. */}
       <Penjaga tangani={() => {
-        if (arsip) { setArsip(false); return true }
-        if (aktif && tab !== 'pertanyaan') { setTab('pertanyaan'); return true }
-        return false
+        if (tab === 'menu' || tab === 'sesi' || tab === 'superSesi') return false
+        setTab('menu')
+        return true
       }} />
 
-      <header className="shrink-0 bg-white border-b border-garis">
-        <div className="h-14 pl-1 pr-2 flex items-center gap-1">
-          <TombolIkon nama="menu" label="Menu" onClick={() => setLaci(true)} />
-          {!arsip && <Ikon nama="dokumen" className="w-7 h-7 text-indigo-600 hidden sm:block" />}
-          <p className="flex-1 min-w-0 truncate text-lg text-teks px-1">{judulKepala}</p>
-          {arsip ? (
-            <TombolIkon nama="tutup" label="Tutup arsip" onClick={() => setArsip(false)} />
-          ) : aktif && (
-            <>
-              <IndikatorSimpan status={statusSimpan} onCobaLagi={cobaSimpanLagi} />
-              <TombolIkon nama="lihat" label="Pratinjau" onClick={() => setPratinjau(true)} />
-              <Button onClick={() => setKirim(true)} className="ml-1 px-5!">Kirim</Button>
-            </>
-          )}
+      <div className="flex-1 overflow-hidden" onScrollCapture={tanganiGulir}>
+        <div className={tab === 'riwayat' ? 'h-full tab-masuk' : 'hidden'}>
+          <LayarAktif aktif={tab === 'riwayat'}>
+            {dikunjungi.current.has('riwayat') && (
+              <RiwayatPage onBukaFormulir={bukaEditor} onBukaSesi={id => bukaSesi(id)} />
+            )}
+          </LayarAktif>
         </div>
-        {aktif && !arsip && (
-          <nav className="flex justify-center gap-1 desktop:gap-4">
-            {TAB.map(t => (
-              <button key={t.id} type="button" onClick={() => setTab(t.id)}
-                className={`relative h-11 px-3 desktop:px-4 flex items-center gap-1.5 text-sm font-medium transition-colors ${
-                  tab === t.id ? 'text-indigo-600' : 'text-teks-2 hover:text-teks'}`}>
-                {t.label}
-                {t.id === 'jawaban' && pesertaBerjalan > 0 && (
-                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-indigo-600 text-white text-[11px] leading-5 text-center">{pesertaBerjalan}</span>
-                )}
-                {tab === t.id && <span className="absolute left-1 right-1 bottom-0 h-0.75 rounded-t bg-indigo-600" />}
-              </button>
-            ))}
-          </nav>
+
+        <div className={tab === 'menu' ? 'h-full tab-masuk' : 'hidden'}>
+          <LayarAktif aktif={tab === 'menu'}>
+            <MenuPage
+              membuat={membuat}
+              onBaru={() => void formulirBaru()}
+              onImpor={metode => setImpor({ tujuan: 'baru', metode })}
+              onKeSesi={bukaSesi}
+              onKeSuperSesi={bukaSuperSesi}
+              onKeRiwayat={() => setTab('riwayat')}
+              onBukaAdmin={() => setAdmin(true)}
+            />
+          </LayarAktif>
+        </div>
+
+        {dikunjungi.current.has('sesi') && (
+          <div className={tab === 'sesi' ? 'h-full tab-masuk' : 'hidden'}>
+            <LayarAktif aktif={tab === 'sesi'}>
+              <SesiPage onKeluar={() => setTab('menu')} onLayarPenuh={setNavHidden} />
+            </LayarAktif>
+          </div>
         )}
-      </header>
 
-      <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
-        {arsip ? (
-          <TabJawaban sesiList={sesiArsip} kosong={<p className="text-sm text-teks-2">Arsip kosong.</p>} />
-        ) : memuat && !aktif ? (
-          <div className="py-20 flex justify-center text-indigo-600"><Spinner size={28} /></div>
-        ) : !aktif ? (
-          <Sambutan nama={user?.nama ?? ''} membuat={membuat} onBaru={() => void formulirBaru()} onImpor={() => setImpor('baru')} />
-        ) : tab === 'pertanyaan' ? (
-          <TabPertanyaan sorot={sorot} onImpor={() => setImpor('ini')} />
-        ) : tab === 'jawaban' ? (
-          <TabJawaban sesiList={sesiFormulir} kosong={<>
-            <Ikon nama="kirim" className="w-12 h-12 text-indigo-200" />
-            <p className="text-base text-teks">Belum ada jawaban</p>
-            <p className="text-sm text-teks-2 max-w-sm">Tekan Kirim untuk membuka sesi. Murid bergabung dengan kode, QR, atau link — tanpa akun.</p>
-            <Button onClick={() => setKirim(true)} className="mt-1">Kirim</Button>
-          </>} />
-        ) : (
-          <TabSetelan onHapus={() => { setGalatKonfirmasi(null); setKonfirmasi('hapus') }} />
+        {dikunjungi.current.has('superSesi') && (
+          <div className={tab === 'superSesi' ? 'h-full tab-masuk' : 'hidden'}>
+            <LayarAktif aktif={tab === 'superSesi'}>
+              <SuperSesiPage onKeluar={() => setTab('menu')} onLayarPenuh={setNavHidden} />
+            </LayarAktif>
+          </div>
         )}
-      </main>
 
-      {laci && (
-        <Laci
-          membuat={membuat}
-          onTutup={() => setLaci(false)}
-          onBaru={() => void formulirBaru()}
-          onImpor={() => { setLaci(false); setImpor('baru') }}
-          onArsip={() => { setLaci(false); setArsip(true) }}
-          onKeluar={() => { setLaci(false); setGalatKonfirmasi(null); setKonfirmasi('keluar') }}
-        />
-      )}
+        {dikunjungi.current.has('saya') && (
+          <div className={tab === 'saya' ? 'h-full tab-masuk' : 'hidden'}>
+            <LayarAktif aktif={tab === 'saya'}>
+              <ProfilePage onKeluar={() => { setGalatKeluar(null); setKeluar(true) }} onLayarPenuh={setNavHidden}
+                onBukaAdmin={() => setAdmin(true)} />
+            </LayarAktif>
+          </div>
+        )}
+      </div>
 
-      {kirim && (
-        <DialogKirim
-          onTutup={() => setKirim(false)}
-          onPerbaiki={id => { setKirim(false); setTab('pertanyaan'); setSorot({ soalId: id, kali: Date.now() }) }}
-          onSetelan={() => { setKirim(false); setTab('setelan') }}
-          onJawaban={() => { setKirim(false); setTab('jawaban') }}
-        />
-      )}
+      {/* Selalu ter-mount -- bilahnya sendiri yang menggeser dirinya keluar
+          layar lewat transition, supaya sembunyi/munculnya halus, bukan
+          langsung hilang seperti kalau di-unmount. */}
+      <BottomNav tab={tab} tersembunyi={navHidden || gulirTersembunyi} lencanaSesi={sesiBerjalan}
+        onPilih={t => { setNavHidden(false); setGulirTersembunyi(false); setTab(t) }} />
 
       {impor && (
-        <DialogImpor
-          tujuan={impor}
-          onTutup={() => setImpor(null)}
-          onSelesai={n => { setImpor(null); setArsip(false); setTab('pertanyaan'); setKabar(`${n} pertanyaan diimpor`) }}
-        />
+        <DialogImpor tujuan={impor.tujuan} metodeAwal={impor.metode} onTutup={() => setImpor(null)}
+          onSelesai={n => {
+            setImpor(null)
+            setKabar(`${n} pertanyaan diimpor`)
+            // Impor 'baru' membuat formulirnya sendiri lalu menjadikannya aktif;
+            // guru diantar langsung ke editornya, karena kuncinya masih harus
+            // diperiksa dan satu-satunya tempat melakukannya ada di sana.
+            if (aktif) setEditor(aktif.id)
+          }} />
       )}
 
-      {pratinjau && <Pratinjau onTutup={() => setPratinjau(false)} />}
-
-      {konfirmasi && (
+      {keluar && (
         <LembarKonfirmasi
-          judul={konfirmasi === 'hapus' ? 'Hapus formulir ini?' : 'Keluar dari akun?'}
+          judul="Keluar dari akun?"
           pesan={<>
-            {konfirmasi === 'hapus'
-              ? `“${aktif?.judul.trim() || 'Formulir tanpa judul'}” dan ${soal.length} pertanyaannya dihapus. Sesi yang pernah dibuka beserta nilainya pindah ke Arsip sesi.`
-              : 'Formulirmu tersimpan di akun. Masuk lagi dengan email dan password untuk melanjutkan.'}
-            {galatKonfirmasi && <span className="block mt-2 text-salah">{galatKonfirmasi}</span>}
+            Formulirmu tersimpan di akun. Masuk lagi dengan email dan password untuk melanjutkan.
+            {galatKeluar && <span className="block mt-2 text-red-600">{galatKeluar}</span>}
           </>}
-          labelAksi={konfirmasi === 'hapus' ? 'Hapus' : 'Keluar'}
+          labelAksi="Keluar"
           sibuk={sibuk}
-          onAksi={() => void jalankanKonfirmasi()}
-          onBatal={() => setKonfirmasi(null)}
+          onAksi={() => void jalankanKeluar()}
+          onBatal={() => setKeluar(false)}
         />
       )}
 
-      {kabar && (
-        <div className="fixed left-4 bottom-4 z-40 rounded bg-[#323232] px-4 py-3 text-sm text-white shadow-lg">{kabar}</div>
-      )}
+      <Kabar teks={kabar} />
 
-      {/* Anak TERAKHIR = diperiksa lebih dulu dari penjaga tab: lapisan yang
-          menutupi halaman ditutup satu per satu dari yang paling atas. */}
+      {/* Anak TERAKHIR = diperiksa lebih dulu: lapisan yang menutupi halaman
+          ditutup satu per satu dari yang paling atas. */}
       <Penjaga tangani={() => {
-        if (konfirmasi) { if (!sibuk) setKonfirmasi(null); return true }
-        if (pratinjau) { setPratinjau(false); return true }
+        if (keluar) { if (!sibuk) setKeluar(false); return true }
         if (impor) { setImpor(null); return true }
-        if (kirim) { setKirim(false); return true }
-        if (laci) { setLaci(false); return true }
         return false
       }} />
     </div>
   )
 }
 
-function IndikatorSimpan({ status, onCobaLagi }: { status: StatusSimpan; onCobaLagi: () => void }) {
-  if (status === 'gagal') {
-    return (
-      <button type="button" onClick={onCobaLagi} title="Gagal menyimpan — ketuk untuk mencoba lagi"
-        className="flex items-center gap-1.5 h-9 px-2 rounded-md text-sm text-salah hover:bg-red-50">
-        <Ikon nama="galat" className="w-5 h-5" />
-        <span className="hidden sm:inline">Gagal menyimpan · Coba lagi</span>
-      </button>
-    )
-  }
-  const menyimpan = status === 'menyimpan'
+/** Pesan sekilas di kaki layar. Satu tempat supaya bentuknya tidak bercabang. */
+export function Kabar({ teks }: { teks: string | null }): ReactElement | null {
+  if (!teks) return null
   return (
-    <span title={menyimpan ? 'Menyimpan…' : 'Semua perubahan disimpan'} className="flex items-center gap-1.5 px-2 text-sm text-teks-2">
-      <Ikon nama={menyimpan ? 'awan' : 'awanSelesai'} className={`w-5 h-5 ${menyimpan ? 'animate-pulse' : ''}`} />
-      <span className="hidden sm:inline">{menyimpan ? 'Menyimpan…' : 'Tersimpan'}</span>
-    </span>
-  )
-}
-
-function Sambutan({ nama, membuat, onBaru, onImpor }: {
-  nama: string
-  membuat: boolean
-  onBaru: () => void
-  onImpor: () => void
-}) {
-  const pilihan: { ikon: NamaIkon; judul: string; onClick: () => void }[] = [
-    { ikon: 'tambah', judul: membuat ? 'Membuat…' : 'Formulir kosong', onClick: onBaru },
-    { ikon: 'impor', judul: 'Impor soal', onClick: onImpor },
-  ]
-  return (
-    <div className="max-w-192.5 mx-auto px-3 py-6 desktop:py-10 flex flex-col gap-4">
-      <Card accent>
-        <h1 className="text-[28px] leading-tight text-teks">Halo{nama && `, ${nama}`}</h1>
-        <p className="text-sm text-teks-2 mt-2 leading-relaxed">
-          Tulis soal pilihan ganda di sini atau impor dari Google Form/PDF, lalu tekan Kirim untuk membuka sesi.
-          Murid bergabung dengan kode — tanpa akun.
-        </p>
-      </Card>
-      <p className="text-sm font-medium text-teks px-1 mt-2">Mulai formulir baru</p>
-      <div className="grid grid-cols-2 gap-3">
-        {pilihan.map(p => (
-          <button key={p.ikon} type="button" onClick={p.onClick} disabled={membuat && p.ikon === 'tambah'}
-            className="bg-white rounded-lg border border-garis hover:border-indigo-600 transition-colors h-36 flex flex-col items-center justify-center gap-3 p-4 text-center disabled:opacity-60">
-            <Ikon nama={p.ikon} className="w-12 h-12 text-indigo-600" />
-            <span className="text-sm text-teks">{p.judul}</span>
-          </button>
-        ))}
-      </div>
+    <div className="fixed left-1/2 -translate-x-1/2 bottom-20 z-50 max-w-[calc(100%-2rem)] rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+      {teks}
     </div>
   )
 }

@@ -7,7 +7,7 @@ import { MuridSesiPage } from './MuridSesiPage'
 // dikeluari. Luang punya tab Riwayat juga; di sini tidak ikut disalin.
 export function MuridHome() {
   return (
-    <div className="h-full overflow-y-auto overscroll-contain bg-slate-50">
+    <div className="h-full overflow-y-auto overscroll-contain hide-scrollbar bg-slate-50">
       <MuridSesiPage />
     </div>
   )

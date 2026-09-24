@@ -1,7 +1,23 @@
-import type { IsiSoal } from '../types'
+import type { Formulir, IsiSoal } from '../types'
 
 /** Batas MENAMBAH opsi di editor. Soal impor yang punya lebih tetap tampil utuh. */
 export const MAKS_PILIHAN = 10
+
+export const JUDUL_BAWAAN = 'Formulir tanpa judul'
+
+/**
+ * Judul/kelas/mapel wajib diisi SEBELUM Simpan (permintaan pemilik produk,
+ * 2026-09-23) -- beda dari masalahSoal() yang cuma menagih kelengkapan di
+ * pintu Kirim. "Formulir tanpa judul" (bawaan formulir baru) dihitung SAMA
+ * dengan kosong: kalau tidak, aturan ini tidak pernah benar-benar menagih apa
+ * pun karena kolomnya memang tidak pernah null/"".
+ */
+export function masalahFormulir(f: Pick<Formulir, 'judul' | 'kelas' | 'mapel'>): string | null {
+  if (!f.judul.trim() || f.judul.trim() === JUDUL_BAWAAN) return 'judul belum diisi'
+  if (!f.kelas.trim()) return 'kelas belum diisi'
+  if (!f.mapel.trim()) return 'mapel belum diisi'
+  return null
+}
 
 /**
  * Cermin pemeriksaan di buka_sesi_formulir() -- URUTAN & kalimatnya sama, supaya

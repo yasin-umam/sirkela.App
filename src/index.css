@@ -2,39 +2,27 @@
 
 /* `desktop:` (440px) = "lebih lebar dari kartu HP 430px". Di bawahnya <body>
    dikunci selebar kartu dan ditengahkan; di atasnya layar memakai lebar penuh
-   dengan kolom isi `desktop:max-w-2xl`. Harus sama dengan @media di bawah dan
+   dengan kolom isi yang dibatasi sendiri. Harus sama dengan @media di bawah dan
    dengan LapisMengambang.tsx. */
 @theme {
   --breakpoint-desktop: 27.5rem;
 
-  /* Palet "indigo" ditimpa jadi ungu Google Forms (#673AB7) supaya SEMUA
-     pemakaian bg/text/border-indigo-* yang sudah ada di app (Button, Badge,
-     radio jawaban, dst.) ikut berubah tanpa menyentuh tiap berkas satu-satu. */
-  --color-indigo-50: #F3EEFC;
-  --color-indigo-100: #E4D9F7;
-  --color-indigo-200: #C9B3EF;
-  --color-indigo-300: #A886E3;
-  --color-indigo-400: #8B62D3;
-  --color-indigo-500: #7847C2;
-  --color-indigo-600: #673AB7;
-  --color-indigo-700: #56309A;
-  --color-indigo-800: #46277D;
-  --color-indigo-900: #382061;
+  /* Warna fungsional yang dipakai berulang di seluruh layar. Nilainya diambil
+     dari palet Tailwind yang SAMA dengan yang dipakai Luang (slate + indigo),
+     bukan palet sendiri -- supaya `text-teks-2` dan `text-slate-500` yang
+     berdampingan di satu kartu tidak pernah beda setengah nada.
 
-  /* Latar "kartu" (slate-50) diberi rona lavender tipis -- dipakai nyaris di
-     semua bg layar penuh, jadi cukup ganti token-nya, bukan tiap berkas. */
-  --color-slate-50: #F2EEFA;
-
-  /* Warna fungsional Google Form yang tidak punya padanan di palet Tailwind:
-     garis kartu, penanda kartu yang sedang disunting (biru, BUKAN warna tema),
-     teks utama/sekunder, dan latar kolom isian. */
-  --color-garis: #DADCE0;
-  --color-fokus: #4285F4;
-  --color-teks: #202124;
-  --color-teks-2: #5F6368;
-  --color-isian: #F8F9FA;
-  --color-benar: #1E8E3E;
-  --color-salah: #D93025;
+     Sebelum 2026-09-22 palet ini meniru Google Form (ungu #673AB7, garis
+     #DADCE0, teks #202124) dan `--color-indigo-*` ditimpa jadi ungu itu.
+     Semuanya dibuang saat aplikasi didesain ulang mengikuti Luang: indigo
+     sekarang indigo Tailwind apa adanya, jadi `bg-indigo-600` di berkas mana
+     pun berarti warna yang sama dengan di Luang. */
+  --color-garis: #F1F5F9;   /* slate-100 -- garis kartu */
+  --color-teks: #1E293B;    /* slate-800 -- teks utama */
+  --color-teks-2: #64748B;  /* slate-500 -- teks sekunder */
+  --color-isian: #F8FAFC;   /* slate-50  -- latar kolom isian */
+  --color-benar: #059669;   /* emerald-600 */
+  --color-salah: #DC2626;   /* red-600 */
 }
 
 @layer base {
@@ -47,8 +35,8 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #F2EEFA;
-    font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+    background-color: #F1F5F9;
+    font-family: system-ui, -apple-system, sans-serif;
     overscroll-behavior: none;
     /* Tiap layar mengurus scroll-nya sendiri lewat wadah internal; dokumen tidak
        pernah sengaja discroll. */
@@ -76,6 +64,10 @@
 }
 
 @layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+
   .hide-scrollbar {
     scrollbar-width: none;
   }
@@ -98,11 +90,40 @@
       border-radius: 9999px;
     }
   }
+
+  /* ─── Tekstur latar ────────────────────────────────────────────────────────
+     Disalin dari `.tekstur-luang` di Luang, dengan alasan yang sama: ruang
+     kosong antar kartu tidak lagi rata polos, dan kartu di puncak layar punya
+     halo alih-alih menempel di bidang datar.
+
+       1. KISI TITIK 22px -- kertas berpetak. Indigo, BUKAN abu-abu netral:
+          abu-abu terbaca seperti kisi wireframe, indigo terbaca sebagai warna
+          merek yang sama dengan tombol & kartu hero.
+       2. AURA di tepi atas -- gradasi indigo sangat tipis yang memberi arah
+          cahaya.
+
+     Di `background-image`, lapis yang disebut duluan digambar paling ATAS,
+     jadi urutannya aura lalu kisi titik.
+
+     SENGAJA cuma menyetel `background-image` (bukan `background-color`):
+     dipakai berdampingan dengan `bg-slate-50` di tiap layar. Ditempel di WADAH
+     LUAR yang TIDAK ikut menggulung, jadi teksturnya diam seperti alas meja dan
+     tidak ada repaint latar tiap frame scroll. */
+  .tekstur-latar {
+    --tekstur-titik: rgb(99 102 241 / 0.16);
+    --tekstur-aura: rgb(99 102 241 / 0.10);
+    background-image:
+      radial-gradient(120% 55% at 50% -8%, var(--tekstur-aura), transparent 62%),
+      radial-gradient(var(--tekstur-titik) 1px, transparent 1px);
+    background-size: 100% 100%, 22px 22px;
+    background-repeat: no-repeat, repeat;
+  }
 }
 
 /* Perpindahan tab cuma MEMUDAR, tidak menggeser: transform pada wadah tab akan
    menjadikannya containing block untuk semua `position: fixed` di dalamnya
-   (lembar konfirmasi, QR layar penuh, tombol zoom) dan semuanya tersentak. */
+   (lembar konfirmasi, QR layar penuh, tombol zoom) dan semuanya tersentak.
+   Umpan balik ARAH datang dari penanda yang menggeser di bilah tab. */
 .tab-masuk { animation: tab-masuk .16s ease-out; }
 
 @keyframes tab-masuk {
@@ -110,15 +131,15 @@
   to { opacity: 1; }
 }
 
-/* Laci ☰ meluncur dari kiri. Aman memakai transform di sini: isinya tidak punya
-   anak `position: fixed` (lihat catatan .tab-masuk di atas). */
-.laci-masuk { animation: laci-masuk .2s ease-out; }
+/* Halaman layar penuh (editor formulir, panel sesi) meluncur masuk dari kanan:
+   penanda bahwa ia menumpuk DI ATAS layar sebelumnya, bukan menggantikannya. */
+.halaman-masuk { animation: halaman-masuk .18s ease-out; }
 
-@keyframes laci-masuk {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+@keyframes halaman-masuk {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab-masuk, .laci-masuk { animation: none; }
+  .tab-masuk, .halaman-masuk { animation: none; }
 }

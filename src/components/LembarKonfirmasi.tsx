@@ -20,8 +20,8 @@ export function LembarKonfirmasi({ judul, pesan, labelAksi, sibuk = false, onAks
       judul={judul}
       onTutup={sibuk ? undefined : onBatal}
       aksi={<>
-        <Button variant="teks" onClick={onBatal} disabled={sibuk}>Batal</Button>
-        <Button variant="teks" onClick={onAksi} disabled={sibuk} className="text-salah! hover:bg-red-50!">
+        <Button variant="ghost" onClick={onBatal} disabled={sibuk}>Batal</Button>
+        <Button variant="danger" onClick={onAksi} disabled={sibuk}>
           {sibuk ? 'Memproses...' : labelAksi}
         </Button>
       </>}

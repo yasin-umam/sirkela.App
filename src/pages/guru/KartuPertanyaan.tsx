@@ -3,37 +3,44 @@ import type { ClipboardEvent, KeyboardEvent } from 'react'
 import type { IsiSoal, Soal } from '../../types'
 import { useKembali } from '../../context/NavContext'
 import { MAKS_PILIHAN, masalahSoal } from '../../lib/soal'
+import { HURUF_OPSI } from '../../components/LayarMurid'
 import { Ikon, TombolIkon } from '../../components/ui/Ikon'
 import { TeksOtomatis } from '../../components/ui/TeksOtomatis'
 import { Button } from '../../components/ui/Button'
 
 // ─── Satu kartu pertanyaan di editor ─────────────────────────────────────────
-// Tiga wujud, sama dengan Google Form:
+// Tiga wujud:
 //   diam    -- ringkas; ketuk untuk menyunting
-//   sunting -- garis biru di kiri, kolom pertanyaan & opsi bisa diketik
+//   sunting -- cincin indigo, kolom pertanyaan & opsi bisa diketik
 //   kunci   -- "Kunci jawaban": ketuk opsi yang benar, lalu Selesai
 //
 // Kunci SENGAJA dipilih di mode terpisah, bukan dengan mengetuk lingkaran opsi
-// saat menyunting: di Google Form lingkaran itu cuma hiasan, dan guru yang
-// terbiasa di sana tidak boleh diam-diam mengganti kunci waktu mengetuk opsi.
+// saat menyunting: lingkaran itu di mode sunting cuma penanda huruf, dan guru
+// tidak boleh diam-diam mengganti kunci waktu bermaksud memperbaiki ketikan.
+//
+// Huruf A/B/C di lingkarannya sama dengan yang dilihat murid (HURUF_OPSI di
+// LayarMurid) -- guru yang menandai kunci "B" melihat B yang sama.
 
 function kapital(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function Lingkaran({ warna = 'border-slate-300', isi }: { warna?: string; isi?: string }) {
+/** Lingkaran huruf opsi. Satu bentuk untuk ketiga wujud kartu. */
+function Huruf({ i, warna = 'bg-slate-100 text-slate-400 border-slate-200' }: { i: number; warna?: string }) {
   return (
-    <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${warna}`}>
-      {isi && <span className={`w-2.5 h-2.5 rounded-full ${isi}`} />}
+    <span className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center text-[10px] font-bold ${warna}`}>
+      {HURUF_OPSI[i] ?? i + 1}
     </span>
   )
 }
 
 export function KartuPertanyaan({
-  soal, aktif, gulir, tandaiMasalah, bisaNaik, bisaTurun,
+  soal, nomor, aktif, gulir, tandaiMasalah, bisaNaik, bisaTurun,
   onAktifkan, onGulirSelesai, onUbah, onDuplikat, onHapus, onNaik, onTurun,
 }: {
   soal: Soal
+  /** Nomor urut di formulir. Sama dengan nomor yang disebut server saat menolak. */
+  nomor?: number
   aktif: boolean
   /** 'fokus' = soal baru: gulir ke sana & taruh kursor di pertanyaan. 'lihat' = gulir saja. */
   gulir: 'fokus' | 'lihat' | null
@@ -67,7 +74,7 @@ export function KartuPertanyaan({
     onGulirSelesai()
   }, [gulir, onGulirSelesai])
 
-  // Opsi baru langsung terseleksi: mengetik menimpa "Opsi 3", persis Google Form.
+  // Opsi baru langsung terseleksi: mengetik menimpa "Opsi 3".
   useEffect(() => {
     if (fokusOpsi === null) return
     const el = opsiRefs.current[fokusOpsi]
@@ -133,9 +140,15 @@ export function KartuPertanyaan({
   }
 
   const catatanMasalah = masalah && (
-    <p className={`mt-3 flex items-center gap-1.5 text-xs ${tandaiMasalah ? 'text-salah' : 'text-amber-700'}`}>
+    <p className={`mt-3 flex items-center gap-1.5 text-xs font-medium ${tandaiMasalah ? 'text-red-600' : 'text-amber-600'}`}>
       <Ikon nama="galat" className="w-4 h-4" />{kapital(masalah)}
     </p>
+  )
+
+  const lencanaNomor = nomor !== undefined && (
+    <span className="shrink-0 w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 text-xs font-bold flex items-center justify-center">
+      {nomor}
+    </span>
   )
 
   // ── Diam ──
@@ -143,25 +156,30 @@ export function KartuPertanyaan({
     return (
       <div ref={kartuRef} onClick={onAktifkan} role="button" tabIndex={0}
         onKeyDown={e => { if (e.key === 'Enter') onAktifkan() }}
-        className={`bg-white rounded-lg border cursor-pointer hover:shadow-sm transition-shadow ${
-          tandaiMasalah && masalah ? 'border-salah' : 'border-garis'}`}>
-        <div className="p-5 desktop:p-6">
-          <p className={`text-base whitespace-pre-wrap break-words ${soal.pertanyaan.trim() ? 'text-teks' : 'text-teks-2'}`}>
+        className={`bg-white rounded-2xl border shadow-sm p-4 cursor-pointer transition-colors active:bg-slate-50 ${
+          tandaiMasalah && masalah ? 'border-red-300' : 'border-slate-100'}`}>
+        <div className="flex gap-2.5">
+          {lencanaNomor}
+          <p className={`flex-1 min-w-0 text-sm font-medium whitespace-pre-wrap break-words ${
+            soal.pertanyaan.trim() ? 'text-slate-800' : 'text-slate-400'}`}>
             {soal.pertanyaan.trim() || 'Pertanyaan'}
           </p>
-          <div className="mt-3 flex flex-col">
-            {pilihan.map((p, j) => (
-              <div key={j} className="flex items-center gap-3 py-1.5">
-                <Lingkaran />
-                <span className={`flex-1 min-w-0 text-sm break-words ${p.trim() ? 'text-teks' : 'text-teks-2 italic'}`}>
+        </div>
+        <div className="mt-3 flex flex-col gap-1.5">
+          {pilihan.map((p, j) => {
+            const kunci = j === jawabanBenar
+            return (
+              <div key={j} className="flex items-center gap-2.5">
+                <Huruf i={j} warna={kunci ? 'bg-emerald-500 border-emerald-500 text-white' : undefined} />
+                <span className={`flex-1 min-w-0 text-sm break-words ${
+                  !p.trim() ? 'text-slate-300 italic' : kunci ? 'text-emerald-700 font-medium' : 'text-slate-600'}`}>
                   {p.trim() || 'Opsi kosong'}
                 </span>
-                {j === jawabanBenar && <Ikon nama="centang" className="w-5 h-5 text-benar" />}
               </div>
-            ))}
-          </div>
-          {catatanMasalah}
+            )
+          })}
         </div>
+        {catatanMasalah}
       </div>
     )
   }
@@ -169,32 +187,37 @@ export function KartuPertanyaan({
   // ── Kunci jawaban ──
   if (modeKunci) {
     return (
-      <div ref={kartuRef} className="relative bg-white rounded-lg border border-garis shadow-md overflow-hidden">
-        <div className="absolute left-0 inset-y-0 w-1.5 bg-fokus" />
-        <div className="pl-6 pr-5 desktop:pl-7 desktop:pr-6 pt-5 pb-3">
-          <p className="flex items-center gap-2 text-base text-teks">
-            <Ikon nama="kunciJawaban" className="w-5 h-5 text-teks-2" />Pilih jawaban yang benar:
+      <div ref={kartuRef} className="bg-white rounded-2xl border border-indigo-300 ring-2 ring-indigo-100 shadow-sm overflow-hidden">
+        <div className="p-4">
+          <p className="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Ikon nama="kunciJawaban" className="w-4.5 h-4.5 text-indigo-500" />Pilih jawaban yang benar
           </p>
-          <p className="mt-4 text-base text-teks whitespace-pre-wrap break-words">{soal.pertanyaan.trim() || 'Pertanyaan'}</p>
-          <div className="mt-3 flex flex-col gap-1">
+          <div className="mt-3 flex gap-2.5">
+            {lencanaNomor}
+            <p className="flex-1 min-w-0 text-sm font-medium text-slate-800 whitespace-pre-wrap break-words">
+              {soal.pertanyaan.trim() || 'Pertanyaan'}
+            </p>
+          </div>
+          <div className="mt-3 flex flex-col gap-2">
             {pilihan.map((p, j) => {
               const benar = j === jawabanBenar
               return (
                 <button key={j} type="button" onClick={() => onUbah({ jawabanBenar: benar ? null : j })}
-                  className={`flex items-center gap-3 px-3 py-2.5 -mx-3 rounded-md text-left transition-colors ${
-                    benar ? 'bg-green-50' : 'hover:bg-slate-900/4'}`}>
-                  <Lingkaran warna={benar ? 'border-benar' : 'border-slate-400'} isi={benar ? 'bg-benar' : undefined} />
-                  <span className={`flex-1 min-w-0 text-sm break-words ${benar ? 'text-benar font-medium' : 'text-teks'}`}>
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                    benar ? 'bg-emerald-50 border-emerald-400' : 'bg-white border-slate-200 active:bg-slate-50'}`}>
+                  <Huruf i={j} warna={benar ? 'bg-emerald-500 border-emerald-500 text-white' : undefined} />
+                  <span className={`flex-1 min-w-0 text-sm break-words ${
+                    benar ? 'text-emerald-700 font-semibold' : 'text-slate-700'}`}>
                     {p.trim() || 'Opsi kosong'}
                   </span>
-                  {benar && <Ikon nama="centang" className="w-5 h-5 text-benar" />}
+                  {benar && <Ikon nama="centang" className="w-4 h-4 text-emerald-600" tebal={2.4} />}
                 </button>
               )
             })}
           </div>
         </div>
-        <div className="mx-5 desktop:mx-6 border-t border-garis flex justify-end py-2">
-          <Button variant="teks" onClick={() => setModeKunci(false)} className="text-fokus! hover:bg-blue-50!">Selesai</Button>
+        <div className="border-t border-slate-100 flex justify-end px-3 py-2">
+          <Button size="sm" onClick={() => setModeKunci(false)}>Selesai</Button>
         </div>
       </div>
     )
@@ -202,55 +225,56 @@ export function KartuPertanyaan({
 
   // ── Sunting ──
   return (
-    <div ref={kartuRef} className="relative bg-white rounded-lg border border-garis shadow-md overflow-hidden">
-      <div className="absolute left-0 inset-y-0 w-1.5 bg-fokus" />
-      <div className="pl-6 pr-4 desktop:pl-7 desktop:pr-5 pt-5 pb-3">
-        <TeksOtomatis ref={pertanyaanRef} value={soal.pertanyaan} placeholder="Pertanyaan"
-          onChange={e => onUbah({ pertanyaan: e.target.value })}
-          className="w-full resize-none bg-isian rounded-t-md px-4 pt-3 pb-3 text-base text-teks placeholder:text-teks-2 outline-none border-b border-slate-400 focus:border-b-2 focus:border-indigo-600 focus:pb-2.75" />
+    <div ref={kartuRef} className="bg-white rounded-2xl border border-indigo-300 ring-2 ring-indigo-100 shadow-sm overflow-hidden">
+      <div className="p-4">
+        <div className="flex gap-2.5">
+          {lencanaNomor}
+          <TeksOtomatis ref={pertanyaanRef} value={soal.pertanyaan} placeholder="Tulis pertanyaan"
+            onChange={e => onUbah({ pertanyaan: e.target.value })}
+            className="flex-1 min-w-0 resize-none bg-slate-50 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 placeholder:font-normal outline-none border border-slate-200 focus:border-indigo-400 focus:bg-white transition-colors" />
+        </div>
 
-        <div className="mt-4 flex flex-col">
+        <div className="mt-3 flex flex-col gap-2">
           {pilihan.map((p, j) => (
-            <div key={j} className="flex items-center gap-3 min-h-11">
-              <Lingkaran />
+            <div key={j} className="flex items-center gap-2.5 pl-0.5">
+              <Huruf i={j} warna={j === jawabanBenar ? 'bg-emerald-500 border-emerald-500 text-white' : undefined} />
               <input ref={el => { opsiRefs.current[j] = el }} value={p} placeholder={`Opsi ${j + 1}`}
                 aria-label={`Opsi ${j + 1}`}
                 onChange={e => ubahOpsi(j, e.target.value)}
                 onKeyDown={e => tombolOpsi(e, j)}
                 onPaste={e => tempelOpsi(e, j)}
-                className="flex-1 min-w-0 py-1.5 text-sm text-teks bg-transparent outline-none border-b border-transparent hover:border-garis focus:border-b-2 focus:border-indigo-600" />
-              {j === jawabanBenar && <Ikon nama="centang" className="w-5 h-5 text-benar" />}
+                className="flex-1 min-w-0 px-3 py-2 text-sm text-slate-700 bg-white rounded-xl border border-slate-200 outline-none focus:border-indigo-400 transition-colors" />
               {pilihan.length > 1 && (
-                <TombolIkon nama="tutup" label={`Hapus opsi ${j + 1}`} onClick={() => hapusOpsi(j)} ukuran="w-5 h-5" />
+                <TombolIkon nama="tutup" label={`Hapus opsi ${j + 1}`} onClick={() => hapusOpsi(j)}
+                  ukuran="w-4 h-4" className="w-8 h-8 shrink-0" />
               )}
             </div>
           ))}
           {pilihan.length < MAKS_PILIHAN && (
-            <div className="flex items-center gap-3 min-h-11">
-              <Lingkaran />
-              <button type="button" onClick={() => sisipkanOpsi(pilihan.length - 1, [`Opsi ${pilihan.length + 1}`])}
-                className="py-1.5 text-sm text-teks-2 border-b border-transparent hover:border-garis">
-                Tambahkan opsi
-              </button>
-            </div>
+            <button type="button" onClick={() => sisipkanOpsi(pilihan.length - 1, [`Opsi ${pilihan.length + 1}`])}
+              className="self-start inline-flex items-center gap-1.5 ml-7.5 px-2 py-1.5 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-50">
+              <Ikon nama="tambah" className="w-3.5 h-3.5" tebal={2.4} />Tambahkan opsi
+            </button>
           )}
         </div>
         {tandaiMasalah && catatanMasalah}
       </div>
 
-      <div className="mx-4 desktop:mx-6 border-t border-garis flex items-center gap-0.5 py-1.5">
+      <div className="border-t border-slate-100 flex items-center gap-0.5 px-2 py-1.5">
         <button type="button" onClick={() => setModeKunci(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md text-sm font-medium text-fokus hover:bg-blue-50">
-          <Ikon nama="kunciJawaban" className="w-5 h-5" />
-          Kunci jawaban
+          className={`inline-flex items-center gap-1.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-colors ${
+            jawabanBenar === null
+              ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+              : 'text-indigo-600 hover:bg-indigo-50'}`}>
+          <Ikon nama="kunciJawaban" className="w-4 h-4" />
+          {jawabanBenar === null ? 'Kunci belum dipilih' : `Kunci: ${HURUF_OPSI[jawabanBenar] ?? jawabanBenar + 1}`}
         </button>
-        {jawabanBenar === null && <span className="w-2 h-2 rounded-full bg-amber-500" title="Kunci jawaban belum dipilih" />}
         <span className="flex-1" />
-        <TombolIkon nama="naik" label="Pindah ke atas" onClick={onNaik} disabled={!bisaNaik} ukuran="w-5 h-5" />
-        <TombolIkon nama="turun" label="Pindah ke bawah" onClick={onTurun} disabled={!bisaTurun} ukuran="w-5 h-5" />
-        <span className="w-px h-6 bg-garis mx-1" />
-        <TombolIkon nama="duplikat" label="Duplikat" onClick={onDuplikat} ukuran="w-5 h-5" />
-        <TombolIkon nama="hapus" label="Hapus" onClick={onHapus} ukuran="w-5 h-5" />
+        <TombolIkon nama="naik" label="Pindah ke atas" onClick={onNaik} disabled={!bisaNaik} ukuran="w-4 h-4" className="w-9 h-9" />
+        <TombolIkon nama="turun" label="Pindah ke bawah" onClick={onTurun} disabled={!bisaTurun} ukuran="w-4 h-4" className="w-9 h-9" />
+        <span className="w-px h-5 bg-slate-100 mx-0.5" />
+        <TombolIkon nama="duplikat" label="Duplikat" onClick={onDuplikat} ukuran="w-4 h-4" className="w-9 h-9" />
+        <TombolIkon nama="hapus" label="Hapus" onClick={onHapus} ukuran="w-4 h-4" className="w-9 h-9 hover:text-red-600 hover:bg-red-50" />
       </div>
     </div>
   )

@@ -51,11 +51,16 @@ export function NavProvider({ children }: { children: ReactNode }) {
     const sebelumnya = prevUser.current
     prevUser.current = user
     if ((user?.id ?? null) === (sebelumnya?.id ?? null)) return
-    if (user) setScreen(user.role === 'guru' ? { name: 'guru' } : { name: 'murid' })
-    // Guru yang keluar kembali ke Masuk. Murid anonim yang identitasnya dibuang
-    // sesudah mengirim jawaban TETAP di layar murid -- nama layarnya sama, jadi
-    // MuridHome tidak di-mount ulang dan layar hasilnya tidak hilang.
-    else setScreen(sebelumnya?.role === 'guru' ? { name: 'login' } : { name: 'murid' })
+    if (user) {
+      // guru & kepala_sekolah berbagi GuruHome yang sama (2026-09-24) -- kartu
+      // Super Sesi di Menu yang membedakan tampilannya, bukan layar terpisah.
+      setScreen(user.role === 'murid' ? { name: 'murid' } : { name: 'guru' })
+    }
+    // Guru/kepala sekolah yang keluar kembali ke Masuk. Murid anonim yang
+    // identitasnya dibuang sesudah mengirim jawaban TETAP di layar murid --
+    // nama layarnya sama, jadi MuridHome tidak di-mount ulang dan layar
+    // hasilnya tidak hilang.
+    else setScreen(sebelumnya?.role === 'guru' || sebelumnya?.role === 'kepala_sekolah' ? { name: 'login' } : { name: 'murid' })
   }, [user, authLoading, passwordRecovery])
 
   const goTo = useCallback((s: AppScreen) => setScreen(s), [])

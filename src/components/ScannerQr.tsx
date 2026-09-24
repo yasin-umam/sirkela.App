@@ -62,7 +62,7 @@ export function ScannerQr({ onDeteksi, onTutup }: {
       } catch {
         // Izin ditolak, tidak ada kamera, atau browser tidak mendukung -- ketiganya
         // berujung "tidak bisa memindai", jadi pesannya tidak menebak penyebab.
-        if (!batal) setError('Tidak bisa mengakses kamera — pastikan izin kamera diberikan, atau masukkan kode manual.')
+        if (!batal) setError('Tidak bisa mengakses kamera. Pastikan izin kamera diberikan, atau masukkan kode manual.')
       }
     })()
 

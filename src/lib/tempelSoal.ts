@@ -21,9 +21,10 @@ import { MAKS_PILIHAN } from './soal'
 //                  pertamanya kepisah jadi dua blok.
 //   baris kosong -- bawaan (tanpa nomor sama sekali, gaya paste Google Form
 //                  polos): baris pertama tiap blok = pertanyaan, sisanya = opsi.
-// Awalan "A. " / "b) " di opsi selalu dibuang di kedua gaya -- tampilan murid
-// memang tanpa huruf (lihat FormulirResponden), jadi teks yang tersimpan pun
-// tanpa huruf.
+// Awalan "A. " / "b) " di opsi selalu dibuang di kedua gaya -- layar murid
+// (lihat LayarMurid) menggambar hurufnya SENDIRI dari posisi opsi (HURUF_OPSI),
+// jadi teks yang tersimpan tidak boleh membawa huruf juga atau opsi tampil
+// berlabel dobel ("A. A. Soekarno").
 
 export interface HasilTempel {
   soal: IsiSoal[]
