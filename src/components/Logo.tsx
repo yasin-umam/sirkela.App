@@ -6,16 +6,16 @@ import { NAMA_APLIKASI } from '../lib/aplikasi'
 // Luang memakai logo gambar miliknya sendiri; aplikasi ini bukan Luang, jadi
 // lambangnya dibuat sendiri -- yang disalin cuma bahasa warnanya (indigo).
 //
-// Bentuknya: lembar soal dengan satu centang. Dua hal yang memang dikerjakan
-// aplikasi ini, dan tidak ada yang lain.
+// Bentuknya: tulisan "SMKN" di atas angka "2" -- lambang sekolah pemakai. Ditulis
+// sebagai teks SVG (bukan teks HTML) supaya ikut mengecil/membesar bersama
+// kotaknya di semua ukuran (w-7 di header, w-11 di pintu depan murid).
 
 export function Lambang({ className = 'w-9 h-9' }: { className?: string }) {
   return (
     <span className={`inline-flex items-center justify-center rounded-2xl bg-linear-to-br from-indigo-500 to-indigo-700 text-white shadow-sm shadow-indigo-200 ${className}`}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3/5 h-3/5" aria-hidden>
-        <path d="M7 4h7.5L19 8.5V19a1.5 1.5 0 01-1.5 1.5h-10A1.5 1.5 0 016 19V5.5A1.5 1.5 0 017.5 4z"
-          strokeWidth={1.8} strokeLinejoin="round" />
-        <path d="M9 13.2l2 2 4-4.2" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox="0 0 24 24" fill="currentColor" textAnchor="middle" className="w-4/5 h-4/5" aria-hidden>
+        <text x="12" y="10.5" fontSize="6.6" fontWeight="800">SMKN</text>
+        <text x="12" y="20.5" fontSize="11" fontWeight="800">2</text>
       </svg>
     </span>
   )
