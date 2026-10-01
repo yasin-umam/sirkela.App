@@ -14,6 +14,7 @@ import { SuperSesiPage } from './SuperSesiPage'
 import { ProfilePage } from './ProfilePage'
 import { EditorFormulir } from './EditorFormulir'
 import { DialogImpor } from './DialogImpor'
+import { DialogSesiBaru } from './DialogSesiBaru'
 
 // ─── Rumah guru: Riwayat · Menu · Saya ───────────────────────────────────────
 // Shell yang sama dengan Luang, sampai ke pembagian tabnya:
@@ -50,6 +51,8 @@ export function GuruHome() {
   const [editor, setEditor] = useState<string | null>(null)
   const [impor, setImpor] = useState<{ tujuan: 'baru' | 'ini'; metode?: 'teks' | 'pdf' | 'ai' } | null>(null)
   const [membuat, setMembuat] = useState(false)
+  /** Dialog "Mulai sesi baru" dari kartu Sesi di Menu: pilih formulir -> Kirim. */
+  const [sesiBaru, setSesiBaru] = useState(false)
   const [keluar, setKeluar] = useState(false)
   const [sibuk, setSibuk] = useState(false)
   const [galatKeluar, setGalatKeluar] = useState<string | null>(null)
@@ -213,8 +216,8 @@ export function GuruHome() {
               onBaru={() => void formulirBaru()}
               onImpor={metode => setImpor({ tujuan: 'baru', metode })}
               onKeSesi={bukaSesi}
+              onMulaiSesi={() => setSesiBaru(true)}
               onKeSuperSesi={bukaSuperSesi}
-              onKeRiwayat={() => setTab('riwayat')}
             />
           </LayarAktif>
         </div>
@@ -263,6 +266,14 @@ export function GuruHome() {
           }} />
       )}
 
+      {sesiBaru && (
+        <DialogSesiBaru
+          onTutup={() => setSesiBaru(false)}
+          onBaru={() => { setSesiBaru(false); void formulirBaru() }}
+          onPerbaiki={() => { setSesiBaru(false); if (aktif) setEditor(aktif.id) }}
+          onPantauSesi={id => { setSesiBaru(false); pantauSesi(id) }} />
+      )}
+
       {keluar && (
         <LembarKonfirmasi
           judul="Keluar dari akun?"
@@ -283,6 +294,7 @@ export function GuruHome() {
           ditutup satu per satu dari yang paling atas. */}
       <Penjaga tangani={() => {
         if (keluar) { if (!sibuk) setKeluar(false); return true }
+        if (sesiBaru) { setSesiBaru(false); return true }
         if (impor) { setImpor(null); return true }
         return false
       }} />

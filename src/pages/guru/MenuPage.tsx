@@ -188,13 +188,15 @@ const CARA: { id: 'ai' | 'teks' | 'pdf'; ikon: NamaIkon; judul: string; keterang
   { id: 'pdf', ikon: 'dokumen', judul: 'Unggah PDF', keterangan: 'Dibaca AI: Microsoft 365, Google Form, atau dokumen lain' },
 ]
 
-export function MenuPage({ membuat, onBaru, onImpor, onKeSesi, onKeSuperSesi, onKeRiwayat }: {
+export function MenuPage({ membuat, onBaru, onImpor, onKeSesi, onMulaiSesi, onKeSuperSesi }: {
   membuat: boolean
   onBaru: () => void
   onImpor: (metode: 'teks' | 'pdf' | 'ai') => void
+  /** Buka kendali SATU sesi yang sudah ada (baris di blok status). */
   onKeSesi: (sesiId?: string) => void
+  /** Kartu Sesi: mulai sesi BARU (pilih formulir -> Kirim). */
+  onMulaiSesi: () => void
   onKeSuperSesi: () => void
-  onKeRiwayat: () => void
 }) {
   const { user } = useAuth()
   const { daftar } = useFormulir()
@@ -218,17 +220,13 @@ export function MenuPage({ membuat, onBaru, onImpor, onKeSesi, onKeSuperSesi, on
       <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-5 pb-28 lg:px-12 lg:pb-12 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-6xl">
         <div className="flex flex-col gap-6 pt-6 lg:pt-10 lg:gap-7">
 
-          {/* HP: lambang + sapaan + pintasan. Desktop: lambang & pintasan sudah ada di sidebar. */}
+          {/* HP: lambang + sapaan. Desktop: lambang sudah ada di sidebar. */}
           <div className="flex items-center gap-3 lg:hidden">
             <Lambang className="w-11 h-11 rounded-[13px]" />
             <div className="flex-1 min-w-0">
               <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-teks-3 truncate">{NAMA_APLIKASI}</p>
               <p className="text-[23px] font-extrabold tracking-tight leading-tight text-tinta truncate">Halo, {nama}</p>
             </div>
-            <button type="button" onClick={onKeRiwayat} title="Semua formulir" aria-label="Semua formulir"
-              className="w-11 h-11 rounded-xl bg-white border border-garis flex items-center justify-center shrink-0 text-tinta active:bg-isian transition-colors">
-              <Ikon nama="dokumen" className="w-5 h-5" />
-            </button>
           </div>
           <div className="hidden lg:block">
             <div>
@@ -346,10 +344,8 @@ export function MenuPage({ membuat, onBaru, onImpor, onKeSesi, onKeSuperSesi, on
                   lebih. Tinta gelap -- BUKAN biru -- supaya dua kartu terisi di
                   layar yang sama tetap bisa dibedakan sekilas. */}
               <KartuAjakan ikon="sesi" warna="tinta" judul="Sesi"
-                keterangan={berjalan.length > 0
-                  ? `${berjalan.length} sedang dibuka · ${semuaSesi.length} total`
-                  : 'Pantau kelas, kunci layar, dan nilai'}
-                onClick={() => onKeSesi()} />
+                keterangan="Mulai sesi baru dari formulirmu"
+                onClick={onMulaiSesi} />
 
               {/* Kepala sekolah saja (role, dicek klien -- server tetap yang
                   menegakkan lewat adalah_kepsek() di RPC Super Sesi). Di desktop

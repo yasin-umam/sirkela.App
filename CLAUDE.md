@@ -24,7 +24,13 @@ keterangan + panah), bukan grid ikon kecil — bentuknya menyalin layar "Soal"
 Luang (`GenerateSoal.tsx`, dibuka lewat tile Soal di grid OperasionalPage),
 dengan Scan Buku dikecualikan (lihat "Generate dari Topik (AI)" di bawah untuk
 kenapa Scan Buku tetap di luar tapi Generate dari Topik sekarang ikut). Kartu
-ajakan tinta (navy gelap) "Sesi" di paling bawah tetap satu-satunya pintu ke layar Sesi.
+ajakan tinta (navy gelap) "Sesi" di paling bawah — sejak 2026-10-01 BUKAN lagi pintu
+ke layar Sesi, melainkan memulai sesi BARU: `DialogSesiBaru` (pilih formulir) lalu
+langsung `DialogKirim` yang sama dengan tombol Kirim di editor, tanpa membuka editor.
+Sesi tetap hanya lahir lewat Kirim (F2); ini cuma jalan pintas dari Menu. Layar Sesi
+(daftar & kendali) dibuka dari baris di blok "Sedang berjalan", tab Riwayat, atau
+sidebar desktop. Kepala Menu HP cuma lambang + sapaan: pintasan ikon dokumen ke
+Riwayat dibuang (tab Riwayat sudah ada di bilah bawah).
 Tab **Riwayat** (`RiwayatPage.tsx`) adalah arsip lengkap dengan dua pil
 (Formulir/Sesi), pengganti laci ☰ lama. Tab **Saya** (`ProfilePage.tsx`) adalah
 akun: kartu profil + angka ringkas, lalu grup baris (Akun Saya, Akses — tempat
