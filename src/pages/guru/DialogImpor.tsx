@@ -38,13 +38,13 @@ function PilihanCara({ ikon, judul, keterangan, onClick }: {
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 active:bg-slate-50 active:scale-[0.99] transition-all flex items-center gap-3.5 p-4 text-left">
-      <span className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+      className="w-full bg-white rounded-2xl border border-garis hover:border-biru active:bg-isian active:scale-[0.99] transition-all flex items-center gap-3.5 p-4 text-left">
+      <span className="w-11 h-11 rounded-xl bg-biru-tint text-biru flex items-center justify-center shrink-0">
         <Ikon nama={ikon} className="w-5 h-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-slate-700">{judul}</span>
-        <span className="block text-xs text-slate-400 mt-0.5 leading-snug">{keterangan}</span>
+        <span className="block text-sm font-semibold text-tinta">{judul}</span>
+        <span className="block text-xs text-teks-3 mt-0.5 leading-snug">{keterangan}</span>
       </span>
     </button>
   )
@@ -190,18 +190,18 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
         </>}>
         <p>
           {metode === 'pdf' ? (
-            <>Betulkan kalau ada yang salah dibaca, lalu periksa <strong className="font-semibold text-slate-700">Kunci
+            <>Betulkan kalau ada yang salah dibaca, lalu periksa <strong className="font-semibold text-tinta">Kunci
               jawaban</strong> tiap soal. Tebakan AI belum tentu benar.</>
           ) : metode === 'ai' ? (
-            <>Betulkan kalau ada yang kurang pas, lalu periksa <strong className="font-semibold text-slate-700">Kunci
+            <>Betulkan kalau ada yang kurang pas, lalu periksa <strong className="font-semibold text-tinta">Kunci
               jawaban</strong> tiap soal. AI menulis kuncinya sendiri, tapi bisa salah hitung atau salah fakta.</>
           ) : (
-            <>Betulkan kalau ada yang salah pisah, lalu tandai <strong className="font-semibold text-slate-700">Kunci
+            <>Betulkan kalau ada yang salah pisah, lalu tandai <strong className="font-semibold text-tinta">Kunci
               jawaban</strong> tiap soal. Teks tempelan tidak pernah membawa kuncinya.</>
           )}
         </p>
         {dilewati.length > 0 && (
-          <p className="mt-2 flex items-start gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="mt-2 flex items-start gap-1.5 rounded-xl bg-jingga-tipis px-3 py-2 text-xs text-jingga-gelap">
             <Ikon nama="galat" className="w-4 h-4 shrink-0 mt-px" />
             Dilewati: {dilewati.map(d => `${d.jumlah} blok ${d.alasan}`).join(', ')}
           </p>
@@ -230,7 +230,7 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
         <Button variant="secondary" size="sm" onClick={tambahDraf} className="mt-3">
           <Ikon nama="tambah" className="w-4 h-4" />Tambah pertanyaan
         </Button>
-        {galat && <p className="mt-3 text-sm text-red-600">{galat}</p>}
+        {galat && <p className="mt-3 text-sm text-jingga-gelap">{galat}</p>}
       </Dialog>
     )
   }
@@ -249,48 +249,48 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
           AI menulis soal pilihan ganda dari topik yang kamu tentukan. Beda dari Impor PDF, di sini AI
           MENGARANG soal baru, bukan membaca dokumen yang sudah ada. Periksa kuncinya di layar berikutnya.
         </p>
-        <label className="block mt-4 text-sm font-semibold text-slate-700">Topik atau materi</label>
+        <label className="block mt-4 text-sm font-semibold text-tinta">Topik atau materi</label>
         <textarea value={topik} onChange={e => { setTopik(e.target.value); setGalat(null) }} autoFocus rows={3}
           maxLength={MAKS_PANJANG_TOPIK}
           placeholder="Contoh: Perkalian pecahan untuk kelas 5 SD"
-          className="mt-1.5 w-full resize-y py-2.5 px-3 bg-slate-50 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 outline-none border border-slate-200 focus:border-indigo-400 transition-colors" />
+          className="mt-1.5 w-full resize-y py-2.5 px-3 bg-isian rounded-xl text-sm text-tinta placeholder:text-teks-3 outline-none border border-garis focus:border-biru transition-colors" />
 
-        <label className="block mt-4 text-sm font-semibold text-slate-700">Jumlah soal</label>
+        <label className="block mt-4 text-sm font-semibold text-tinta">Jumlah soal</label>
         <div className="mt-1.5 grid grid-cols-4 gap-2">
           {JUMLAH_CEPAT.map(n => (
             <button key={n} type="button" onClick={() => setJumlah(n)}
               className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
-                jumlah === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                jumlah === n ? 'bg-biru text-white border-biru' : 'bg-white text-tinta-2 border-garis hover:border-biru'}`}>
               {n}
             </button>
           ))}
         </div>
         <label className="flex items-center gap-2 mt-2">
-          <span className="text-xs text-slate-400 shrink-0">Atau isi manual</span>
+          <span className="text-xs text-teks-3 shrink-0">Atau isi manual</span>
           <input type="number" inputMode="numeric" min={1} max={MAKS_JUMLAH_SOAL} value={jumlah}
             onChange={e => setJumlah(Math.min(MAKS_JUMLAH_SOAL, Math.max(1, Number(e.target.value) || 1)))}
             onWheel={e => e.currentTarget.blur()}
-            className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 text-sm text-right text-slate-800 outline-none focus:border-indigo-400" />
-          <span className="text-xs text-slate-400">soal</span>
+            className="w-16 px-2 py-1.5 rounded-lg border border-garis text-sm text-right text-tinta outline-none focus:border-biru" />
+          <span className="text-xs text-teks-3">soal</span>
         </label>
 
-        <label className="block mt-4 text-sm font-semibold text-slate-700">Tingkat kesulitan</label>
+        <label className="block mt-4 text-sm font-semibold text-tinta">Tingkat kesulitan</label>
         <div className="mt-1.5 grid grid-cols-3 gap-2">
           {KESULITAN.map(k => (
             <button key={k.id} type="button" onClick={() => setKesulitan(k.id)}
               className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
-                kesulitan === k.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                kesulitan === k.id ? 'bg-biru text-white border-biru' : 'bg-white text-tinta-2 border-garis hover:border-biru'}`}>
               {k.label}
             </button>
           ))}
         </div>
 
         {mengonversi && (
-          <p className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+          <p className="mt-4 flex items-center gap-2 text-sm text-teks-3">
             <Spinner size={16} />Menulis {jumlah} soal dengan AI, bisa sampai satu menit…
           </p>
         )}
-        {galat && <p className="mt-3 text-sm text-red-600">{galat}</p>}
+        {galat && <p className="mt-3 text-sm text-jingga-gelap">{galat}</p>}
       </Dialog>
     )
   }
@@ -310,19 +310,19 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
           dokumen lain. AI yang membacanya di server; kunci jawaban tetap kamu yang menandai di layar berikutnya.
         </p>
         <label className={`mt-4 flex flex-col items-center justify-center gap-2 h-36 rounded-2xl border-2 border-dashed transition-colors px-4 text-center ${
-          mengonversi ? 'border-slate-200' : 'border-slate-200 hover:border-indigo-400 cursor-pointer'}`}>
-          <Ikon nama="dokumen" className="w-8 h-8 text-indigo-500" tebal={1.5} />
-          <span className="text-sm font-medium text-slate-700 break-all">{berkas ? berkas.name : 'Pilih berkas PDF'}</span>
-          {berkas && <span className="text-xs text-slate-400">{(berkas.size / 1024 / 1024).toFixed(1)} MB</span>}
+          mengonversi ? 'border-garis' : 'border-garis hover:border-biru cursor-pointer'}`}>
+          <Ikon nama="dokumen" className="w-8 h-8 text-biru" tebal={1.5} />
+          <span className="text-sm font-medium text-tinta break-all">{berkas ? berkas.name : 'Pilih berkas PDF'}</span>
+          {berkas && <span className="text-xs text-teks-3">{(berkas.size / 1024 / 1024).toFixed(1)} MB</span>}
           <input type="file" accept="application/pdf" className="hidden" disabled={mengonversi}
             onChange={e => { setBerkas(e.target.files?.[0] ?? null); setGalat(null) }} />
         </label>
         {mengonversi && (
-          <p className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+          <p className="mt-3 flex items-center gap-2 text-sm text-teks-3">
             <Spinner size={16} />Membaca PDF dengan AI, bisa sampai satu menit…
           </p>
         )}
-        {galat && <p className="mt-3 text-sm text-red-600">{galat}</p>}
+        {galat && <p className="mt-3 text-sm text-jingga-gelap">{galat}</p>}
       </Dialog>
     )
   }
@@ -336,16 +336,16 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
           <Button onClick={uraikan} disabled={!teks.trim()}>Lanjut</Button>
         </>}>
         <p>
-          Buka Google Form-nya (link <strong className="font-semibold text-slate-700">responden</strong>, bukan edit), tekan{' '}
-          <strong className="font-semibold text-slate-700">Ctrl+A</strong> lalu{' '}
-          <strong className="font-semibold text-slate-700">Ctrl+C</strong>, dan tempel semuanya di sini. Pisahkan tiap
+          Buka Google Form-nya (link <strong className="font-semibold text-tinta">responden</strong>, bukan edit), tekan{' '}
+          <strong className="font-semibold text-tinta">Ctrl+A</strong> lalu{' '}
+          <strong className="font-semibold text-tinta">Ctrl+C</strong>, dan tempel semuanya di sini. Pisahkan tiap
           soal dengan baris kosong: baris pertama pertanyaannya, baris-baris berikutnya pilihannya.
         </p>
         <textarea value={teks} onChange={e => { setTeks(e.target.value); setGalat(null) }} autoFocus rows={10}
           placeholder={'Contoh:\n\nSiapa presiden pertama Indonesia?\nSoekarno\nHatta\nSoeharto\n\nIbu kota Indonesia?\nJakarta\nBandung'}
-          className="mt-4 w-full resize-y py-2.5 px-3 bg-slate-50 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 outline-none border border-slate-200 focus:border-indigo-400 transition-colors" />
+          className="mt-4 w-full resize-y py-2.5 px-3 bg-isian rounded-xl text-sm text-tinta placeholder:text-teks-3 outline-none border border-garis focus:border-biru transition-colors" />
         <p className="mt-3 text-xs">Kunci jawaban tidak ikut tersalin dari Google Form. Kamu menandainya sendiri di layar berikutnya.</p>
-        {galat && <p className="mt-3 text-sm text-red-600">{galat}</p>}
+        {galat && <p className="mt-3 text-sm text-jingga-gelap">{galat}</p>}
       </Dialog>
     )
   }

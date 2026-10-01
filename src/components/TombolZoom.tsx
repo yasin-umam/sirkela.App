@@ -30,7 +30,7 @@ function TombolZoom({ zoom, zoomIn, zoomOut, reset, bisaZoomIn, bisaZoomOut, def
         onClick={zoomIn}
         disabled={!bisaZoomIn}
         title="Perbesar"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-teks-2 font-bold text-base leading-none active:bg-slate-100 disabled:opacity-30 disabled:active:bg-transparent transition-colors"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-teks-2 font-bold text-base leading-none active:bg-garis-2 disabled:opacity-30 disabled:active:bg-transparent transition-colors"
       >
         +
       </button>
@@ -39,7 +39,7 @@ function TombolZoom({ zoom, zoomIn, zoomOut, reset, bisaZoomIn, bisaZoomOut, def
         onClick={reset}
         disabled={sudahDefault}
         title="Atur ulang zoom"
-        className="w-8 h-8 flex items-center justify-center text-[10px] font-semibold text-teks-2 active:bg-slate-100 rounded-lg disabled:active:bg-transparent transition-colors"
+        className="w-8 h-8 flex items-center justify-center text-[10px] font-semibold text-teks-2 active:bg-garis-2 rounded-lg disabled:active:bg-transparent transition-colors"
       >
         {Math.round(zoom * 100)}%
       </button>
@@ -48,7 +48,7 @@ function TombolZoom({ zoom, zoomIn, zoomOut, reset, bisaZoomIn, bisaZoomOut, def
         onClick={zoomOut}
         disabled={!bisaZoomOut}
         title="Perkecil"
-        className="w-8 h-8 rounded-full flex items-center justify-center text-teks-2 font-bold text-base leading-none active:bg-slate-100 disabled:opacity-30 disabled:active:bg-transparent transition-colors"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-teks-2 font-bold text-base leading-none active:bg-garis-2 disabled:opacity-30 disabled:active:bg-transparent transition-colors"
       >
         −
       </button>
@@ -60,7 +60,7 @@ function TombolZoom({ zoom, zoomIn, zoomOut, reset, bisaZoomIn, bisaZoomOut, def
 // bukan jendela browser (lihat alasannya di sana).
 export function TombolZoomMengambang(props: ReturnType<typeof useZoomKontrol>) {
   return (
-    <LapisMengambang posisi="inset-x-0 bottom-4">
+    <LapisMengambang posisi="inset-x-0 bottom-24 lg:bottom-6">
       <div className="pointer-events-auto">
         <TombolZoom {...props} />
       </div>

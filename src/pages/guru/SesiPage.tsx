@@ -6,29 +6,35 @@ import { ratakanSoalGuru } from '../../lib/sesiGuru'
 import { jamMenit, labelWaktu } from '../../lib/soal'
 import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
-import { Badge } from '../../components/ui/Badge'
+import { Badge, type WarnaBadge } from '../../components/ui/Badge'
+import { Sakelar } from '../../components/ui/Sakelar'
+import { Eyebrow } from '../../components/ui/Eyebrow'
+import { NAMA_APLIKASI } from '../../lib/aplikasi'
 import { BagikanSesi } from '../../components/BagikanSesi'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
+import { useDesktop } from '../../lib/useDesktop'
+import { useSisaDetik, menitDetik } from '../../lib/waktuSesi'
+import { BarisTabel, KepalaTabel } from '../../components/TabelDesktop'
 import { LihatJawaban } from './LihatJawaban'
 
 // ─── Layar Sesi (takeover dari kartu Sesi di Menu) ───────────────────────────
-// Bentuknya mengikuti SesiPage Luang: bilah kepala tipis dengan panah kembali +
-// judul, lalu isi yang berganti menurut keadaan — daftar sesi, atau kendali
-// SATU sesi kalau ada yang sedang difokuskan.
+// Bilah kepala putih tipis dengan panah kembali + judul, lalu isi yang berganti
+// menurut keadaan: daftar sesi, atau kendali SATU sesi kalau ada yang sedang
+// difokuskan.
 //
-// Beda dari Luang, tidak ada tombol "+" / FAB "Sesi baru" di sini: sesi di
-// aplikasi ini TIDAK PERNAH lahir dari layar Sesi. Ia lahir dari formulir lewat
-// Kirim (F2: `buka_sesi_formulir()` yang merakit snapshot soal), jadi satu-
-// satunya "+" yang benar ada di editor formulir. Layar kosong di sini
-// mengatakan itu, bukan menyodorkan tombol yang akan menipu.
+// Tidak ada tombol "+" / "Sesi baru" di sini: sesi di aplikasi ini TIDAK PERNAH
+// lahir dari layar Sesi. Ia lahir dari formulir lewat Kirim (F2:
+// `buka_sesi_formulir()` yang merakit snapshot soal), jadi satu-satunya "+"
+// yang benar ada di editor formulir. Layar kosong di sini mengatakan itu,
+// bukan menyodorkan tombol yang akan menipu.
 
 const AMBANG_SENYAP_MS = 45_000 // dua kali jarak denyut murid (20 detik)
 const DURASI_CEPAT = [15, 30, 45, 60]
 
-export function statusSesi(s: SesiKelas): { label: string; warna: 'hijau' | 'kuning' | 'slate' } {
+export function statusSesi(s: SesiKelas): { label: string; warna: WarnaBadge } {
   if (s.status === 'selesai') return { label: 'Selesai', warna: 'slate' }
   if (s.mulaiPada) return { label: 'Berjalan', warna: 'hijau' }
-  return { label: 'Menunggu', warna: 'kuning' }
+  return { label: 'Menunggu', warna: 'slate' }
 }
 
 function durasiSingkat(ms: number): string {
@@ -69,32 +75,31 @@ export function SesiPage({ onKeluar, onLayarPenuh }: {
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 tekstur-latar">
-      <div className="px-2 py-1 flex items-center gap-2 shrink-0 desktop:max-w-2xl desktop:w-full desktop:mx-auto">
+    <div className="flex flex-col h-full bg-alas">
+      <div className="h-14 pl-1.5 pr-4 flex items-center gap-1 shrink-0 bg-white border-b border-garis lg:hidden">
         <button type="button" aria-label="Kembali"
           onClick={() => (fokus ? fokuskan(null) : onKeluar())}
-          className="min-w-11 h-11 px-2 flex items-center justify-center rounded-xl active:bg-slate-100 transition-colors">
-          <Ikon nama="kembali" className="w-5 h-5 text-slate-600" tebal={2} />
+          className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 transition-colors">
+          <Ikon nama="kembali" className="w-5.5 h-5.5" tebal={2} />
         </button>
-        <Ikon nama="sesi" className="w-4.5 h-4.5 text-emerald-600" />
-        <span className="text-sm font-semibold text-slate-700">Sesi</span>
+        <span className="text-base font-bold text-tinta">{fokus ? 'Kendali sesi' : 'Sesi'}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 desktop:max-w-2xl desktop:w-full desktop:mx-auto">
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-6xl lg:px-12 lg:pt-10 lg:pb-12">
         {fokus ? (
           <SesiAktifView sesi={fokus} onTutup={() => fokuskan(null)} onLihatJawaban={() => setLihatJawaban(true)} />
         ) : semuaSesi.length > 0 ? (
           <SesiListView onPilih={id => fokuskan(id)} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center">
-              <Ikon nama="sesi" className="w-8 h-8 text-indigo-300" tebal={1.5} />
+            <div className="w-16 h-16 rounded-2xl bg-biru-tint flex items-center justify-center">
+              <Ikon nama="sesi" className="w-8 h-8 text-biru" tebal={1.5} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-600">Belum ada sesi</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+              <p className="text-[15px] font-bold text-tinta">Belum ada sesi</p>
+              <p className="text-[13px] text-teks-3 mt-1 max-w-xs leading-relaxed">
                 Sesi lahir dari formulir: buka formulirmu, lalu tekan{' '}
-                <strong className="text-indigo-500">Kirim</strong>. Soalnya disalin saat itu juga dan
+                <strong className="text-biru">Kirim</strong>. Soalnya disalin saat itu juga dan
                 sesi dapat kodenya sendiri.
               </p>
             </div>
@@ -107,46 +112,93 @@ export function SesiPage({ onKeluar, onLayarPenuh }: {
 
 // ─── Daftar semua sesi ───────────────────────────────────────────────────────
 
+const KOLOM_SESI = 'grid-cols-[minmax(0,1fr)_120px_130px_190px_150px_24px]'
+
 function SesiListView({ onPilih }: { onPilih: (id: string) => void }) {
   const { semuaSesi } = useSesi()
+  const desktop = useDesktop()
+
+  // Desktop: TABEL, sama dengan pil Sesi di Riwayat (kolom dan gayanya satu
+  // keluarga) -- bedanya di sini baris membuka KENDALI sesi, bukan arsip.
+  if (desktop) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <Eyebrow>{NAMA_APLIKASI}</Eyebrow>
+          <h1 className="mt-2 text-[38px] leading-tight font-extrabold tracking-tight text-tinta">Sesi</h1>
+        </div>
+        <div className="bg-white rounded-[18px] border border-garis overflow-hidden">
+          <KepalaTabel kolom={KOLOM_SESI} judul={['Judul', 'Kode', 'Murid', 'Dibuat', 'Status', '']} />
+          {semuaSesi.map(sesi => {
+            const st = statusSesi(sesi)
+            const terkunci = sesi.kunciLayar ? sesi.muridJoined.filter(p => p.terkunciPada !== null).length : 0
+            return (
+              <BarisTabel key={sesi.id} kolom={KOLOM_SESI} onClick={() => onPilih(sesi.id)}>
+                <span className="flex items-center gap-3.5 min-w-0">
+                  <span className={`w-10.5 h-10.5 rounded-xl flex items-center justify-center shrink-0 ${
+                    sesi.status === 'aktif' ? 'bg-hijau-tint text-hijau' : 'bg-garis-2 text-teks-3'}`}>
+                    <Ikon nama="orang" className="w-5.5 h-5.5" tebal={1.5} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[15px] font-bold text-tinta truncate">{sesi.judul}</span>
+                    {sesi.superSesiId && <span className="block text-[13px] text-teks-3 truncate">Super Sesi: {sesi.superSesiJudul}</span>}
+                  </span>
+                </span>
+                <span className="font-mono text-sm font-medium text-tinta">{sesi.kodeJoin}</span>
+                <span className="text-sm text-tinta-2">
+                  {sesi.muridJoined.length} murid
+                  {terkunci > 0 && <span className="ml-2 inline-flex items-center gap-1 text-xs font-bold text-jingga-gelap"><Ikon nama="kunci" className="w-3 h-3" />{terkunci}</span>}
+                </span>
+                <span className="text-sm text-teks-3">{labelWaktu(sesi.dibuatPada)} {jamMenit(sesi.dibuatPada)}</span>
+                <span><Badge warna={st.warna} titik={st.label === 'Berjalan'}>{st.label}</Badge></span>
+                <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
+              </BarisTabel>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-xs text-slate-500 font-medium px-1">Sesi tersimpan ({semuaSesi.length})</p>
-      {semuaSesi.map(sesi => {
-        const st = statusSesi(sesi)
-        const aktif = sesi.status === 'aktif'
-        const terkunci = sesi.kunciLayar ? sesi.muridJoined.filter(p => p.terkunciPada !== null).length : 0
-        return (
-          <button key={sesi.id} type="button" onClick={() => onPilih(sesi.id)}
-            className="w-full text-left flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-100 shadow-sm active:bg-slate-50 transition-colors">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              aktif ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
-              <Ikon nama="orang" className="w-5 h-5" tebal={1.5} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 truncate">{sesi.judul}</p>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs text-slate-400 font-mono">{sesi.kodeJoin}</span>
-                <span className="text-slate-200">·</span>
-                <Badge warna={st.warna}>{st.label}</Badge>
-                <span className="text-[10px] text-slate-400">{sesi.muridJoined.length} murid</span>
-                <span className="text-[10px] text-slate-400">{labelWaktu(sesi.dibuatPada)}</span>
+    <div className="flex flex-col gap-2.5">
+      <p className="text-[13px] font-semibold text-teks-3 px-1">Sesi tersimpan ({semuaSesi.length})</p>
+      <div className="bg-white rounded-[18px] border border-garis overflow-hidden divide-y divide-garis-2">
+        {semuaSesi.map(sesi => {
+          const st = statusSesi(sesi)
+          const aktif = sesi.status === 'aktif'
+          const terkunci = sesi.kunciLayar ? sesi.muridJoined.filter(p => p.terkunciPada !== null).length : 0
+          return (
+            <button key={sesi.id} type="button" onClick={() => onPilih(sesi.id)}
+              className="w-full text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                aktif ? 'bg-hijau-tint text-hijau' : 'bg-garis-2 text-teks-3'}`}>
+                <Ikon nama="orang" className="w-5.5 h-5.5" tebal={1.5} />
               </div>
-            </div>
-            {terkunci > 0 && (
-              <span className="flex items-center gap-1 shrink-0 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
-                <Ikon nama="kunci" className="w-3.5 h-3.5" />{terkunci}
-              </span>
-            )}
-            <Ikon nama="kanan" className="w-4 h-4 text-slate-300 shrink-0" tebal={2} />
-          </button>
-        )
-      })}
+              <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+                <p className="text-[15px] font-bold leading-snug text-tinta break-words">{sesi.judul}</p>
+                <p className="text-[13px] text-teks-3">
+                  <span className="font-mono">{sesi.kodeJoin}</span> · {sesi.muridJoined.length} murid · {labelWaktu(sesi.dibuatPada)}
+                </p>
+                <span className="mt-1"><Badge warna={st.warna} titik={st.label === 'Berjalan'}>{st.label}</Badge></span>
+              </div>
+              {terkunci > 0 && (
+                <span className="flex items-center gap-1 shrink-0 text-xs font-bold text-jingga-gelap bg-jingga-tint px-2 py-1 rounded-lg">
+                  <Ikon nama="kunci" className="w-3.5 h-3.5" />{terkunci}
+                </span>
+              )}
+              <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
 // ─── Satu sesi: kendali ──────────────────────────────────────────────────────
+
+type Penyaring = 'semua' | 'terkunci' | 'senyap'
 
 function SesiAktifView({ sesi, onTutup, onLihatJawaban }: {
   sesi: SesiKelas
@@ -157,6 +209,7 @@ function SesiAktifView({ sesi, onTutup, onLihatJawaban }: {
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState<string | null>(null)
   const [konfirmasiAkhiri, setKonfirmasiAkhiri] = useState(false)
+  const [penyaring, setPenyaring] = useState<Penyaring>('semua')
 
   const soalList = useMemo(() => ratakanSoalGuru(sesi.kontenList), [sesi.kontenList])
   const aktif = sesi.status === 'aktif'
@@ -167,120 +220,181 @@ function SesiAktifView({ sesi, onTutup, onLihatJawaban }: {
     finally { setSibuk(false) }
   }
 
+  const peserta = urutkanPeserta(sesi)
+  const jumlahTerkunci = peserta.filter(p => keadaanPeserta(p, sesi).terkunci).length
+  const jumlahSenyap = peserta.filter(p => { const k = keadaanPeserta(p, sesi); return k.aktif && !k.terkunci && k.senyap }).length
+  const tampil = peserta.filter(p => {
+    const k = keadaanPeserta(p, sesi)
+    return penyaring === 'semua' || (penyaring === 'terkunci' ? k.terkunci : k.aktif && !k.terkunci && k.senyap)
+  })
+
+  const status = aktif ? (sesi.mulaiPada ? 'Sesi aktif' : 'Menunggu dimulai') : 'Sesi selesai'
+
+  // Tombol aksi yang sama di dua tempat: kepala desktop (atas) dan dasar layar HP.
+  const tombolMulai = aktif && !sesi.mulaiPada && (
+    <Button size="lg" disabled={sibuk} onClick={() => void jalankan(() => mulaiSesi(sesi.id))} className="lg:h-12 max-lg:w-full">
+      <Ikon nama="kirim" className="w-4.5 h-4.5" />Mulai sesi
+    </Button>
+  )
+  const tombolAkhiri = aktif && (
+    // SENGAJA tidak digate ke mulaiPada -- ini satu-satunya tombol yang boleh
+    // mengakhiri sesi, jadi sesi yang belum dimulai pun tetap butuh jalan
+    // keluar yang eksplisit.
+    <Button variant="danger-garis" size="lg" disabled={sibuk} onClick={() => setKonfirmasiAkhiri(true)} className="lg:h-12 max-lg:w-full">
+      Akhiri sesi
+    </Button>
+  )
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Kartu info sesi -- satu-satunya kartu indigo penuh di layar ini. */}
-      <div className="rounded-2xl bg-linear-to-br from-indigo-600 to-indigo-700 text-white shadow-sm shadow-indigo-200 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-indigo-200 text-xs font-semibold uppercase tracking-wide">
-              {aktif ? (sesi.mulaiPada ? 'Sesi aktif' : 'Menunggu dimulai') : 'Sesi selesai'}
-            </p>
-            <h3 className="font-bold text-lg mt-0.5 break-words">{sesi.judul}</h3>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <Badge warna="indigo">Kode: {sesi.kodeJoin}</Badge>
-              <span className="text-indigo-200 text-xs">{sesi.durasiMenit} menit</span>
-              <span className="text-indigo-200 text-xs">{soalList.length} soal</span>
-            </div>
-            {sesi.superSesiId && (
-              // Sesi ini lahir dari mulai_super_sesi(), bukan dari Kirim milik
-              // guru ini sendiri (SS2/SS3) -- badge ini satu-satunya penjelasan
-              // "kenapa sesi ini muncul" yang guru pengawas punya.
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-100 bg-white/10 rounded-lg px-2 py-1 w-fit mt-2">
-                <Ikon nama="sesi" className="w-3 h-3" />Super Sesi: {sesi.superSesiJudul}
-              </div>
-            )}
-            {!aktif && sesi.selesaiPada && (
-              <p className="text-xs text-indigo-200 mt-2">
-                Diakhiri {labelWaktu(sesi.selesaiPada).toLowerCase()} pukul {jamMenit(sesi.selesaiPada)}. Nilai masih bisa diveto.
-              </p>
-            )}
+    <div className="flex flex-col gap-3 lg:gap-6">
+      {/* ── Kepala DESKTOP: jejak, judul, status, aksi ── */}
+      <div className="hidden lg:flex items-end justify-between gap-6">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[13.5px] text-teks-3">
+            <button type="button" onClick={onTutup} className="font-semibold hover:text-tinta transition-colors">Sesi</button>
+            <Ikon nama="kanan" className="w-3.5 h-3.5" tebal={2.2} />
+            <span>Kendali sesi</span>
           </div>
-          {/* SENGAJA cuma keluar dari layar sesi, TIDAK PERNAH ikut mengakhiri
-              sesinya -- satu-satunya jalan mengakhiri adalah tombol "Akhiri
-              sesi" di bawah. Sesi tetap 'aktif' di DB dan gampang dibuka lagi
-              dari daftar maupun blok "Sedang berjalan" di Menu. */}
-          <button type="button" onClick={onTutup} aria-label="Tutup"
-            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 hover:bg-white/30 transition-colors">
-            <Ikon nama="tutup" className="w-4 h-4 text-white" tebal={2} />
-          </button>
+          <div className="flex items-center gap-3.5 mt-2.5 flex-wrap">
+            <h1 className="text-[34px] leading-tight font-extrabold tracking-tight text-tinta break-words">{sesi.judul}</h1>
+            <Badge warna={aktif && sesi.mulaiPada ? 'hijau' : 'slate'} titik={aktif && !!sesi.mulaiPada}>{status}</Badge>
+          </div>
+          <p className="text-[14.5px] text-teks-3 mt-2">
+            {soalList.length} soal · {sesi.durasiMenit} menit · {sesi.muridJoined.length} murid bergabung
+            {sesi.superSesiId && <> · Super Sesi: {sesi.superSesiJudul}</>}
+            {!aktif && sesi.selesaiPada && <> · Diakhiri {labelWaktu(sesi.selesaiPada).toLowerCase()} pukul {jamMenit(sesi.selesaiPada)}. Nilai masih bisa diveto.</>}
+          </p>
+        </div>
+        <div className="flex gap-3 shrink-0">
+          {soalList.length > 0 && (
+            <Button variant="secondary" onClick={onLihatJawaban} className="h-12!">
+              <Ikon nama="centangLingkar" className="w-4.5 h-4.5" />Lihat jawaban &amp; nilai
+            </Button>
+          )}
+          {tombolMulai}
+          {tombolAkhiri}
         </div>
       </div>
 
-      {aktif && sesi.mulaiPada && <Hitungan mulaiPada={sesi.mulaiPada} durasiMenit={sesi.durasiMenit} />}
-
-      {aktif && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-          <BagikanSesi kode={sesi.kodeJoin} qrSebaris />
-        </div>
-      )}
-
-      {aktif && !sesi.mulaiPada && <KartuDurasi sesi={sesi} />}
-
-      {aktif && <KartuKunciLayar sesi={sesi} />}
-
-      {/* Daftar murid */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-50">
-          <span className="text-sm font-semibold text-slate-700">Murid bergabung</span>
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-            sesi.muridJoined.length > 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
-            {sesi.muridJoined.length}
-          </span>
-        </div>
-        {sesi.muridJoined.length === 0 ? (
-          <div className="flex flex-col items-center gap-1.5 py-6 text-center">
-            <Ikon nama="orang" className="w-8 h-8 text-slate-200" tebal={1.5} />
-            <p className="text-xs text-slate-400">Menunggu murid bergabung</p>
-            <p className="text-xs text-slate-300">
-              Bagikan kode <strong className="text-indigo-400 font-mono">{sesi.kodeJoin}</strong>
-            </p>
+      {/* Kartu info sesi (HP) -- satu-satunya kartu tinta penuh di layar ini.
+          Layar ini SENGAJA tidak punya tombol tutup sendiri: panah kembali di
+          bilah atas cuma keluar dari layar sesi, TIDAK PERNAH mengakhiri
+          sesinya -- satu-satunya jalan mengakhiri adalah tombol "Akhiri sesi".
+          Sesi tetap 'aktif' di DB dan gampang dibuka lagi dari daftar maupun
+          blok "Sedang berjalan" di Menu. */}
+      <div className="rounded-[20px] bg-tinta text-white p-[18px] lg:hidden">
+        <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 font-mono text-[11.5px] uppercase tracking-[0.12em]">
+          {aktif && sesi.mulaiPada && <span className="w-2 h-2 rounded-full bg-hijau-muda" />}
+          {status}
+        </span>
+        <h1 className="mt-3 text-2xl font-extrabold tracking-tight leading-tight break-words">{sesi.judul}</h1>
+        <p className="mt-2.5 flex flex-wrap gap-x-4.5 gap-y-1 text-sm text-biru-muda">
+          <span>{soalList.length} soal</span>
+          <span>{sesi.durasiMenit} menit</span>
+          <span>{sesi.muridJoined.length} murid</span>
+        </p>
+        {sesi.superSesiId && (
+          // Sesi ini lahir dari mulai_super_sesi(), bukan dari Kirim milik
+          // guru ini sendiri (SS2/SS3) -- badge ini satu-satunya penjelasan
+          // "kenapa sesi ini muncul" yang guru pengawas punya.
+          <div className="flex items-center gap-1.5 text-xs font-bold text-biru-muda bg-white/12 rounded-lg px-2.5 py-1.5 w-fit mt-3">
+            <Ikon nama="perisai" className="w-3.5 h-3.5" />Super Sesi: {sesi.superSesiJudul}
           </div>
-        ) : (
-          <div className="divide-y divide-slate-50">
-            {urutkanPeserta(sesi).map(p => <BarisPeserta key={p.muridId} peserta={p} sesi={sesi} />)}
-          </div>
+        )}
+        {!aktif && sesi.selesaiPada && (
+          <p className="text-[13px] text-biru-muda mt-3">
+            Diakhiri {labelWaktu(sesi.selesaiPada).toLowerCase()} pukul {jamMenit(sesi.selesaiPada)}. Nilai masih bisa diveto.
+          </p>
         )}
       </div>
 
+      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:gap-6 lg:items-start">
+        {/* Kolom kiri desktop: kode & QR, sisa waktu, durasi, kunci layar. Di HP
+            urutannya sisa waktu dulu (tenggat paling sering dilirik). */}
+        <div className="flex flex-col gap-3 lg:gap-4.5">
+          {aktif && sesi.mulaiPada && <Hitungan mulaiPada={sesi.mulaiPada} durasiMenit={sesi.durasiMenit} />}
+
+          {aktif && (
+            <div className="bg-white rounded-[18px] border border-garis p-4 lg:p-5.5 lg:order-first">
+              <BagikanSesi kode={sesi.kodeJoin} qrSebaris />
+            </div>
+          )}
+
+          {aktif && !sesi.mulaiPada && <KartuDurasi sesi={sesi} />}
+
+          {aktif && <KartuKunciLayar sesi={sesi} />}
+        </div>
+
+        {/* Daftar murid */}
+        <div className="bg-white rounded-[18px] border border-garis overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-garis-2 lg:border-b-0 lg:px-5.5 lg:pt-5 lg:pb-4">
+            <span className="flex items-center gap-2.5">
+              <span className="text-[15px] lg:text-[17px] font-extrabold text-tinta">Murid bergabung</span>
+              <span className={`text-[13px] font-extrabold px-3 py-0.5 rounded-full ${
+                sesi.muridJoined.length > 0 ? 'bg-biru-tint text-biru' : 'bg-garis-2 text-teks-3'}`}>
+                {sesi.muridJoined.length}
+              </span>
+            </span>
+            {/* Penyaring: hanya di desktop, tempat daftarnya cukup panjang untuk
+                dicari. Memilih penyaring TIDAK mengubah apa pun di server. */}
+            {sesi.muridJoined.length > 0 && (
+              <div className="hidden lg:flex gap-2" role="group" aria-label="Saring murid">
+                {([['semua', 'Semua', peserta.length], ['terkunci', 'Terkunci', jumlahTerkunci], ['senyap', 'Senyap', jumlahSenyap]] as const).map(([id, label, n]) => (
+                  <button key={id} type="button" aria-pressed={penyaring === id} onClick={() => setPenyaring(id)}
+                    className={`h-9 px-3.5 rounded-full text-[13.5px] font-bold border transition-colors ${
+                      penyaring === id ? 'bg-tinta text-white border-tinta' : 'bg-white text-tinta-2 border-garis hover:border-pinggir'}`}>
+                    {label} <span className={`font-medium ${penyaring === id ? 'text-biru-muda' : 'text-teks-3'}`}>{n}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {sesi.muridJoined.length === 0 ? (
+            <div className="flex flex-col items-center gap-1.5 py-7 text-center">
+              <Ikon nama="orang" className="w-8 h-8 text-pinggir-2" tebal={1.5} />
+              <p className="text-[13px] text-teks-3">Menunggu murid bergabung</p>
+              <p className="text-[13px] text-teks-3">
+                Bagikan kode <strong className="text-biru font-mono">{sesi.kodeJoin}</strong>
+              </p>
+            </div>
+          ) : tampil.length === 0 ? (
+            <p className="px-5.5 pb-6 text-[13.5px] text-teks-3">Tidak ada murid yang cocok dengan penyaring ini.</p>
+          ) : (
+            <div className="divide-y divide-garis-2 lg:divide-y-0 lg:grid lg:grid-cols-2 lg:gap-2.5 lg:px-5.5 lg:pb-5.5">
+              {tampil.map(p => <BarisPeserta key={p.muridId} peserta={p} sesi={sesi} />)}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Jawaban & nilai -- satu tombol untuk SELURUH sesi: semua soal digabung
-          jadi satu kuis, satu baris nilai per murid (selesaikan_murid). */}
+          jadi satu kuis, satu baris nilai per murid (selesaikan_murid). Di
+          desktop tombolnya ada di kepala halaman. */}
       {soalList.length > 0 && (
         <button type="button" onClick={onLihatJawaban}
-          className="w-full flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3.5 active:bg-slate-50 transition-colors text-left">
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-            <Ikon nama="centangLingkar" className="w-4.5 h-4.5 text-indigo-500" />
+          className="lg:hidden w-full flex items-center gap-3 bg-white rounded-[18px] border border-garis px-4 py-3.5 active:bg-isian transition-colors text-left">
+          <div className="w-11 h-11 rounded-xl bg-biru-tint flex items-center justify-center shrink-0">
+            <Ikon nama="centangLingkar" className="w-5.5 h-5.5 text-biru" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-700">Lihat jawaban &amp; nilai</p>
-            <p className="text-[11px] text-slate-400">{soalList.length} soal · tinjau jawaban dan veto nilai per murid</p>
+            <p className="text-[15px] font-bold text-tinta">Lihat jawaban &amp; nilai</p>
+            <p className="text-[13px] text-teks-3">{soalList.length} soal · tinjau jawaban dan ubah nilai per murid</p>
           </div>
-          <Ikon nama="kanan" className="w-4 h-4 text-slate-300 shrink-0" tebal={2} />
+          <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
         </button>
       )}
 
-      {galat && <p className="text-sm text-red-600 px-1">{galat}</p>}
+      {galat && <p className="text-sm font-medium text-jingga-gelap px-1">{galat}</p>}
 
       {aktif && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5 mt-1 lg:hidden">
+          {tombolMulai}
           {!sesi.mulaiPada && (
-            <>
-              <Button size="lg" fullWidth disabled={sibuk}
-                onClick={() => void jalankan(() => mulaiSesi(sesi.id))}>
-                <Ikon nama="kirim" className="w-4 h-4" />Mulai sesi
-              </Button>
-              <p className="text-xs text-slate-400 text-center">
-                Murid sudah bisa bergabung. Hitung mundur baru dimulai saat kamu menekan ini.
-              </p>
-            </>
+            <p className="text-[13px] text-teks-3 text-center">
+              Murid sudah bisa bergabung. Hitung mundur baru dimulai saat kamu menekan ini.
+            </p>
           )}
-          {/* SENGAJA tidak digate ke mulaiPada -- ini satu-satunya tombol yang
-              boleh mengakhiri sesi, jadi sesi yang belum dimulai pun tetap butuh
-              jalan keluar yang eksplisit. */}
-          <Button variant="danger" size="lg" fullWidth disabled={sibuk}
-            onClick={() => setKonfirmasiAkhiri(true)}>
-            Akhiri sesi
-          </Button>
+          {tombolAkhiri}
         </div>
       )}
 
@@ -298,6 +412,17 @@ function SesiAktifView({ sesi, onTutup, onLihatJawaban }: {
   )
 }
 
+/** Keadaan satu murid saat INI: dipakai penyaring di atas dan baris peserta di bawah. */
+function keadaanPeserta(p: PesertaSesi, sesi: SesiKelas) {
+  const aktif = sesi.status === 'aktif'
+  // Kunci efektif = sesi masih berkunci. Mematikan sakelar membebaskan murid
+  // walau barisnya belum tersiar ulang.
+  const terkunci = aktif && sesi.kunciLayar && p.terkunciPada !== null
+  const denyutMs = p.terakhirDenyut ? new Date(p.terakhirDenyut).getTime() : 0
+  const senyap = !denyutMs || Date.now() - denyutMs > AMBANG_SENYAP_MS
+  return { aktif, terkunci, denyutMs, senyap }
+}
+
 /** Yang terkunci dulu -- guru sedang ditunggu mereka. Sisanya urutan bergabung. */
 function urutkanPeserta(sesi: SesiKelas): PesertaSesi[] {
   if (!sesi.kunciLayar) return sesi.muridJoined
@@ -305,30 +430,23 @@ function urutkanPeserta(sesi: SesiKelas): PesertaSesi[] {
 }
 
 function Hitungan({ mulaiPada, durasiMenit }: { mulaiPada: string; durasiMenit: number }) {
-  // Tenggat diturunkan dari mulai_pada + durasi -- aturan yang sama dengan sesi_tenggat() di DB.
-  const tenggatMs = new Date(mulaiPada).getTime() + durasiMenit * 60_000
-  const hitung = () => Math.max(0, Math.round((tenggatMs - Date.now()) / 1000))
-  const [sisa, setSisa] = useState(hitung)
-  useEffect(() => {
-    // Dihitung ulang dari tenggat tiap tick, BUKAN dikurangi 1: browser
-    // men-throttle setInterval saat tab di-background.
-    const id = setInterval(() => setSisa(hitung()), 1000)
-    return () => clearInterval(id)
-  }, [tenggatMs]) // eslint-disable-line react-hooks/exhaustive-deps
-
+  const sisa = useSisaDetik(mulaiPada, durasiMenit) ?? 0
   const persen = (sisa / (durasiMenit * 60)) * 100
   const mepet = persen < 20
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex items-center gap-3">
-      <Ikon nama="jam" className={`w-5 h-5 shrink-0 ${mepet ? 'text-red-500' : 'text-indigo-500'}`} />
-      <span className={`font-mono text-xl font-bold tabular-nums ${mepet ? 'text-red-600' : 'text-slate-800'}`}>
-        {String(Math.floor(sisa / 60)).padStart(2, '0')}:{String(sisa % 60).padStart(2, '0')}
-      </span>
-      <div className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${mepet ? 'bg-red-500' : 'bg-indigo-600'}`}
+    <div className="bg-white rounded-[18px] border border-garis px-4 py-3.5 lg:px-5.5 lg:py-4.5">
+      <div className="flex items-center gap-3">
+        <Ikon nama="jam" className={`w-5.5 h-5.5 lg:w-6 lg:h-6 shrink-0 ${mepet ? 'text-jingga' : 'text-biru'}`} />
+        <span className={`font-mono text-[34px] lg:text-[38px] font-medium leading-none tabular-nums ${mepet ? 'text-jingga-gelap' : 'text-tinta'}`}>
+          {menitDetik(sisa)}
+        </span>
+        <span className="text-[13px] lg:text-sm text-teks-3">{sisa === 0 ? 'Waktu habis' : 'tersisa'}</span>
+      </div>
+      {/* Meter: lintasannya satu tingkat lebih terang dari isinya (satu ramp). */}
+      <div className={`mt-3 lg:mt-3.5 h-2 rounded-full overflow-hidden ${mepet ? 'bg-jingga-tint' : 'bg-biru-tint'}`}>
+        <div className={`h-full rounded-full transition-all ${mepet ? 'bg-jingga' : 'bg-biru'}`}
           style={{ width: `${persen}%` }} />
       </div>
-      <span className="text-xs text-slate-400 shrink-0">{sisa === 0 ? 'Waktu habis' : 'tersisa'}</span>
     </div>
   )
 }
@@ -363,34 +481,34 @@ function KartuDurasi({ sesi }: { sesi: SesiKelas }) {
   const valid = Number.isInteger(angka) && angka >= 1 && angka <= 600
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+    <div className="bg-white rounded-[18px] border border-garis p-4 flex flex-col gap-3">
       <div>
-        <p className="text-sm font-semibold text-slate-700">Durasi pengerjaan</p>
-        <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
-          Hitung mundur dimulai saat kamu menekan Mulai sesi -- masih bisa diubah sampai itu ditekan.
+        <p className="text-[15px] font-extrabold text-tinta">Durasi pengerjaan</p>
+        <p className="text-[13px] text-teks-3 mt-0.5 leading-relaxed">
+          Hitung mundur dimulai saat kamu menekan Mulai sesi. Masih bisa diubah sampai itu ditekan.
         </p>
       </div>
       <div className="grid grid-cols-4 gap-2">
         {DURASI_CEPAT.map(d => (
-          <button key={d} type="button" onClick={() => setDurasi(String(d))}
-            className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+          <button key={d} type="button" onClick={() => setDurasi(String(d))} aria-pressed={angka === d}
+            className={`h-11 rounded-xl text-sm font-bold border-[1.5px] transition-colors ${
               angka === d
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                ? 'bg-biru text-white border-biru'
+                : 'bg-white text-tinta-2 border-garis hover:border-biru'}`}>
             {d} mnt
           </button>
         ))}
       </div>
       <label className="flex items-center gap-2">
-        <span className="text-xs text-slate-400 shrink-0">Atau isi manual</span>
+        <span className="text-[13px] text-teks-3 shrink-0">Atau isi manual</span>
         <input type="number" inputMode="numeric" min={1} max={600} value={durasi}
           onChange={e => setDurasi(e.target.value)}
           onWheel={e => e.currentTarget.blur()}
-          className={`w-20 px-3 py-2 rounded-xl border text-sm text-right text-slate-800 outline-none transition-colors ${
-            valid ? 'border-slate-200 focus:border-indigo-400' : 'border-red-400'}`} />
-        <span className="text-xs text-slate-400">menit</span>
+          className={`w-20 h-11 px-3 rounded-xl border-[1.5px] text-sm font-bold text-right text-tinta outline-none transition-colors ${
+            valid ? 'border-pinggir-2 focus:border-biru' : 'border-jingga'}`} />
+        <span className="text-[13px] text-teks-3">menit</span>
       </label>
-      {galat && <p className="text-xs text-red-600">{galat}</p>}
+      {galat && <p className="text-xs font-medium text-jingga-gelap">{galat}</p>}
     </div>
   )
 }
@@ -425,14 +543,14 @@ function KartuKunciLayar({ sesi }: { sesi: SesiKelas }) {
 
   if (terpusat) {
     return (
-      <div className={`w-full flex items-start gap-3 px-4 py-3 rounded-2xl border ${
-        sesi.kunciLayar ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
-        <Ikon nama="kunci" className={`w-5 h-5 mt-0.5 shrink-0 ${sesi.kunciLayar ? 'text-amber-600' : 'text-slate-400'}`} />
+      <div className={`w-full flex items-start gap-3 px-4 py-3.5 rounded-[18px] border ${
+        sesi.kunciLayar ? 'bg-jingga-tipis border-jingga-garis' : 'bg-white border-garis'}`}>
+        <Ikon nama="kunci" className={`w-5.5 h-5.5 mt-0.5 shrink-0 ${sesi.kunciLayar ? 'text-jingga' : 'text-teks-3'}`} />
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold text-slate-700">
+          <span className="block text-[15px] font-bold text-tinta">
             Kunci layar murid: {sesi.kunciLayar ? 'aktif' : 'nonaktif'}
           </span>
-          <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">
+          <span className="block text-[13px] text-tinta-2 mt-0.5 leading-relaxed">
             Sesi ini bagian dari Super Sesi. Kepala sekolah yang mengatur kunci layar dan membuka kunci murid, bukan kamu.
           </span>
         </span>
@@ -441,51 +559,39 @@ function KartuKunciLayar({ sesi }: { sesi: SesiKelas }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <button type="button" role="switch" aria-checked={sesi.kunciLayar} disabled={sibuk}
-        onClick={() => void jalankan(() => aturKunciLayar(sesi.id, !sesi.kunciLayar))}
-        className={`w-full flex items-start gap-3 text-left px-4 py-3 rounded-2xl border transition-colors disabled:opacity-60 ${
-          sesi.kunciLayar ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
-        <Ikon nama="kunci" className={`w-5 h-5 mt-0.5 shrink-0 ${sesi.kunciLayar ? 'text-amber-600' : 'text-slate-400'}`} />
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold text-slate-700">Kunci layar murid</span>
-          <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">
+    <div className={`rounded-[18px] border overflow-hidden ${
+      sesi.kunciLayar ? 'bg-jingga-tipis border-jingga-garis' : 'bg-white border-garis'}`}>
+      <div className="px-4 py-3.5 flex items-start gap-3">
+        <Ikon nama="kunci" className={`w-5.5 h-5.5 mt-0.5 shrink-0 ${sesi.kunciLayar ? 'text-jingga' : 'text-teks-3'}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-tinta">Kunci layar murid</p>
+          <p className="text-[13px] text-tinta-2 mt-0.5 leading-relaxed">
             Murid yang keluar layar atau membuka aplikasi lain terkunci sampai kamu membukanya.
             Waktunya tetap berjalan. Mematikannya membebaskan semua yang sedang terkunci.
-          </span>
-        </span>
-        <span className={`mt-0.5 w-10 h-6 rounded-full shrink-0 relative transition-colors ${
-          sesi.kunciLayar ? 'bg-amber-500' : 'bg-slate-200'}`}>
-          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
-            sesi.kunciLayar ? 'left-4.5' : 'left-0.5'}`} />
-        </span>
-      </button>
+          </p>
+        </div>
+        <Sakelar aktif={sesi.kunciLayar} warna="jingga" label="Kunci layar murid" disabled={sibuk}
+          onUbah={v => void jalankan(() => aturKunciLayar(sesi.id, v))} />
+      </div>
 
       {terkunci > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-50 border border-amber-200">
-          <p className="text-xs text-amber-800 flex-1">
-            <strong className="font-bold">{terkunci} murid</strong> sedang terkunci
+        <div className="border-t border-jingga-garis px-4 py-2.5 flex items-center gap-2">
+          <p className="text-[13.5px] text-tinta flex-1">
+            <strong className="font-extrabold">{terkunci} murid</strong> sedang terkunci
           </p>
           {konfirmasi ? (
             <>
-              <button type="button" onClick={() => setKonfirmasi(false)} disabled={sibuk}
-                className="text-[11px] font-semibold text-slate-500 px-2 py-1.5 rounded-lg active:bg-slate-100">
-                Batal
-              </button>
-              <button type="button" onClick={() => void jalankan(() => bukaKunciSemua(sesi.id))} disabled={sibuk}
-                className="text-[11px] font-bold text-white bg-amber-600 px-2.5 py-1.5 rounded-lg active:bg-amber-700 disabled:opacity-60">
+              <Button variant="ghost" size="sm" onClick={() => setKonfirmasi(false)} disabled={sibuk}>Batal</Button>
+              <Button variant="danger" size="sm" onClick={() => void jalankan(() => bukaKunciSemua(sesi.id))} disabled={sibuk}>
                 {sibuk ? '...' : 'Ya, buka semua'}
-              </button>
+              </Button>
             </>
           ) : (
-            <button type="button" onClick={() => setKonfirmasi(true)}
-              className="text-[11px] font-bold text-amber-700 bg-white border border-amber-300 px-2.5 py-1.5 rounded-lg active:bg-amber-100">
-              Buka semua
-            </button>
+            <Button variant="danger-garis" size="sm" onClick={() => setKonfirmasi(true)}>Buka semua</Button>
           )}
         </div>
       )}
-      {galat && <p className="text-xs text-red-600 px-1">{galat}</p>}
+      {galat && <p className="text-xs font-medium text-jingga-gelap px-4 pb-3">{galat}</p>}
     </div>
   )
 }
@@ -508,12 +614,7 @@ function BarisPeserta({ peserta, sesi }: { peserta: PesertaSesi; sesi: SesiKelas
   const [membuka, setMembuka] = useState(false)
   const [gagal, setGagal] = useState(false)
 
-  const aktif = sesi.status === 'aktif'
-  // Kunci efektif = sesi masih berkunci. Mematikan sakelar membebaskan murid
-  // walau barisnya belum tersiar ulang.
-  const terkunci = aktif && sesi.kunciLayar && peserta.terkunciPada !== null
-  const denyutMs = peserta.terakhirDenyut ? new Date(peserta.terakhirDenyut).getTime() : 0
-  const senyap = !denyutMs || Date.now() - denyutMs > AMBANG_SENYAP_MS
+  const { aktif, terkunci, denyutMs, senyap } = keadaanPeserta(peserta, sesi)
 
   const sinyal = [
     peserta.keluarLayar > 0 && `${peserta.keluarLayar}× keluar layar`,
@@ -533,29 +634,30 @@ function BarisPeserta({ peserta, sesi }: { peserta: PesertaSesi; sesi: SesiKelas
   }
 
   const status = !aktif ? <span>Sesi selesai</span>
-    : terkunci ? <span className="text-amber-700 font-medium">Terkunci {durasiSingkat(Date.now() - new Date(peserta.terkunciPada!).getTime())}</span>
+    : terkunci ? <span className="text-jingga-gelap font-bold">Terkunci {durasiSingkat(Date.now() - new Date(peserta.terkunciPada!).getTime())}</span>
     : senyap ? <span>{denyutMs ? `Senyap ${Math.round((Date.now() - denyutMs) / 1000)} dtk` : 'Belum mulai'}</span>
-    : <span className="text-emerald-600 font-medium">● Mengerjakan</span>
+    : <span className="text-hijau font-bold"><span className="inline-block w-1.75 h-1.75 rounded-full bg-hijau mr-1.5 align-middle" />Mengerjakan</span>
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 ${terkunci ? 'bg-amber-50/60' : ''}`}>
-      <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 text-sm font-bold">
+    <div className={`flex items-center gap-3 px-4 py-3 lg:rounded-[14px] lg:border lg:px-3.5 lg:py-3 ${terkunci ? 'bg-jingga-tipis lg:border-jingga-garis' : 'lg:border-garis'}`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[15px] font-extrabold ${
+        terkunci ? 'bg-jingga-tint text-jingga-gelap' : 'bg-biru-tint text-biru'}`}>
         {peserta.nama.charAt(0).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-700 truncate">{peserta.nama}</p>
-        <p className="text-[11px] text-slate-400">{status}{sinyal && <span className="text-amber-700"> · {sinyal}</span>}</p>
-        {gagal && <p className="text-[11px] text-red-600">Gagal membuka kunci, coba lagi</p>}
+        <p className="text-[15px] font-bold text-tinta truncate">{peserta.nama}</p>
+        <p className="text-[13px] text-teks-3">{status}{sinyal && <span> · {sinyal}</span>}</p>
+        {gagal && <p className="text-xs font-medium text-jingga-gelap">Gagal membuka kunci, coba lagi</p>}
       </div>
       {/* Sesi Super Sesi: wewenang buka kunci ada di kepala sekolah, bukan di
           sini -- lihat KartuKunciLayar di atas untuk penjelasannya. */}
       {terkunci && sesi.superSesiId == null && (konfirmasi ? (
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="sm" onClick={() => setKonfirmasi(false)} disabled={membuka}>Batal</Button>
-          <Button size="sm" onClick={() => void buka()} disabled={membuka}>{membuka ? '...' : 'Ya, buka'}</Button>
+          <Button variant="danger" size="sm" onClick={() => void buka()} disabled={membuka}>{membuka ? '...' : 'Ya, buka'}</Button>
         </div>
       ) : (
-        <Button variant="secondary" size="sm" onClick={() => setKonfirmasi(true)} className="shrink-0">
+        <Button variant="danger-garis" size="sm" onClick={() => setKonfirmasi(true)} className="shrink-0">
           <Ikon nama="kunci" className="w-3.5 h-3.5" />Buka
         </Button>
       ))}

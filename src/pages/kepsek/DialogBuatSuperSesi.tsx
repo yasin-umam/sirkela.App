@@ -38,7 +38,7 @@ export function DialogBuatSuperSesi({ onTutup, onDibuat }: {
           onChange={e => setJudul(e.target.value)} autoFocus />
         <Input label="Keterangan (opsional)" placeholder="mis. Kelas 7-9, 25 November 2026" value={deskripsi}
           onChange={e => setDeskripsi(e.target.value)} />
-        {galat && <p className="text-sm text-red-600">{galat}</p>}
+        {galat && <p className="text-sm text-jingga-gelap">{galat}</p>}
       </div>
     </Dialog>
   )

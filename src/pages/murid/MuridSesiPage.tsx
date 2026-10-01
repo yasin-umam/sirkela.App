@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
 import { Ikon } from '../../components/ui/Ikon'
 import { Logo } from '../../components/Logo'
+import { Eyebrow } from '../../components/ui/Eyebrow'
+import { Gelembung } from '../../components/Gelembung'
 import { PageFallback } from '../../components/PageFallback'
 import { HalamanMurid, KartuKepalaMurid } from '../../components/LayarMurid'
 import { KerjakanSesi } from './KerjakanSesi'
@@ -53,19 +55,30 @@ function KonfirmasiMulai({ sesi, namaAwal, onMulai, onBatal }: {
 
   return (
     <HalamanMurid>
+      <div className="flex items-center gap-1.5 -ml-2.5">
+        <button type="button" aria-label="Kembali" onClick={onBatal} disabled={mengirim}
+          className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 disabled:opacity-50">
+          <Ikon nama="kembali" className="w-5.5 h-5.5" tebal={2} />
+        </button>
+        <Eyebrow>Sebelum mulai</Eyebrow>
+      </div>
+
       <KartuKepalaMurid judul={sesi.judul} deskripsi={sesi.deskripsi}>
-        {sesi.jumlahSoal} pertanyaan · {sesi.durasiMenit} menit
+        <span className="flex items-center gap-5">
+          <span className="inline-flex items-center gap-1.5"><Ikon nama="dokumen" className="w-4 h-4" />{sesi.jumlahSoal} pertanyaan</span>
+          <span className="inline-flex items-center gap-1.5"><Ikon nama="jam" className="w-4 h-4" />{sesi.durasiMenit} menit</span>
+        </span>
       </KartuKepalaMurid>
 
-      <div className={`bg-white rounded-2xl border shadow-sm p-4 ${error ? 'border-red-300' : 'border-slate-100'}`}>
-        <label htmlFor="nama-murid" className="block text-sm font-semibold text-slate-700">Nama kamu</label>
-        <p className="text-xs text-slate-400 mt-0.5">Nama ini yang muncul di daftar hasil gurumu.</p>
+      <div className={`bg-white rounded-2xl border p-4 ${error ? 'border-jingga' : 'border-garis'}`}>
+        <label htmlFor="nama-murid" className="block text-[15px] font-bold text-tinta">Nama kamu</label>
+        <p className="text-[13px] text-teks-3 mt-0.5">Nama ini yang muncul di daftar hasil gurumu.</p>
         <input id="nama-murid" value={nama} placeholder="Tulis nama lengkapmu" autoComplete="name"
           onChange={e => { setNama(e.target.value); setError(null) }}
           onKeyDown={e => { if (e.key === 'Enter') void mulai() }}
-          className="mt-3 w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+          className="mt-3 w-full h-13 px-4 rounded-xl border-[1.5px] border-pinggir-2 bg-white text-tinta placeholder:text-teks-3 outline-none focus:border-biru focus:ring-2 focus:ring-biru/20 transition-colors" />
         {error && (
-          <p className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-red-600">
+          <p className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-jingga-gelap">
             <Ikon nama="galat" className="w-4 h-4" />{error}
           </p>
         )}
@@ -74,39 +87,43 @@ function KonfirmasiMulai({ sesi, namaAwal, onMulai, onBatal }: {
       {/* Aturan kunci dinyatakan SEBELUM Mulai. "Waktu tetap berjalan" wajib
           tertulis: itu satu-satunya akibat kunci yang benar-benar merugikan murid. */}
       {sesi.kunciLayar && (
-        <div className="bg-amber-50 rounded-2xl border border-amber-200 p-4 flex items-start gap-3">
-          <span className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-            <Ikon nama="kunci" className="w-4.5 h-4.5" />
+        <div className="bg-jingga-tint rounded-2xl border border-jingga-garis p-4 flex items-start gap-3">
+          <span className="w-10 h-10 rounded-xl bg-white text-jingga flex items-center justify-center shrink-0">
+            <Ikon nama="kunci" className="w-5 h-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-amber-900">Sesi ini memakai kunci layar</p>
-            <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+            <p className="text-[15px] font-bold text-jingga-gelap">Sesi ini memakai kunci layar</p>
+            <p className="text-[13.5px] text-tinta mt-1 leading-relaxed">
               Kalau kamu keluar dari layar ini atau membuka aplikasi lain, layarmu terkunci sampai gurumu
-              membukanya. <strong className="font-bold">Waktu tetap berjalan</strong> selama terkunci.
+              membukanya. <strong className="font-extrabold">Waktu tetap berjalan</strong> selama terkunci.
             </p>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-        <p className="text-sm font-semibold text-slate-700">Selama sesi ini, guru bisa melihat:</p>
-        <ul className="mt-2 flex flex-col gap-1.5 list-disc pl-5 text-xs text-slate-600 leading-relaxed">
-          <li>kalau kamu <strong className="font-semibold">keluar dari layar ini</strong> atau <strong className="font-semibold">membuka aplikasi lain</strong> di sampingnya</li>
-          <li>kalau perangkatmu <strong className="font-semibold">berhenti mengirim sinyal</strong></li>
-          <li>jawaban yang kamu pilih, tersimpan otomatis</li>
+      <div className="bg-white rounded-2xl border border-garis p-4 flex flex-col gap-3">
+        <p className="text-[15px] font-bold text-tinta">Selama sesi, gurumu bisa melihat</p>
+        <ul className="flex flex-col gap-2.5 text-sm text-tinta-2 leading-snug">
+          <li className="flex gap-2.5"><Ikon nama="lihat" className="w-4.5 h-4.5 text-biru mt-px" />Kalau kamu keluar dari layar ini atau membuka aplikasi lain</li>
+          <li className="flex gap-2.5"><Ikon nama="lihat" className="w-4.5 h-4.5 text-biru mt-px" />Kalau perangkatmu berhenti mengirim sinyal</li>
+          <li className="flex gap-2.5"><Ikon nama="lihat" className="w-4.5 h-4.5 text-biru mt-px" />Jawaban yang kamu pilih, tersimpan otomatis</li>
         </ul>
-        <p className="text-sm font-semibold text-slate-700 mt-4">Yang tidak terlihat:</p>
-        <p className="mt-1 text-xs text-slate-500">Aplikasi apa yang kamu buka, isi layarmu, atau apa pun di luar halaman ini.</p>
-        <p className="text-[11px] text-slate-400 border-t border-slate-100 mt-3 pt-3">
-          Catatan ini tidak mengubah nilaimu sendiri. Gurumu yang membacanya dan menilai.
+        <div className="h-px bg-garis-2" />
+        <p className="text-[15px] font-bold text-tinta">Tidak terlihat</p>
+        <p className="flex gap-2.5 text-sm text-tinta-2 leading-snug">
+          <Ikon nama="silang" className="w-4.5 h-4.5 text-teks-3 mt-px" />
+          Aplikasi apa yang kamu buka, isi layarmu, atau apa pun di luar halaman ini
+        </p>
+        <p className="text-[12.5px] text-teks-3 leading-relaxed">
+          Catatan ini tidak mengubah nilaimu. Gurumu yang membaca dan menilai.
         </p>
       </div>
 
-      <div className="flex items-center gap-2 pt-1 pb-8">
-        <Button size="lg" disabled={!nama.trim() || mengirim} onClick={() => void mulai()}>
+      <div className="flex flex-col gap-1.5 pt-1 pb-8">
+        <Button size="lg" fullWidth disabled={!nama.trim() || mengirim} onClick={() => void mulai()}>
           {mengirim ? <><Spinner size={16} />Menyimpan...</> : 'Saya mengerti, mulai'}
         </Button>
-        <Button size="lg" variant="ghost" onClick={onBatal} disabled={mengirim}>Batal</Button>
+        <Button variant="ghost" fullWidth onClick={onBatal} disabled={mengirim}>Batal</Button>
       </div>
     </HalamanMurid>
   )
@@ -220,58 +237,102 @@ export function MuridSesiPage() {
   }
 
   // ── Pintu depan aplikasi ──
+  // Kode sesi berbentuk KARCIS: bidang isian di atas, garis sobekan putus-putus
+  // dengan dua lekuk di tepi, lalu tombol Gabung di bagian sobekannya.
+  // Desktop (≥ 1024px, mis. PC lab): dua kolom -- judul & tiga langkah di kiri,
+  // karcis di kanan. Murid di lab tidak punya kamera untuk memindai QR, jadi
+  // langkahnya menyebut mengetik kode.
   return (
-    <HalamanMurid className="flex flex-col justify-center">
-      <div className="flex justify-center pt-6 pb-2">
-        <Logo ukuran="w-11 h-11" kelasTeks="text-xl" />
+    <div className="min-h-full bg-alas px-5 py-6 flex flex-col lg:px-14 lg:py-8">
+      <div className="flex items-center justify-between">
+        <Logo ukuran="w-9 h-9" kelasTeks="text-sm" />
+        <p className="hidden lg:block text-[14.5px] text-tinta-2">
+          Kamu guru?{' '}
+          <button type="button" onClick={() => goTo({ name: 'login' })} className="font-bold text-biru hover:underline">Masuk</button>
+        </p>
       </div>
 
-      <div className="text-center px-2 pb-1">
-        <h1 className="text-lg font-bold text-slate-800">
-          {user?.nama ? `Halo, ${user.nama}` : 'Gabung ke sesi kelas'}
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">Masukkan kode dari gurumu. Tidak perlu akun atau login.</p>
-      </div>
-
-      <div className={`bg-white rounded-2xl border shadow-sm p-4 ${error ? 'border-red-300' : 'border-slate-100'}`}>
-        <label htmlFor="kode-sesi" className="block text-sm font-semibold text-slate-700">Kode sesi</label>
-        <input
-          id="kode-sesi"
-          className="mt-3 w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-center font-mono text-2xl font-bold tracking-[0.2em] uppercase text-slate-800 placeholder:text-slate-300 placeholder:font-normal outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all"
-          placeholder="ABC-123"
-          maxLength={7}
-          inputMode="text"
-          autoCapitalize="characters"
-          autoComplete="off"
-          value={kode}
-          onChange={e => { setKode(e.target.value.toUpperCase()); setError(null) }}
-          onKeyDown={e => { if (e.key === 'Enter') void gabung() }}
-        />
-        {error && (
-          <p className="mt-2.5 flex items-start gap-1.5 text-xs font-medium text-red-600">
-            <Ikon nama="galat" className="w-4 h-4 shrink-0 mt-px" />{error}
+      <div className="flex-1 flex flex-col justify-center gap-6 w-full max-w-md mx-auto py-8 lg:max-w-6xl lg:grid lg:grid-cols-[minmax(0,1fr)_520px] lg:gap-x-24 lg:items-center">
+        <div>
+          <Eyebrow>Gabung sesi</Eyebrow>
+          <h1 className="mt-2.5 text-[34px] leading-[1.08] font-extrabold tracking-tight text-tinta lg:mt-3.5 lg:text-6xl lg:leading-[1.04] lg:tracking-tighter">
+            {user?.nama ? `Halo, ${user.nama}` : 'Masukkan kode dari gurumu'}
+          </h1>
+          <p className="mt-2 text-[15px] text-tinta-2 lg:mt-3.5 lg:text-lg">
+            {user?.nama ? 'Masukkan kode dari gurumu. ' : ''}Tidak perlu akun atau login.
           </p>
-        )}
-        <p className="text-[11px] text-slate-400 mt-2.5">Kode hanya berlaku selama sesinya masih dibuka gurumu.</p>
+          <ol className="hidden lg:flex flex-col gap-5.5 mt-11">
+            {([['A', 'Dapatkan kode dari gurumu', 'Tertulis di papan tulis atau layar proyektor kelas.'],
+               ['B', 'Ketik kode di kotak ini', 'Tujuh karakter, contohnya MTK-482.'],
+               ['C', 'Isi namamu, lalu mulai', 'Jawabanmu tersimpan otomatis selama mengerjakan.']] as const).map(([h, t, k], i) => (
+              <li key={h} className="flex items-start gap-4">
+                <Gelembung indeks={i} ukuran="lg" />
+                <span>
+                  <span className="block text-base font-bold text-tinta">{t}</span>
+                  <span className="block text-[14.5px] text-teks-3 mt-0.5">{k}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
 
-        <div className="mt-4 flex gap-2">
-          <Button size="lg" fullWidth disabled={!kode.trim() || memproses} onClick={() => void gabung()}>
-            {memproses ? <><Spinner size={16} />Mencari sesi...</> : 'Gabung'}
-          </Button>
-          <Button size="lg" variant="secondary" onClick={() => { setError(null); setShowScanner(true) }}
-            aria-label="Pindai QR" className="shrink-0">
-            <Ikon nama="qr" className="w-5 h-5" />
-          </Button>
+        <div className="flex flex-col gap-6">
+          <div className={`bg-white rounded-[20px] lg:rounded-3xl border ${error ? 'border-jingga' : 'border-garis'}`}>
+            <div className="px-5 pt-5 pb-1 lg:px-8 lg:pt-7.5 lg:pb-1.5">
+              <label htmlFor="kode-sesi" className="block font-mono text-xs uppercase tracking-[0.14em] text-teks-3">Kode sesi</label>
+              <input
+                id="kode-sesi"
+                className="mt-2 block w-full pt-1.5 pb-2.5 border-0 border-b-[3px] border-biru bg-transparent text-center font-mono text-[42px] lg:text-[64px] font-medium tracking-[0.14em] uppercase text-tinta placeholder:text-pinggir-2 outline-none rounded-none lg:border-b-4"
+                placeholder="ABC-123"
+                maxLength={7}
+                inputMode="text"
+                autoCapitalize="characters"
+                autoComplete="off"
+                value={kode}
+                onChange={e => { setKode(e.target.value.toUpperCase()); setError(null) }}
+                onKeyDown={e => { if (e.key === 'Enter') void gabung() }}
+              />
+            </div>
+
+            <div aria-hidden className="relative h-7.5 lg:h-9">
+              <div className="absolute left-5 right-5 top-3.5 lg:left-8 lg:right-8 lg:top-4.5 border-t-2 border-dashed border-garis" />
+              <div className="absolute -left-3 top-0.75 w-6 h-6 lg:-left-3.75 lg:top-0.75 lg:w-7.5 lg:h-7.5 rounded-full bg-alas" />
+              <div className="absolute -right-3 top-0.75 w-6 h-6 lg:-right-3.75 lg:top-0.75 lg:w-7.5 lg:h-7.5 rounded-full bg-alas" />
+            </div>
+
+            <div className="px-5 pb-5 lg:px-8 lg:pb-7.5">
+              {error && (
+                <p className="mb-3 flex items-start gap-1.5 text-[13px] font-medium text-jingga-gelap">
+                  <Ikon nama="galat" className="w-4 h-4 shrink-0 mt-px" />{error}
+                </p>
+              )}
+              <div className="flex gap-2.5">
+                <Button size="lg" fullWidth disabled={!kode.trim() || memproses} onClick={() => void gabung()} className="lg:h-15 lg:text-lg">
+                  {memproses ? <><Spinner size={16} />Mencari sesi...</> : <>Gabung<Ikon nama="kanan" className="w-4.5 h-4.5" tebal={2.4} /></>}
+                </Button>
+                {/* Pemindai QR butuh kamera: disembunyikan di desktop, tempat
+                    kamera jarang ada dan kode gampang diketik. */}
+                <Button size="lg" variant="secondary" onClick={() => { setError(null); setShowScanner(true) }}
+                  aria-label="Pindai QR" className="shrink-0 w-14 px-0 lg:hidden">
+                  <Ikon nama="qr" className="w-6 h-6" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-[13px] text-teks-3 leading-relaxed">
+            Kode hanya berlaku selama sesinya masih dibuka gurumu.
+          </p>
         </div>
       </div>
 
-      <div className="pt-6 pb-4 text-center text-sm text-slate-500">
+      <p className="text-center text-sm text-tinta-2 lg:hidden">
         Kamu guru?{' '}
         <button type="button" onClick={() => goTo({ name: 'login' })}
-          className="font-semibold text-indigo-600 hover:underline">
+          className="font-bold text-biru hover:underline">
           Masuk
         </button>
-      </div>
-    </HalamanMurid>
+      </p>
+    </div>
   )
 }

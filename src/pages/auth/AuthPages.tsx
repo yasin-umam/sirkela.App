@@ -14,28 +14,28 @@ import { Logo } from '../../components/Logo'
 
 function Kerangka({ judul, subjudul, children }: { judul: string; subjudul: string; children: ReactNode }) {
   return (
-    <div className="h-full overflow-y-auto hide-scrollbar bg-slate-50 tekstur-latar">
+    <div className="h-full overflow-y-auto hide-scrollbar bg-alas">
       <div className="min-h-full flex flex-col justify-center gap-4 px-4 py-10 max-w-md mx-auto">
         <div className="flex justify-center">
           <Logo />
         </div>
         <div className="text-center px-2">
-          <h1 className="text-xl font-bold text-slate-800">{judul}</h1>
-          <p className="text-sm text-slate-500 mt-1">{subjudul}</p>
+          <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-tinta">{judul}</h1>
+          <p className="text-[15px] text-tinta-2 mt-1.5">{subjudul}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-6">{children}</div>
+        <div className="bg-white rounded-[20px] border border-garis px-6 py-6">{children}</div>
       </div>
     </div>
   )
 }
 
 function Galat({ teks }: { teks: string }) {
-  return <p className="text-sm text-red-600">{teks}</p>
+  return <p className="text-sm font-medium text-jingga-gelap">{teks}</p>
 }
 
 function TautanTeks({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="text-sm font-semibold text-indigo-600 hover:underline">
+    <button type="button" onClick={onClick} className="text-sm font-semibold text-biru hover:underline">
       {children}
     </button>
   )
@@ -71,11 +71,11 @@ export function LoginPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Masuk...' : 'Masuk'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-slate-500">Belum punya akun? </span>
+        <span className="text-sm text-teks-3">Belum punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'register' })}>Daftar</TautanTeks>
       </div>
-      <div className="mt-3 pt-4 border-t border-slate-100 text-center">
-        <span className="text-sm text-slate-500">Murid? </span>
+      <div className="mt-3 pt-4 border-t border-garis text-center">
+        <span className="text-sm text-teks-3">Murid? </span>
         <TautanTeks onClick={() => goTo({ name: 'murid' })}>Gabung sesi dengan kode</TautanTeks>
       </div>
     </Kerangka>
@@ -103,7 +103,7 @@ export function RegisterPage() {
     // signUp() -- pesan trigger belum tentu tembus apa adanya lewat GoTrue.
     const namaSekolah = await cekKodeSekolah(kodeSekolah.trim())
     if (!namaSekolah) {
-      setError('Kode sekolah tidak ditemukan. Tanyakan ke kepala sekolah atau admin.')
+      setError('Kode sekolah tidak ditemukan. Tanyakan ke kepala sekolahmu.')
       setLoading(false)
       return
     }
@@ -122,14 +122,14 @@ export function RegisterPage() {
           onChange={e => setPassword(e.target.value)} autoComplete="new-password" required />
         <Input label="Konfirmasi Password" type="password" placeholder="Ulangi password" value={konfirmasi}
           onChange={e => setKonfirmasi(e.target.value)} autoComplete="new-password" required />
-        <Input label="Kode Sekolah" type="text" placeholder="Tanyakan ke kepala sekolah/admin" value={kodeSekolah}
+        <Input label="Kode Sekolah" type="text" placeholder="Tanyakan ke kepala sekolahmu" value={kodeSekolah}
           onChange={e => setKodeSekolah(e.target.value)} autoComplete="off" required />
 
         {error && <Galat teks={error} />}
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Mendaftar...' : 'Daftar'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <span className="text-sm text-slate-500">Sudah punya akun? </span>
+        <span className="text-sm text-teks-3">Sudah punya akun? </span>
         <TautanTeks onClick={() => goTo({ name: 'login' })}>Masuk</TautanTeks>
       </div>
     </Kerangka>
@@ -159,7 +159,7 @@ export function ForgotPasswordPage() {
         <div className="flex flex-col gap-4">
           {/* Kalimat yang sama untuk email terdaftar maupun tidak -- mencegah orang
               menebak email mana yang punya akun. */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
+          <div className="bg-hijau-tint border border-hijau/25 rounded-xl px-4 py-3 text-sm text-hijau-teks">
             Kalau email tersebut terdaftar, link untuk mengganti password sudah dikirim. Cek inbox atau folder spam.
           </div>
           <Button size="lg" fullWidth onClick={() => goTo({ name: 'login' })}>Kembali ke Masuk</Button>
@@ -217,7 +217,7 @@ export function ResetPasswordPage() {
         <Button type="submit" size="lg" fullWidth disabled={loading}>{loading ? 'Menyimpan...' : 'Simpan Password Baru'}</Button>
       </form>
       <div className="mt-5 text-center">
-        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-slate-400 hover:text-slate-600">
+        <button type="button" onClick={() => void handleBatal()} className="text-sm font-medium text-teks-3 hover:text-tinta-2">
           Batal, kembali ke Masuk
         </button>
       </div>

@@ -91,7 +91,7 @@ export function ScannerQr({ onDeteksi, onTutup }: {
       </div>
 
       {error && (
-        <div className="px-4 py-4 bg-red-900/90 shrink-0">
+        <div className="px-4 py-4 bg-tinta/90 shrink-0">
           <p className="text-white text-sm text-center leading-relaxed">{error}</p>
         </div>
       )}

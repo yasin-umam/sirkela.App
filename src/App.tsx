@@ -15,9 +15,9 @@ export function App() {
 
   if (authLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-50">
+      <div className="h-full flex items-center justify-center bg-alas">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-biru-tint border-t-biru rounded-full animate-spin" />
           <p className="text-teks-2 text-sm">Memuat...</p>
         </div>
       </div>

@@ -5,13 +5,13 @@ import { LayarAktif, useKembali } from '../../context/NavContext'
 import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
 import { BottomNav, type TabGuru } from '../../components/BottomNav'
+import { SidebarGuru } from '../../components/SidebarGuru'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
 import { MenuPage } from './MenuPage'
 import { RiwayatPage } from './RiwayatPage'
 import { SesiPage } from './SesiPage'
 import { SuperSesiPage } from './SuperSesiPage'
 import { ProfilePage } from './ProfilePage'
-import { AdminPage } from './AdminPage'
 import { EditorFormulir } from './EditorFormulir'
 import { DialogImpor } from './DialogImpor'
 
@@ -41,15 +41,13 @@ function Penjaga({ tangani }: { tangani: () => boolean }) {
 }
 
 export function GuruHome() {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const { aktif, pilihFormulir, buatFormulir, simpanSekarang } = useFormulir()
   const { semuaSesi, fokuskan } = useSesi()
 
   const [tab, setTab] = useState<TabGuru>('menu')
   /** id formulir yang sedang disunting layar penuh. null = tidak ada. */
   const [editor, setEditor] = useState<string | null>(null)
-  /** Layar Admin terbuka -- cabang terpisah, sama pola dengan editor. */
-  const [admin, setAdmin] = useState(false)
   const [impor, setImpor] = useState<{ tujuan: 'baru' | 'ini'; metode?: 'teks' | 'pdf' | 'ai' } | null>(null)
   const [membuat, setMembuat] = useState(false)
   const [keluar, setKeluar] = useState(false)
@@ -131,6 +129,14 @@ export function GuruHome() {
     setTab('sesi')
   }
 
+  // Sidebar desktop: Sesi punya item sendiri (di HP ia menumpang Menu). Menekannya
+  // selalu kembali ke DAFTAR sesi, bukan ke sesi yang terakhir difokuskan.
+  function pilihDariSidebar(t: TabGuru) {
+    setNavHidden(false); setGulirTersembunyi(false)
+    if (t === 'sesi') { bukaSesi(); return }
+    setTab(t)
+  }
+
   function bukaSuperSesi() {
     setTab('superSesi')
   }
@@ -171,24 +177,10 @@ export function GuruHome() {
     )
   }
 
-  // ── Admin: cabang terpisah, tanpa bilah tab ──
-  // Dibuka lewat pintasan di header MenuPage (cuma tampil untuk satu email
-  // admin, lihat EMAIL_ADMIN_UTAMA) atau baris "Admin" di tab Saya -- dua
-  // pintu, satu state, supaya tidak ada dua sumber kebenaran soal "admin
-  // sedang terbuka atau tidak".
-  if (admin) {
-    return (
-      <>
-        <AdminPage onKembali={() => setAdmin(false)} />
-        <Kabar teks={kabar} />
-      </>
-    )
-  }
-
   const sesiBerjalan = semuaSesi.filter(s => s.status === 'aktif').length
 
   return (
-    <div className="relative h-full flex flex-col bg-slate-50">
+    <div className="relative h-full flex bg-alas">
       {/* Anak PERTAMA = diperiksa paling akhir: pulang ke Menu baru dikerjakan
           setelah semua lapisan di atasnya sempat menutup diri. Tab Sesi &
           Super Sesi punya penangannya sendiri (SesiPage/SuperSesiPage), jadi
@@ -199,6 +191,12 @@ export function GuruHome() {
         return true
       }} />
 
+      {/* Desktop (≥ 1024px): sidebar menggantikan bilah tab bawah. Di HP sidebar
+          tersembunyi sepenuhnya (kelas hidden lg:flex di komponennya). */}
+      <SidebarGuru tab={tab} sesiBerjalan={sesiBerjalan} kepsek={user?.role === 'kepala_sekolah'}
+        onPilih={pilihDariSidebar} onKeluar={() => { setGalatKeluar(null); setKeluar(true) }} />
+
+      <div className="relative flex-1 min-w-0 flex flex-col">
       <div className="flex-1 overflow-hidden" onScrollCapture={tanganiGulir}>
         <div className={tab === 'riwayat' ? 'h-full tab-masuk' : 'hidden'}>
           <LayarAktif aktif={tab === 'riwayat'}>
@@ -217,7 +215,6 @@ export function GuruHome() {
               onKeSesi={bukaSesi}
               onKeSuperSesi={bukaSuperSesi}
               onKeRiwayat={() => setTab('riwayat')}
-              onBukaAdmin={() => setAdmin(true)}
             />
           </LayarAktif>
         </div>
@@ -241,8 +238,7 @@ export function GuruHome() {
         {dikunjungi.current.has('saya') && (
           <div className={tab === 'saya' ? 'h-full tab-masuk' : 'hidden'}>
             <LayarAktif aktif={tab === 'saya'}>
-              <ProfilePage onKeluar={() => { setGalatKeluar(null); setKeluar(true) }} onLayarPenuh={setNavHidden}
-                onBukaAdmin={() => setAdmin(true)} />
+              <ProfilePage onKeluar={() => { setGalatKeluar(null); setKeluar(true) }} onLayarPenuh={setNavHidden} />
             </LayarAktif>
           </div>
         )}
@@ -253,6 +249,7 @@ export function GuruHome() {
           langsung hilang seperti kalau di-unmount. */}
       <BottomNav tab={tab} tersembunyi={navHidden || gulirTersembunyi} lencanaSesi={sesiBerjalan}
         onPilih={t => { setNavHidden(false); setGulirTersembunyi(false); setTab(t) }} />
+      </div>
 
       {impor && (
         <DialogImpor tujuan={impor.tujuan} metodeAwal={impor.metode} onTutup={() => setImpor(null)}
@@ -271,7 +268,7 @@ export function GuruHome() {
           judul="Keluar dari akun?"
           pesan={<>
             Formulirmu tersimpan di akun. Masuk lagi dengan email dan password untuk melanjutkan.
-            {galatKeluar && <span className="block mt-2 text-red-600">{galatKeluar}</span>}
+            {galatKeluar && <span className="block mt-2 text-jingga-gelap">{galatKeluar}</span>}
           </>}
           labelAksi="Keluar"
           sibuk={sibuk}
@@ -297,7 +294,7 @@ export function GuruHome() {
 export function Kabar({ teks }: { teks: string | null }): ReactElement | null {
   if (!teks) return null
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 bottom-20 z-50 max-w-[calc(100%-2rem)] rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+    <div className="fixed left-1/2 -translate-x-1/2 bottom-20 lg:bottom-8 z-50 max-w-[calc(100%-2rem)] rounded-xl bg-tinta px-4 py-2.5 text-sm font-medium text-white shadow-lg">
       {teks}
     </div>
   )

@@ -6,7 +6,8 @@ import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
 import { Dialog } from '../../components/ui/Dialog'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
-import { TabPertanyaan, type PermintaanSorot } from './TabPertanyaan'
+import { TabPertanyaan, type PermintaanSorot, type PermintaanLompat } from './TabPertanyaan'
+import { PanelKirim, RelPertanyaan } from './PanelEditor'
 import { DialogKirim } from './DialogKirim'
 import { Pratinjau } from './Pratinjau'
 import { unduhFormulirDocx } from '../../lib/unduhFormulir'
@@ -39,7 +40,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
   onImpor: () => void
   onTerhapus: () => void
 }) {
-  const { memuat, aktif, soal, statusSimpan, galatSimpan, punyaPerubahan, simpanSekarang, batalkanPerubahan, hapusFormulir } = useFormulir()
+  const { memuat, aktif, soal, statusSimpan, galatSimpan, punyaPerubahan, simpanSekarang, batalkanPerubahan, hapusFormulir, tambahSoal } = useFormulir()
   const [kirim, setKirim] = useState(false)
   const [pratinjau, setPratinjau] = useState(false)
   const [menu, setMenu] = useState(false)
@@ -50,6 +51,9 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
   const [menyimpanKeluar, setMenyimpanKeluar] = useState(false)
   const [galatKeluar, setGalatKeluar] = useState<string | null>(null)
   const [sorot, setSorot] = useState<PermintaanSorot | null>(null)
+  // Desktop: rel pertanyaan & panel kanan terhubung ke kartu-kartu di tengah.
+  const [lompat, setLompat] = useState<PermintaanLompat | null>(null)
+  const [fokusId, setFokusId] = useState<string | null>(null)
 
   function jalankanUnduh() {
     if (!aktif) return
@@ -105,7 +109,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
 
   if (memuat && !aktif) {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-50 text-indigo-500">
+      <div className="h-full flex items-center justify-center bg-alas text-biru">
         <Spinner size={28} />
       </div>
     )
@@ -113,25 +117,32 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
   if (!aktif) return null
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 tekstur-latar halaman-masuk">
+    <div className="h-full flex flex-col bg-alas halaman-masuk">
       {/* Anak PERTAMA = diperiksa paling akhir: keluar dari editor kalau tidak
           ada lapisan lain yang menangani lebih dulu. */}
       <Penjaga tangani={() => { mintaKeluar(); return true }} />
 
-      <header className="shrink-0 bg-white border-b border-slate-100 shadow-sm relative">
-        <div className="h-12 pl-1 pr-2 flex items-center gap-1 desktop:max-w-2xl desktop:w-full desktop:mx-auto">
+      <header className="shrink-0 bg-white border-b border-garis relative">
+        <div className="h-16 pl-1.5 pr-2.5 flex items-center gap-1 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-none lg:pl-3 lg:pr-6 lg:gap-2">
           <button type="button" aria-label="Kembali ke daftar formulir" onClick={mintaKeluar}
-            className="min-w-11 h-11 px-2 flex items-center justify-center rounded-xl active:bg-slate-100 transition-colors">
-            <Ikon nama="kembali" className="w-5 h-5 text-slate-600" tebal={2} />
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 transition-colors">
+            <Ikon nama="kembali" className="w-5.5 h-5.5" tebal={2} />
           </button>
-          <p className="flex-1 min-w-0 truncate text-sm font-semibold text-slate-700">
-            {aktif.judul.trim() || 'Formulir tanpa judul'}
-          </p>
-          <IndikatorSimpan status={statusSimpan} galatSimpan={galatSimpan} punyaPerubahan={punyaPerubahan}
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-[15px] font-bold text-tinta">
+              {aktif.judul.trim() || 'Formulir tanpa judul'}
+            </p>
+            <CatatanSimpan status={statusSimpan} galatSimpan={galatSimpan} punyaPerubahan={punyaPerubahan}
+              jumlahSoal={soal.length} />
+          </div>
+          <TombolSimpan status={statusSimpan} galatSimpan={galatSimpan} punyaPerubahan={punyaPerubahan}
             onSimpan={() => void simpanSekarang()} />
-          <TombolIkon nama="lihat" label="Pratinjau" onClick={() => setPratinjau(true)} className="w-9 h-9" />
-          <TombolIkon nama="lainnya" label="Menu lainnya" onClick={() => setMenu(v => !v)} className="w-9 h-9" />
-          <Button size="sm" onClick={() => setKirim(true)} className="ml-0.5">
+          <TombolIkon nama="lihat" label="Pratinjau" onClick={() => setPratinjau(true)} className="w-10 h-10 lg:hidden" />
+          <Button size="sm" variant="secondary" onClick={() => setPratinjau(true)} className="max-lg:hidden h-11!">
+            <Ikon nama="lihat" className="w-4.5 h-4.5" />Pratinjau
+          </Button>
+          <TombolIkon nama="lainnya" label="Menu lainnya" onClick={() => setMenu(v => !v)} className="w-10 h-10" tebal={3.4} />
+          <Button size="sm" onClick={() => setKirim(true)} className="ml-0.5 h-11">
             <Ikon nama="kirim" className="w-4 h-4" />Kirim
           </Button>
         </div>
@@ -141,14 +152,14 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
             {/* Overlay tak kasat mata -- menutup menu begitu diketuk di luar. */}
             <button type="button" aria-label="Tutup menu" onClick={() => setMenu(false)}
               className="fixed inset-0 z-10 cursor-default" />
-            <div className="absolute right-2 top-12 z-20 w-48 bg-white rounded-2xl border border-slate-100 shadow-lg py-1.5 desktop:right-[calc((100%-42rem)/2+0.5rem)]">
+            <div className="absolute right-2 top-16 z-20 w-52 bg-white rounded-2xl border border-garis shadow-lg py-1.5 desktop:right-[calc((100%-42rem)/2+0.5rem)] lg:right-6">
               <button type="button" onClick={jalankanUnduh}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 h-11 text-sm font-bold text-tinta hover:bg-isian transition-colors">
                 <Ikon nama="dokumen" className="w-4.5 h-4.5" />Unduh (.docx)
               </button>
               <button type="button"
                 onClick={() => { setMenu(false); setGalatHapus(null); setHapus(true) }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                className="w-full flex items-center gap-2.5 px-4 h-11 text-sm font-bold text-jingga-gelap hover:bg-jingga-tipis transition-colors">
                 <Ikon nama="hapus" className="w-4.5 h-4.5" />Hapus formulir
               </button>
             </div>
@@ -156,9 +167,19 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
         )}
       </header>
 
-      <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain hide-scrollbar">
-        <TabPertanyaan sorot={sorot} onImpor={onImpor} />
-      </main>
+      {/* HP: satu kolom (kartu-kartu pertanyaan). Desktop: tiga kolom -- rel
+          pertanyaan, kartu-kartu, panel "Siap dikirim?". Hanya kolom tengah yang
+          menggulir; kedua panel samping tetap di tempatnya. */}
+      <div className="flex-1 min-h-0 flex">
+        <RelPertanyaan soal={soal} aktifId={fokusId}
+          onPilih={id => setLompat({ soalId: id, kali: Date.now() })}
+          onTambah={() => { const id = tambahSoal(soal.length); setLompat({ soalId: id, kali: Date.now(), fokus: true }) }}
+          onImpor={onImpor} />
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain hide-scrollbar">
+          <TabPertanyaan sorot={sorot} lompat={lompat} onFokus={setFokusId} onImpor={onImpor} />
+        </main>
+        <PanelKirim formulir={aktif} soal={soal} aktifId={fokusId} onKirim={() => setKirim(true)} />
+      </div>
 
       {kirim && (
         <DialogKirim
@@ -176,7 +197,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
           pesan={<>
             “{aktif.judul.trim() || 'Formulir tanpa judul'}” dan {soal.length} pertanyaannya dihapus.
             Sesi yang pernah dibuka beserta nilainya tetap ada di tab Sesi.
-            {galatHapus && <span className="block mt-2 text-red-600">{galatHapus}</span>}
+            {galatHapus && <span className="block mt-2 text-jingga-gelap">{galatHapus}</span>}
           </>}
           labelAksi="Hapus"
           sibuk={sibuk}
@@ -189,7 +210,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
         <Dialog judul="Ada perubahan belum disimpan" onTutup={menyimpanKeluar ? undefined : () => setKonfirmasiKeluar(false)}
           tombolTutup
           aksi={<>
-            <Button variant="ghost" className="text-red-600 hover:bg-red-50" onClick={buangLaluKeluar} disabled={menyimpanKeluar}>
+            <Button variant="ghost" className="text-jingga-gelap hover:bg-jingga-tint" onClick={buangLaluKeluar} disabled={menyimpanKeluar}>
               Buang & keluar
             </Button>
             <Button onClick={() => void simpanLaluKeluar()} disabled={menyimpanKeluar}>
@@ -197,7 +218,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
             </Button>
           </>}>
           Soal atau judul yang baru kamu ubah belum tersimpan. Simpan dulu, atau keluar dan buang perubahannya.
-          {galatKeluar && <p className="mt-2 text-sm text-red-600">{galatKeluar}</p>}
+          {galatKeluar && <p className="mt-2 text-sm text-jingga-gelap">{galatKeluar}</p>}
         </Dialog>
       )}
 
@@ -214,41 +235,48 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
   )
 }
 
-function IndikatorSimpan({ status, galatSimpan, punyaPerubahan, onSimpan }: {
+/** Satu baris keterangan di bawah judul: keadaan simpan + jumlah pertanyaan. */
+function CatatanSimpan({ status, galatSimpan, punyaPerubahan, jumlahSoal }: {
+  status: StatusSimpan
+  galatSimpan: string | null
+  punyaPerubahan: boolean
+  jumlahSoal: number
+}) {
+  const soalTeks = `${jumlahSoal} pertanyaan`
+  if (status === 'gagal') {
+    return (
+      <p className="flex items-center gap-1 text-xs font-bold text-jingga-gelap truncate" title={galatSimpan ?? undefined}>
+        <Ikon nama="galat" className="w-3.5 h-3.5" />Gagal menyimpan
+      </p>
+    )
+  }
+  if (status === 'menyimpan') {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-teks-3"><Spinner size={12} />Menyimpan…</p>
+    )
+  }
+  if (punyaPerubahan) {
+    return <p className="text-xs font-bold text-jingga-gelap truncate">Belum disimpan · {soalTeks}</p>
+  }
+  return (
+    <p className="flex items-center gap-1 text-xs text-teks-3 truncate">
+      <Ikon nama="centang" className="w-3.5 h-3.5 text-hijau" tebal={3} />Tersimpan · {soalTeks}
+    </p>
+  )
+}
+
+/** Tombol Simpan: hanya muncul kalau memang ada yang perlu ditulis (atau gagal, untuk mencoba lagi). */
+function TombolSimpan({ status, galatSimpan, punyaPerubahan, onSimpan }: {
   status: StatusSimpan
   galatSimpan: string | null
   punyaPerubahan: boolean
   onSimpan: () => void
 }) {
-  if (status === 'gagal') {
-    return (
-      <button type="button" onClick={onSimpan} title={`${galatSimpan ?? 'Gagal menyimpan'} (ketuk untuk mencoba lagi)`}
-        className="flex items-center gap-1.5 h-9 px-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50">
-        <Ikon nama="galat" className="w-4.5 h-4.5" />
-        <span className="hidden sm:inline">{galatSimpan ?? 'Gagal · Coba lagi'}</span>
-      </button>
-    )
-  }
-  if (status === 'menyimpan') {
-    return (
-      <span title="Menyimpan…" className="flex items-center gap-1.5 h-9 px-2.5 text-xs font-medium text-slate-400">
-        <Spinner size={15} />
-        <span className="hidden sm:inline">Menyimpan…</span>
-      </span>
-    )
-  }
-  if (punyaPerubahan) {
-    return (
-      <button type="button" onClick={onSimpan}
-        className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors">
-        <Ikon nama="awan" className="w-4 h-4" />Simpan
-      </button>
-    )
-  }
+  if (status === 'menyimpan' || (status !== 'gagal' && !punyaPerubahan)) return null
   return (
-    <span title="Semua perubahan tersimpan" className="flex items-center gap-1.5 px-2 text-xs font-medium text-slate-400">
-      <Ikon nama="awanSelesai" className="w-4.5 h-4.5" />
-      <span className="hidden sm:inline">Tersimpan</span>
-    </span>
+    <Button size="sm" variant="teks" onClick={onSimpan}
+      title={status === 'gagal' ? `${galatSimpan ?? 'Gagal menyimpan'} (ketuk untuk mencoba lagi)` : undefined}>
+      <Ikon nama="awan" className="w-4 h-4" />{status === 'gagal' ? 'Coba lagi' : 'Simpan'}
+    </Button>
   )
 }

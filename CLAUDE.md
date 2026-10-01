@@ -6,23 +6,25 @@ soal pilihan ganda (atau mengimpornya dari Google Form / PDF), menekan Kirim unt
 membuka sesi, murid bergabung lewat kode/QR/link, mengerjakan, dinilai di server,
 guru meninjau dan mem-veto nilai.
 
-**Tampilan meniru Luang** (2026-09-22, desain ulang dari versi sebelumnya yang
-meniru Google Form): kartu bersudut besar (`rounded-2xl`) berbayang tipis, indigo
-Tailwind apa adanya (bukan ungu `#673AB7`), tekstur latar kisi-titik indigo
-(`.tekstur-latar` di `index.css`), dan bilah tab bawah — sama seperti Luang.
+**Tampilan "Lembar Jawab"** (2026-10-01, desain ulang dari versi 2026-09-22 yang
+meniru Luang, yang sebelumnya meniru Google Form): kertas ujian dan lembar jawab
+komputer (LJK), BUKAN tiruan Luang lagi. Struktur navigasinya (bilah tab Riwayat ·
+Menu · Saya, Sesi menumpang sorotan Menu) tetap sama dengan Luang; yang berganti
+adalah bahasa visualnya. Lihat "Bahasa desain: Lembar Jawab" di bawah untuk
+palet, huruf, dan aturannya.
 
 Sisi guru menyalin bentuk shell Luang SAMPAI KE NAMA TABNYA, bukan cuma warnanya:
 `GuruHome` adalah rumah bertab **Riwayat · Menu · Saya**, dan **Sesi bukan slot
 tab sendiri** — persis pola `tabUntukHighlight`/"Sesi Kelas" Luang. Tab **Menu**
 (`MenuPage.tsx`, bawaan saat masuk) adalah peluncur: blok "Sedang berjalan" kalau
-ada sesi live, kartu ajakan indigo "Formulir baru", lalu baris "Atau bawa dari
+ada sesi live, kartu ajakan biru "Formulir baru", lalu baris "Atau bawa dari
 luar" — Generate dari topik (AI) · Tempel dari Google Form · Unggah PDF,
 masing-masing baris PENUH (ikon + judul +
 keterangan + panah), bukan grid ikon kecil — bentuknya menyalin layar "Soal"
 Luang (`GenerateSoal.tsx`, dibuka lewat tile Soal di grid OperasionalPage),
 dengan Scan Buku dikecualikan (lihat "Generate dari Topik (AI)" di bawah untuk
 kenapa Scan Buku tetap di luar tapi Generate dari Topik sekarang ikut). Kartu
-ajakan emerald "Sesi" di paling bawah tetap satu-satunya pintu ke layar Sesi.
+ajakan tinta (navy gelap) "Sesi" di paling bawah tetap satu-satunya pintu ke layar Sesi.
 Tab **Riwayat** (`RiwayatPage.tsx`) adalah arsip lengkap dengan dua pil
 (Formulir/Sesi), pengganti laci ☰ lama. Tab **Saya** (`ProfilePage.tsx`) adalah
 akun: kartu profil + angka ringkas, lalu grup baris (Akun Saya, Akses — tempat
@@ -36,20 +38,22 @@ membuka `EditorFormulir.tsx` sebagai cabang render TERPISAH (di luar bilah tab
 sama sekali, seperti OperasionalPage Luang saat digenerate).
 
 Layar murid (`LayarMurid.tsx`, dulu `FormulirResponden.tsx`) memakai kartu &
-warna yang sama dengan sisi guru, dengan opsi berlabel huruf A/B/C (`HURUF_OPSI`)
-seperti KerjakanSesi Luang — bukan lagi tampilan responden Google Form tanpa huruf.
+warna yang sama dengan sisi guru, dengan opsi berupa GELEMBUNG berhuruf A/B/C
+(`Gelembung.tsx`, `HURUF_OPSI` ikut diekspor dari sana) yang terisi biru saat
+dipilih, seperti lembar jawab komputer.
 
 **Hanya staf yang punya akun** (guru DAN, sejak 2026-09-24, kepala sekolah —
 lihat Super Sesi di bawah). Murid tidak mendaftar/login: saat pertama bergabung,
 klien memanggil `supabase.auth.signInAnonymously()` (`masukTamu` di AuthContext).
 Identitas anonim itu hidup di localStorage perangkat dan dibuang begitu jawaban
 dinilai (`lepasIdentitas` di MuridSesiPage), supaya teman yang memakai HP yang sama
-sesudahnya bergabung sebagai orang baru. Kepala sekolah mendaftar lewat jalur EMAIL
-YANG SAMA dengan guru (`RegisterPage`, tidak ada pilihan peran di layarnya) — yang
-membedakannya cuma `profiles.role`. Sejak 2026-09-24 menaikkannya SWADAYA: guru
-mengajukan diri lewat tab Saya, admin tunggal menyetujui lewat layar admin minimal
-(lihat "Pengajuan Kepala Sekolah" di bawah) — promosi manual lewat SQL editor tetap
-ada sebagai jalur cadangan, pola yang sama dengan sakelar darurat kunci layar di bawah.
+sesudahnya bergabung sebagai orang baru. Kepala sekolah juga akun EMAIL biasa
+(masuk lewat layar Masuk yang sama dengan guru) — yang membedakannya cuma
+`profiles.role`, dan peran itu HANYA bisa ditulis server. Sejak 2026-10-01
+akun kepala sekolah TIDAK lahir dari dalam app: pemilik produk menyiapkannya
+lewat `scripts/buat-kepala-sekolah.mjs`, karena aplikasi dijual sepaket dengan
+akun itu (lihat "Menyiapkan sekolah & kepala sekolah" di bawah). Tidak ada peran
+admin, layar admin, maupun alur pengajuan di dalam app.
 
 Yang TIDAK ikut dari Luang: generator AI Luang LAIN di luar Soal (Scan Buku,
 Modul, RPM, LKPD, PPT, dst — lihat pengecualian Soal di bawah), kredit/Duitku/
@@ -70,9 +74,93 @@ bukan diam-diam ditimpa. Scan Buku (OCR foto buku), Modul, RPM, LKPD, PPT
 TETAP di luar cakupan — permintaannya cuma soal generate dari topik bebas,
 bukan seluruh hub konten AI Luang.
 
+## Bahasa desain: Lembar Jawab (2026-10-01)
+
+Konsepnya diambil dari kertas ujian dan LJK yang sudah dikenal murid: kartu putih
+berbingkai garis tipis (tanpa bayangan, tanpa gradasi), gelembung jawaban yang
+"diarsir" saat dipilih, kode sesi berbentuk karcis dengan garis sobekan, dan stempel
+jingga untuk yang menyangkut waktu dan kunci. Dirancang dulu di Claude Design
+(kanvas "Sesi Soal Redesign") lalu diterapkan ke kode; kanvasnya satu-satunya
+tempat melihat papan Bahasa Desain utuh.
+
+**Palet TERTUTUP** (`index.css`): `--color-*: initial` membuang semua warna bawaan
+Tailwind, jadi `bg-indigo-600`/`text-slate-400` TIDAK menghasilkan apa pun.
+Tailwind membuang kelas yang tidak dikenalnya TANPA pesan galat, jadi token yang
+salah ketik cuma terlihat di layar; periksa dengan membandingkan semua kelas
+berwarna di `src` dengan CSS hasil `npm run build` (itu yang dilakukan waktu
+redesain: 860 kelas warna + 637 kelas ukuran, semuanya menghasilkan CSS).
+- `tinta` #0F1A3A teks utama & kartu gelap (hero sesi, kartu Sesi di Menu) ·
+  `tinta-2` teks isi · `teks-3` keterangan · `pinggir`/`pinggir-2` kontur gelembung
+  & tombol · `garis`/`garis-2` bingkai & pemisah · `isian` · `alas` latar layar
+- `biru` aksi utama & jawaban dipilih (+ `-gelap`/`-tint`/`-tipis`/`-muda`)
+- `jingga` waktu, kunci layar, peringatan, DAN galat/bahaya (satu rumpun, tidak
+  ada merah) (+ `-gelap` untuk teks, `-tint`/`-tipis`/`-garis`)
+- `hijau` kunci jawaban benar & sesi berjalan (+ `-teks`/`-tint`/`-muda`)
+
+**Aturan yang menjaga keterbacaan:** warna benar/salah SELALU ditemani ikon atau kata
+("Kunci", "Dijawab salah", "Terkunci"), tidak pernah hue saja (buta warna
+merah-hijau); teks kecil pakai `teks-3` ke atas (kontras ≥ 4.5), `pinggir` cuma untuk
+kontur; angka besar (nilai, rata-rata) memakai sans proporsional, DM Mono hanya
+untuk jam dan kode; meter satu ramp (lintasan tint, isi penuh).
+
+**Bentuk:** dialog = lembar yang naik dari bawah di HP (`Dialog`), kartu di tengah
+di ≥ 640px; bilah tab bawah menandai slot aktif dengan pil `biru-tint`; judul tab
+(Menu/Riwayat/Saya) berupa judul besar di badan layar, bukan bilah putih; layar
+penuh (Sesi, Nilai, Super Sesi, editor) memakai bilah putih tipis dengan panah kembali.
+
+**Beda dari kanvas desain, sengaja:** editor TIDAK punya tab Setelan (dibuang
+2026-09-22); kunci layar Super Sesi per KELAS (per sesi), bukan satu sakelar serentak,
+karena server tidak punya RPC untuk itu; dialog Kirim langsung menjalankan pilihan
+yang diketuk (tidak ada tombol "Buka sesi" terpisah) seperti sebelumnya.
+
+### Tampilan desktop (2026-10-01)
+
+Sebelumnya desktop cuma kolom HP yang dilebarkan (maks 672px) dengan bilah tab
+bawah 430px di tengah. Sekarang ≥ 1024px (breakpoint `lg` Tailwind) punya
+kerangka sendiri; 440-1023px (tablet) tetap tata letak HP yang dipusatkan
+(`desktop:max-w-2xl`, bilah tab ikut selebar kolomnya).
+
+- **Dua cara membedakan HP dan desktop, jangan dicampur sembarangan:** kelas
+  `lg:` untuk beda ukuran/susunan biasa (satu markup, satu sumber kebenaran);
+  hook `useDesktop()` (`lib/useDesktop.ts`, harus sama dengan `lg`) HANYA kalau
+  strukturnya berbeda jauh (tabel vs daftar bertumpuk di Riwayat/Sesi, master-detail
+  vs akordeon di Jawaban & nilai).
+- **Sidebar guru** (`SidebarGuru.tsx`) menggantikan `BottomNav` (`lg:hidden`).
+  Beda struktural dari HP: **Sesi dan Super Sesi punya item sendiri** (di HP
+  menumpang sorotan Menu); tab Saya diwakili kartu akun di dasar sidebar dengan
+  tombol Keluar. Editor tetap cabang render terpisah TANPA sidebar.
+- **Menu:** dua kolom (kiri membuat soal, kanan status), urutan DOM satu dan
+  kolom diatur `lg:order-*`. `KartuBerjalan` (kode, sisa waktu, tombol buka
+  kendali) cuma di desktop; HP tetap `BarisBerjalan`.
+- **Riwayat & daftar Sesi:** tabel (`TabelDesktop.tsx`: `KepalaTabel`/`BarisTabel`).
+- **Sesi berjalan:** kolom kiri 380px (kode & QR, sisa waktu, durasi, kunci layar),
+  kanan murid dalam dua kolom. **Penyaring murid (Semua/Terkunci/Senyap) cuma di
+  desktop** dan hanya menyaring tampilan; `keadaanPeserta()` satu-satunya tempat
+  "terkunci/senyap" dihitung (dipakai penyaring dan baris peserta).
+- **Jawaban & nilai:** empat angka di atas, lalu tabel murid + panel detail murid
+  terpilih (veto, jawaban per soal). Di desktop tampilan bawaan `murid`.
+- **Editor:** tiga kolom -- rel pertanyaan (`RelPertanyaan`), kartu-kartu
+  (`TabPertanyaan`, tetap satu-satunya kolom yang menggulir), panel "Siap
+  dikirim?" + pratinjau kecil (`PanelKirim`), semua di `PanelEditor.tsx`.
+  Panelnya turunan MURNI dari data formulir (`masalahSoal`, `masalahFormulir`),
+  tanpa keadaan atau panggilan server baru. Terhubung ke kartu lewat `lompat`
+  dan `onFokus` di `TabPertanyaan`. Bilah alat mengambang HP disembunyikan di desktop.
+- **Super Sesi (kepala sekolah):** kepala mendatar + TABEL kiriman; baris yang
+  berjalan bisa dibuka (kunci per kelas, daftar murid). Kartu HP dan baris tabel
+  hidup berdampingan di `KartuSubmisi` (satu `lg:hidden`, satu `hidden lg:grid`).
+- **Murid:** pintu depan dua kolom (judul + tiga langkah | karcis; tombol Pindai
+  QR disembunyikan karena PC lab tidak punya kamera). Layar mengerjakan: panel
+  peta jawaban + tombol Kirim menempel di kiri, bilah kirim bawah dan strip bulat
+  atas disembunyikan.
+- **Jebakan kelas:** `Button` sudah membawa `inline-flex`, jadi `hidden` biasa
+  TIDAK menyembunyikannya (yang dipakai: `max-lg:hidden`). Kelas yang dibuang
+  Tailwind diam-diam tidak ketahuan sampai dilihat di layar.
+
 ## Stack & perintah
 
 React 19 + TypeScript · Vite 8 · Tailwind v4 (`@tailwindcss/vite`) · Supabase
+· Plus Jakarta Sans + DM Mono dibundel lewat `@fontsource` (tanpa Google Fonts:
+wifi sekolah, dan IP murid tidak perlu bocor ke pihak ketiga)
 (project BARU, bukan project Luang).
 
 ```bash
@@ -97,11 +185,10 @@ Di dashboard (config.toml hanya berlaku untuk `supabase start` lokal):
 - **Rate Limits → anonymous sign-ins**: bawaan 30/jam **per IP**. Satu kelas di
   belakang satu wifi sekolah = satu IP. Naikkan (config lokal memakai 500).
 - **Site URL** = alamat deploy (dipakai link reset password).
-- **Sekolah pertama**: sebelum guru mana pun bisa mendaftar, buat satu baris
-  `sekolah` lewat SQL editor (`handle_new_user()` menolak akun non-anonim tanpa
-  kode sekolah yang valid) — lihat bagian Super Sesi di bawah untuk urutan
-  lengkapnya (buat sekolah → kepala sekolah daftar pakai kodenya → naikkan
-  perannya).
+- **Sekolah & kepala sekolah pertama**: dibuat skrip pemilik, bukan SQL editor
+  (`npm run kepsek -- ...`, lihat "Menyiapkan sekolah & kepala sekolah"). Sebelum
+  ada baris `sekolah`, guru tidak bisa mendaftar (`handle_new_user()` menolak akun
+  non-anonim tanpa kode sekolah yang valid).
 
 ### Deploy: Cloudflare Pages, sama dengan Luang
 Project **Pages** yang dibuat lewat **Workers & Pages → Create → tab Pages →
@@ -321,21 +408,12 @@ murid) menentukan siapa lihat siapa — guru cuma melihat Super Sesi yang MASIH
 dan cuma bisa melihat/mengklaim kelas Super Sesi yang belum dimiliki dari
 sekolahnya sendiri (`ambil_kelas_tersedia_super_sesi()`/
 `klaim_kelas_super_sesi()` menolak lintas sekolah). Baris `sekolah` dibuat
-MANUAL oleh admin lewat SQL editor —
-```sql
-insert into public.sekolah (nama, kode_sekolah) values ('SMA Negeri 1 Contoh', 'SMA1-CONTOH');
-```
-lalu kepala sekolah pertamanya mendaftar SEPERTI GURU BIASA memakai kode itu
-(field "Kode Sekolah" baru di `RegisterPage`, dicek dulu lewat RPC anon
-`cek_kode_sekolah()` SEBELUM `signUp()` — supaya kode salah ditolak dengan
-pesan jelas di layar Daftar, bukan lewat kegagalan trigger `handle_new_user()`
-yang belum tentu tembus apa adanya lewat GoTrue), lalu MENGAJUKAN diri jadi
-kepala sekolah lewat tab Saya (lihat "Pengajuan Kepala Sekolah" di bawah) —
-atau, kalau admin tidak sempat/tidak mau menyetujui lewat app, tetap bisa
-dinaikkan manual:
-```sql
-update public.profiles set role = 'kepala_sekolah' where id = '<uuid dari email-nya>';
-```
+oleh PEMILIK produk lewat skrip, bersama akun kepala sekolahnya
+(`scripts/buat-kepala-sekolah.mjs`). Guru lain di sekolah itu mendaftar sendiri
+lewat layar Daftar memakai kode sekolahnya (field "Kode Sekolah" di `RegisterPage`,
+dicek dulu lewat RPC anon `cek_kode_sekolah()` SEBELUM `signUp()` — supaya kode
+salah ditolak dengan pesan jelas di layar Daftar, bukan lewat kegagalan trigger
+`handle_new_user()` yang belum tentu tembus apa adanya lewat GoTrue).
 
 **Kunci jawaban tetap salinan** (gaya A6, lihat SS1): `super_sesi_soal.konten_list`
 adalah snapshot formulir SAAT dikirim, bukan referensi — mengedit/menghapus
@@ -343,58 +421,48 @@ formulir sesudah dikirim tidak mengubah kiriman yang sudah masuk, dan
 `mulai_super_sesi()` cuma membaca dari `super_sesi_soal`, tidak pernah membaca
 ulang `formulir`.
 
-### Pengajuan Kepala Sekolah (ditambah 2026-09-24)
-Membalik urutan promosi `kepala_sekolah`: sebelum ini, admin harus tahu (lewat
-jalur DI LUAR app) siapa yang perlu dinaikkan, lalu mencari UUID-nya sendiri di
-SQL editor. Sekarang guru MENGAJUKAN diri lewat tab Saya, admin tinggal
-menyetujui/menolak dari layar admin minimal yang juga di app — jalur SQL manual
-tetap ada sebagai cadangan (lihat di atas), migrasi ini menambah jalur baru,
-bukan menggantikan.
+### Menyiapkan sekolah & kepala sekolah (2026-10-01)
+Peran admin DIBUANG. Sebelumnya (2026-09-24 sampai 09-30) ada admin tunggal yang
+dicek dari email yang di-hardcode di `adalah_admin_utama()`, menyetujui guru yang
+mengajukan diri jadi kepala sekolah lewat layar admin, dan membuat baris
+`sekolah` lewat layar yang sama. Dibuang karena aplikasi dijual sepaket dengan
+akun kepala sekolah yang SUDAH disiapkan pemilik: tidak ada "admin" di dalam app,
+jadi tidak ada layar, RPC persetujuan, tabel pengajuan, atau email di badan fungsi.
 
-- **Admin TUNGGAL**, dicek dari `email` di `auth.users` lewat
-  `adalah_admin_utama()` (hardcode `yasinumam4@gmail.com` di badan fungsi,
-  satu-satunya tempat yang perlu diubah kalau berpindah tangan) — BUKAN kolom
-  `role` baru (peran cuma tiga: guru/murid/kepala_sekolah, M1 tetap berlaku)
-  dan BUKAN metadata klien (sama alasan dengan `adalah_guru()`/`adalah_kepsek()`).
-  Konstanta cermin `EMAIL_ADMIN_UTAMA` di `lib/admin.ts` CUMA untuk
-  sembunyikan/tampilkan baris "Admin" di `ProfilePage.tsx` — bukan gerbang
-  keamanan, RPC di server selalu memeriksa ulang.
-- **Guru** menekan "Ajukan jadi Kepala Sekolah" di grup baru tab Saya (RPC
-  `ajukan_kepala_sekolah()`, satu baris `pengajuan_kepala_sekolah` dengan
-  status `menunggu`) — baris yang sama berubah jadi "Menunggu persetujuan
-  admin", lalu sesudah diputuskan jadi "Disetujui" (dengan catatan untuk
-  keluar-masuk lagi supaya layar Kepala Sekolah terbuka, karena `role` cuma
-  dibaca ulang saat sesi dimulai, tidak ada Realtime untuk ini) atau kembali ke
-  tombol "Ajukan" (boleh dicoba lagi kapan saja — baris `ditolak` lama tetap
-  tersimpan sebagai riwayat, bukan ditimpa; ditegakkan lewat unique index
-  PARSIAL yang cuma mengunci status `menunggu`).
-- **Admin** membuka `AdminPage.tsx` lewat DUA pintu — pintasan di header
-  `MenuPage.tsx` (ikon `perisai`, GANTI pintasan Riwayat `dokumen` HANYA untuk
-  email ini; guru lain tetap melihat pintasan Riwayat seperti biasa) untuk
-  pemakaian sehari-hari, dan baris "Admin" (grup Admin, tab Saya) sebagai
-  cadangan — satu state `admin` di `GuruHome.tsx` (cabang render terpisah,
-  sama pola dengan `EditorFormulir`, punya `useKembali` sendiri), bukan dua
-  sumber kebenaran. Dua pil di dalamnya:
-  - **Persetujuan Kepala Sekolah** (alasan utama layar ini ada): memuat lewat
-    RPC `ambil_pengajuan_kepsek()` (menunggu dulu, baru riwayat — merakit nama
-    guru & sekolah lewat JOIN di server karena admin TIDAK dilonggarkan lihat
-    `profiles`/`sekolah` lintas sekolah untuk ini, sama pola dengan
-    `pantau_super_sesi()`), lalu Setujui/Tolak memanggil
-    `putuskan_pengajuan_kepsek()` — Setujui menaikkan `profiles.role` jadi
-    `kepala_sekolah` DI DALAM fungsi yang sama, satu tempat yang mengeksekusi
-    promosi lewat app.
-  - **Sekolah** (ditambah sesudahnya): daftar semua `sekolah` lewat RPC
-    `ambil_semua_sekolah()` (jumlah staf per sekolah ikut dihitung server) dan
-    tombol "Sekolah baru" yang memanggil RPC `buat_sekolah(nama, kode)` —
-    onboarding sekolah baru TIDAK LAGI harus lewat SQL editor; kode yang sudah
-    dipakai ditolak dengan pesan jelas (`unique_violation` pada
-    `sekolah_kode_unik`), bukan galat generik.
-- Tabel `pengajuan_kepala_sekolah` TIDAK PUNYA policy INSERT/UPDATE/DELETE
-  sama sekali (gaya K7/SS4) — semua tulis lewat RPC di atas, supaya validasi
-  (guru asli & masih ber-sekolah, satu `menunggu` per akun, keputusan cuma
-  sekali) tidak bisa dilewati lewat REST mentah. `ambil_semua_sekolah()`/
-  `buat_sekolah()` sama-sama dijaga `adalah_admin_utama()`, bukan policy baru
-  di `sekolah` (yang tetap terbatas ke sekolah sendiri, `sekolah_anggota_select`).
+Satu perintah per paket yang dijual:
+```bash
+npm run kepsek -- --sekolah "SMK Negeri 1 Contoh" --kode SMK1-CONTOH \
+                  --email kepsek@smkn1.sch.id --nama "Budi Santoso"
+```
+`scripts/buat-kepala-sekolah.mjs` mengerjakan, berurutan: (1) mencari baris
+`sekolah` berkode itu, membuatnya kalau belum ada; (2) MENOLAK kalau sekolah itu
+sudah punya kepala sekolah (satu per sekolah, kini hanya ditegakkan skrip ini,
+bukan RPC); (3) membuat akun lewat Admin API (`auth.admin.createUser`, email
+langsung terkonfirmasi, `user_metadata` memuat `nama` dan `kode_sekolah` untuk
+`handle_new_user()`); (4) menaikkan `profiles.role` jadi `kepala_sekolah`, dan
+kalau langkah ini gagal akun yang baru dibuat dihapus lagi supaya tidak setengah
+jadi. Password acak 14 karakter dicetak SEKALI.
+
+- **Kunci:** SERVICE ROLE key (mem-bypass RLS) di `.env.rahasia` (gitignored lewat
+  `.env.*`; contoh: `scripts/env.rahasia.contoh`), satu berkas per project Supabase
+  pembeli. JANGAN di `.env` biasa atau berawalan `VITE_` (ikut tertanam ke bundel
+  yang dilihat siapa saja), jangan dikirim ke pembeli, jangan di-commit.
+- **Peran tetap hanya lahir dari server** (M1/SK1): `handle_new_user()` selalu
+  menulis `guru`; skrip yang menaikkannya dengan service role. Klien tidak punya
+  jalan apa pun mengubah `role` (grant kolom `profiles` cuma `nama`).
+- **Ganti kepala sekolah:** turunkan yang lama dulu lewat SQL editor
+  (`update public.profiles set role = 'guru' where id = '<uuid>';`), lalu jalankan
+  skrip untuk yang baru (kodenya dipakai lagi, `--sekolah` tidak perlu).
+- **Ganti password:** lewat "Lupa password" di layar Masuk (link ke email), jadi
+  email yang dimasukkan harus yang benar-benar dipakai kepala sekolah.
+- **Migrasi** `20261001000000_hapus_admin.sql` men-drop tabel
+  `pengajuan_kepala_sekolah` (beserta policy & indeksnya) dan tujuh fungsi:
+  `adalah_admin_utama`, `ajukan_kepala_sekolah`, `ambil_pengajuan_kepsek`,
+  `putuskan_pengajuan_kepsek`, `sekolah_punya_kepsek`, `ambil_semua_sekolah`,
+  `buat_sekolah`. Migrasi lama sengaja tidak diubah (riwayat utuh), jadi project
+  baru menjalankan semuanya dari awal lalu membongkarnya di migrasi ini.
+- **Tidak ada lagi UI mengelola sekolah:** ganti kode, ubah nama, hapus sekolah, atau
+  pindahkan guru antar sekolah semuanya SQL editor manual oleh pemilik.
 
 Sakelar darurat kunci layar (membebaskan SEMUA murid di semua sesi tanpa rilis):
 ```sql
@@ -409,17 +477,19 @@ src/
              Sesi (fokus sesi + kelasTersedia/klaimKelasSuper -- klaim bebas kelas Super Sesi)
              Formulir (simpan otomatis)
              SuperSesi (fokus Super Sesi milik kepala sekolah, poling pantau_super_sesi)
-  lib/       sesiMurid (RPC murid + antrean offline) · sesiGuru (jawaban & veto)
+  lib/       useDesktop (breakpoint lg) · waktuSesi (useSisaDetik, menitDetik)
+             sesiMurid (RPC murid + antrean offline) · sesiGuru (jawaban & veto)
              kunciLayar (sensor + fullscreen + wake lock) · sesiCapture (?sesi=)
              soal (masalahSoal = cermin validasi server, uuid) · tempelSoal (impor teks)
              imporPdf (panggil Edge Function impor-pdf)
              generateSoal (panggil Edge Function generate-soal, AI mengarang dari topik)
              sekolah (cek_kode_sekolah sebelum daftar, lihat Super Sesi)
-             admin (EMAIL_ADMIN_UTAMA + RPC pengajuan/persetujuan kepala sekolah)
   components/
-    ui/      Button · Card · Badge · Dialog · Input · Sakelar · Ikon (SVG garis, gaya Luang) · TeksOtomatis
+    ui/      Button · Card · Badge · Dialog (lembar bawah di HP) · Input · Sakelar · Eyebrow · Ikon (SVG garis) · TeksOtomatis
+    Gelembung (huruf opsi dalam lingkaran: kosong/dipilih/benar/salah/kunci, dipakai murid, editor guru, tinjauan nilai)
     Logo (lambang + nama) · LayarMurid (kartu kepala/soal, dipakai murid & pratinjau guru)
-    BottomNav (Riwayat · Menu · Saya, Sesi menumpang sorotan Menu)
+    BottomNav (HP: Riwayat · Menu · Saya, Sesi menumpang sorotan Menu) · SidebarGuru (desktop: Sesi & Super Sesi item sendiri)
+    TabelDesktop (KepalaTabel/BarisTabel, grid CSS)
     BagikanSesi (kode + QR + link) · LembarKonfirmasi · ScannerQr · TombolZoom
   pages/
     auth/    AuthPages (login, daftar + Kode Sekolah, lupa & reset password) — guru & kepala sekolah
@@ -427,10 +497,9 @@ src/
              MenuPage (peluncur: kelas Super Sesi siap diambil · super sesi siap dimulai · sedang berjalan · ajakan formulir/sesi · bawa dari luar)
              SuperSesiPage (kepala sekolah saja: daftar Super Sesi -> DetailSuperSesi, dibuka dari kartu di Menu)
              RiwayatPage (arsip, pil Formulir/Sesi)
-             ProfilePage (akun, sub Akun Saya, ajukan/pantau kepala sekolah)
-             AdminPage (layar penuh, cuma untuk EMAIL_ADMIN_UTAMA -- pil Persetujuan & Sekolah)
+             ProfilePage (akun, sub Akun Saya)
              SesiPage (takeover: daftar sesi & kendali satu sesi) · LihatJawaban (ringkasan, murid, veto)
-             EditorFormulir (layar penuh: tab Pertanyaan · Setelan) · TabPertanyaan · KartuPertanyaan
+             EditorFormulir (layar penuh; desktop: rel + kartu + panel kirim) · TabPertanyaan · KartuPertanyaan · PanelEditor (RelPertanyaan, PanelKirim)
              TabSetelan · DialogKirim (Buka sesi ATAU kirim ke Super Sesi) · DialogImpor (3 cara: AI/teks/PDF) · Pratinjau
     kepsek/  DialogBuatSuperSesi · DetailSuperSesi (kiriman & status klaim, tombol Mulai) -- dipakai lewat SuperSesiPage di atas
     murid/   MuridHome (tanpa tab) · MuridSesiPage · KerjakanSesi
@@ -440,11 +509,15 @@ supabase/migrations/
   20260917200000_formulir.sql         # F1, F2, F3
   20260924000000_sekolah.sql          # tabel sekolah, profiles.sekolah_id, peran kepala_sekolah
   20260924100000_super_sesi.sql       # SS1-SS4, tabel super_sesi & super_sesi_soal, RPC
-  20260924200000_pengajuan_kepsek.sql # SK3, tabel pengajuan_kepala_sekolah, adalah_admin_utama(), RPC
+  20260924200000_pengajuan_kepsek.sql # (DIBONGKAR 20261001000000) tabel pengajuan_kepala_sekolah, adalah_admin_utama(), RPC
   20260924300000_pengawasan_super_sesi.sql # SS5-SS6, wewenang kunci layar pindah ke kepala sekolah
-  20260924400000_admin_sekolah.sql    # ambil_semua_sekolah()/buat_sekolah() -- onboarding sekolah tanpa SQL editor
+  20260924400000_admin_sekolah.sql    # (DIBONGKAR 20261001000000) ambil_semua_sekolah()/buat_sekolah()
   20260924500000_kepsek_guru_gabung.sql    # kepala sekolah pakai GuruHome yang sama dgn guru, longgarkan adalah_guru()
   20260925000000_klaim_kelas_super_sesi.sql # SS7-SS9, klaim bebas kelas Super Sesi menggantikan penugasan pengawas
+  20261001000000_hapus_admin.sql      # membongkar pengajuan kepala sekolah & fungsi admin, lihat "Menyiapkan sekolah & kepala sekolah"
+scripts/
+  buat-kepala-sekolah.mjs             # pemilik produk: sekolah + akun kepala sekolah (service role), `npm run kepsek`
+  env.rahasia.contoh                  # contoh .env.rahasia (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 supabase/functions/
   impor-pdf/index.ts                  # PDF -> soal lewat OpenRouter, lihat Impor PDF di atas
   generate-soal/index.ts              # topik -> soal lewat OpenRouter, lihat Generate dari Topik di atas
@@ -458,7 +531,7 @@ resetPassword | guru | murid`. Tanpa sesi login, layar awalnya `murid`
 mengarahkan keduanya ke `{ name: 'guru' }`) — lihat "kepala sekolah berbagi
 GuruHome" di bawah untuk kenapa ini berubah dari shell terpisah semula. Tab
 bawah guru (Riwayat · Menu · Saya), id formulir yang sedang disunting layar
-penuh (`editor`), layar Admin (`admin`), dan `navHidden` (Sesi atau Akun Saya
+penuh (`editor`), dan `navHidden` (Sesi atau Akun Saya
 sedang menumpang layar penuh) hidup di state lokal GuruHome — tidak ada
 tautan dalam ke tab atau halaman mana pun. Fokus SATU sesi (dibuka dari
 Menu/Riwayat) hidup di `SesiContext` sendiri (`fokus`/`fokuskan`), dibaca
@@ -532,9 +605,9 @@ Baris di bawah (`SK*`/`SS*`) ditambahkan 2026-09-24 untuk Super Sesi — TIDAK
 ada padanannya di Luang sama sekali, jadi penomorannya tidak perlu dicocokkan
 ke sana seperti baris A/K/M/F di atas.
 
-| SK1 | Peran `kepala_sekolah` HANYA lewat promosi manual SQL, tidak pernah dari metadata klien — `handle_new_user()` selalu menulis `'guru'` untuk akun non-anonim (M1 tetap berlaku) |
+| SK1 | Peran `kepala_sekolah` HANYA lewat skrip pemilik (`scripts/buat-kepala-sekolah.mjs`, service role) atau SQL manual, tidak pernah dari metadata klien — `handle_new_user()` selalu menulis `'guru'` untuk akun non-anonim (M1 tetap berlaku) |
 | SK2 | Guru/kepala sekolah non-anonim WAJIB `sekolah_id` terisi (`profiles_sekolah_wajib_staf`); `kode_sekolah` di metadata signup divalidasi di `handle_new_user()`, bukan dipercaya begitu saja |
-| SK3 | Admin yang boleh memutuskan pengajuan kepala sekolah dicek dari `email` di `auth.users` (`adalah_admin_utama()`), bukan kolom `role` baru maupun metadata klien — cuma `putuskan_pengajuan_kepsek()` yang boleh menaikkan `profiles.role` lewat jalur ini |
+| SK3 | (dihapus 2026-10-01 bersama peran admin; nomornya tidak dipakai ulang) |
 | SS1 | Kiriman (`super_sesi_soal`) adalah SALINAN formulir saat dikirim (gaya A6) — mengedit/menghapus formulir sesudahnya tidak mengubahnya |
 | SS2 | `mulai_super_sesi()` menulis `sesi_kelas.guru_id = pengawas_id`, BUKAN guru mapel pengirim — baris hasilnya sesi BIASA milik pengawas, langsung kena semua policy `sesi_kelas` yang sudah ada tanpa policy baru |
 | SS3 | `sesi_kelas.super_sesi_id`/`super_sesi_judul` disalin saat distribusi supaya pengawas tahu asalnya TANPA akses ke tabel `super_sesi`/`super_sesi_soal` (yang secara struktural memang tidak mereka punya) |
@@ -592,6 +665,8 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
   `window.LuangSesi`.
 
 **Klien:**
+- **Tampilan tidak lagi meniru Luang** sejak 2026-10-01 (lihat "Bahasa desain:
+  Lembar Jawab"). Yang masih sama dengan Luang tinggal pola navigasinya.
 - **Bilah tab Riwayat · Menu · Saya** SAMA namanya dengan Luang (redesain
   2026-09-22 menyalin shell itu utuh, sampai ke "Sesi menumpang sorotan Menu,
   bukan slot sendiri"), tapi ISI Menu jauh lebih sempit: tidak ada hub RPM,
@@ -645,9 +720,7 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
 - `kode_sekolah` umur panjang, tanpa rotasi/kedaluwarsa (beda dari kode sesi 3
   jam) — bocor berarti orang luar bisa mendaftar jadi guru sekolah itu terus-
   menerus sampai diputar manual lewat SQL (`update sekolah set kode_sekolah=...`).
-- Admin bisa MEMBUAT sekolah lewat `AdminPage.tsx` (RPC `buat_sekolah()`),
-  tapi belum bisa mengganti kode, mengubah nama, menghapus sekolah, atau
-  memindahkan guru antar sekolah — itu semua masih SQL editor manual.
+- Tidak ada UI untuk mengelola sekolah (ganti kode, ubah nama, hapus, pindahkan guru, ganti kepala sekolah): semuanya SQL editor manual oleh pemilik. Yang ada cuma skrip pembuat sekolah + kepala sekolah.
 - Kelas Super Sesi yang tidak pernah diklaim guru mana pun tertinggal
   selamanya berstatus `aktif` tanpa pemilik: `akhiri_sesi()` mensyaratkan
   `guru_id = auth.uid()`, jadi TIDAK ADA yang bisa mengakhirinya selama belum
@@ -659,13 +732,3 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
   kedua gagal jelas ("sudah dimulai") alih-alih diam-diam membuat sesi dobel;
   tombol "Mulai Super Sesi" di klien harus tetap disabled selama panggilan
   berjalan supaya ketukan ganda tidak memicu galat yang membingungkan.
-- Admin `adalah_admin_utama()` hardcode SATU email di badan fungsi SQL —
-  mengganti admin butuh migrasi baru (`create or replace function`), bukan
-  setelan yang bisa diubah dari app atau dashboard.
-- Guru yang disetujui jadi kepala sekolah tidak otomatis pindah layar: `role`
-  cuma dibaca ulang saat sesi login dimulai (`AuthContext.resolveSession`),
-  tidak ada Realtime yang mendengarkan perubahan `profiles` sendiri — mereka
-  harus keluar lalu masuk lagi untuk melihat kartu "Super Sesi" di Menu
-  (pesan ini sudah ditampilkan di baris "Disetujui" tab Saya).
-- Tidak ada notifikasi (email/push) ke guru saat pengajuannya diputuskan —
-  mereka baru tahu kalau membuka lagi tab Saya.

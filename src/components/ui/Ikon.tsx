@@ -42,7 +42,7 @@ const PATH = {
   awanSelesai: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
   galat: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
   kunci: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
-  kirim: 'M12 19l9 2-9-18-9 18 9-2zm0 0v-8',
+  kirim: ['M14.536 21.686a.5.5 0 00.937-.024l6.5-19a.496.496 0 00-.635-.635l-19 6.5a.5.5 0 00-.024.937l7.93 3.18a2 2 0 011.112 1.11z', 'M21.854 2.147l-10.94 10.939'],
   tautan: 'M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m6.5-6.5l1.5-1.5a4 4 0 115.656 5.656l-3 3a4 4 0 01-5.656 0',
   qr: 'M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z',
   bagikan: 'M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z',
@@ -84,18 +84,20 @@ export function Ikon({ nama, className = 'w-6 h-6', tebal = 1.8 }: {
 }
 
 /** Tombol ikon persegi-bulat (area sentuh 40px), sama dengan tombol ikon Luang. */
-export function TombolIkon({ nama, label, onClick, disabled, className = '', ukuran = 'w-5 h-5' }: {
+export function TombolIkon({ nama, label, onClick, disabled, className = '', ukuran = 'w-5 h-5', tebal }: {
   nama: NamaIkon
   label: string
   onClick: () => void
   disabled?: boolean
   className?: string
   ukuran?: string
+  /** Tebal garis ikon; titik-titik (`lainnya`) butuh lebih tebal supaya terlihat. */
+  tebal?: number
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label}
-      className={`w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-700 active:scale-95 disabled:opacity-35 disabled:pointer-events-none transition-all ${className}`}>
-      <Ikon nama={nama} className={ukuran} />
+      className={`w-10 h-10 rounded-xl flex items-center justify-center text-teks-3 hover:bg-garis-2 hover:text-tinta active:scale-95 disabled:opacity-35 disabled:pointer-events-none transition-all ${className}`}>
+      <Ikon nama={nama} className={ukuran} tebal={tebal} />
     </button>
   )
 }

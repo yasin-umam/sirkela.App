@@ -9,38 +9,6 @@ export interface User {
   role: Role
 }
 
-// ─── Pengajuan Kepala Sekolah ─────────────────────────────────────────────────
-// Swadaya: guru mengajukan diri (tab Saya), admin TUNGGAL (dicek dari email di
-// auth.users, lihat adalah_admin_utama()) menyetujui/menolak lewat layar admin
-// minimal. Promosi manual lewat SQL editor tetap ada sebagai jalur cadangan.
-
-/** Status pengajuan MILIK SENDIRI, dibaca guru langsung dari tabelnya (RLS). */
-export interface StatusPengajuanKepsek {
-  status: 'menunggu' | 'disetujui' | 'ditolak'
-  dibuatPada: string
-}
-
-/** Satu sekolah, dari sudut pandang admin (`ambil_semua_sekolah()`). */
-export interface SekolahAdmin {
-  id: string
-  nama: string
-  kodeSekolah: string
-  dibuatPada: string
-  jumlahGuru: number
-}
-
-/** Bentuk lengkap untuk layar admin, dirakit RPC ambil_pengajuan_kepsek(). */
-export interface PengajuanKepsek {
-  id: string
-  guruId: string
-  guruNama: string
-  sekolahId: string
-  sekolahNama: string
-  status: 'menunggu' | 'disetujui' | 'ditolak'
-  dibuatPada: string
-  diputuskanPada: string | null
-}
-
 // ─── Navigasi ───────────────────────────────────────────────────────────────
 // Tidak ada router: satu state layar di NavContext. Tab editor guru (Pertanyaan
 // · Jawaban · Setelan) hidup di state lokal GuruHome, bukan di sini -- tidak ada

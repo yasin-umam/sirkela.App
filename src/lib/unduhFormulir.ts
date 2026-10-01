@@ -1,6 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
 import type { Formulir, Soal } from '../types'
-import { HURUF_OPSI } from '../components/LayarMurid'
+import { HURUF_OPSI } from '../components/Gelembung'
 import { JUDUL_BAWAAN } from './soal'
 
 // ─── Unduh formulir sebagai .docx ─────────────────────────────────────────────

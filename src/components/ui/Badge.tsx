@@ -1,18 +1,34 @@
 import type { ReactNode } from 'react'
 
-type WarnaBadge = 'indigo' | 'hijau' | 'kuning' | 'merah' | 'slate'
+export type WarnaBadge = 'biru' | 'hijau' | 'jingga' | 'slate'
 
 const WARNA: Record<WarnaBadge, string> = {
-  indigo: 'bg-indigo-100 text-indigo-700',
-  hijau: 'bg-emerald-100 text-emerald-700',
-  kuning: 'bg-amber-100 text-amber-700',
-  merah: 'bg-red-100 text-red-600',
-  slate: 'bg-slate-100 text-slate-600',
+  biru: 'bg-biru-tint text-biru',
+  hijau: 'bg-hijau-tint text-hijau',
+  jingga: 'bg-jingga-tint text-jingga-gelap',
+  slate: 'bg-garis-2 text-tinta-2',
 }
 
-export function Badge({ warna = 'slate', children }: { warna?: WarnaBadge; children: ReactNode }) {
+const TITIK: Record<WarnaBadge, string> = {
+  biru: 'bg-biru',
+  hijau: 'bg-hijau',
+  jingga: 'bg-jingga-gelap',
+  slate: 'bg-tinta-2',
+}
+
+/**
+ * Label status berbentuk pil. Warna SELALU ditemani kata (dan titik kalau
+ * `titik`), tidak pernah warna saja.
+ */
+export function Badge({ warna = 'slate', titik = false, children }: {
+  warna?: WarnaBadge
+  /** Titik kecil di depan teks, dipakai untuk status "hidup" (Berjalan). */
+  titik?: boolean
+  children: ReactNode
+}) {
   return (
-    <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${WARNA[warna]}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${WARNA[warna]}`}>
+      {titik && <span className={`w-1.5 h-1.5 rounded-full ${TITIK[warna]}`} />}
       {children}
     </span>
   )

@@ -4,7 +4,7 @@ import { useSuperSesi } from '../../context/SuperSesiContext'
 import { useKembali } from '../../context/NavContext'
 import { labelWaktu } from '../../lib/soal'
 import { Ikon } from '../../components/ui/Ikon'
-import { Badge } from '../../components/ui/Badge'
+import { Badge, type WarnaBadge } from '../../components/ui/Badge'
 import { DialogBuatSuperSesi } from '../kepsek/DialogBuatSuperSesi'
 import { DetailSuperSesi } from '../kepsek/DetailSuperSesi'
 
@@ -16,10 +16,10 @@ import { DetailSuperSesi } from '../kepsek/DetailSuperSesi'
 // (panah kembali + judul) -- bilah aplikasi & tombol keluar lama sudah
 // berlebih, GuruHome sudah menyediakan keduanya (tab Saya).
 
-function statusBadge(s: SuperSesi['status']): { label: string; warna: 'hijau' | 'kuning' | 'slate' } {
+function statusBadge(s: SuperSesi['status']): { label: string; warna: WarnaBadge } {
   if (s === 'selesai') return { label: 'Selesai', warna: 'slate' }
   if (s === 'berjalan') return { label: 'Berjalan', warna: 'hijau' }
-  return { label: 'Mengumpulkan', warna: 'kuning' }
+  return { label: 'Mengumpulkan', warna: 'biru' }
 }
 
 export function SuperSesiPage({ onKeluar, onLayarPenuh }: {
@@ -45,68 +45,72 @@ export function SuperSesiPage({ onKeluar, onLayarPenuh }: {
   if (fokus) return <DetailSuperSesi superSesi={fokus} onKembali={() => fokuskan(null)} />
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 tekstur-latar">
-      <div className="px-2 py-1 flex items-center gap-2 shrink-0 desktop:max-w-2xl desktop:w-full desktop:mx-auto">
+    <div className="flex flex-col h-full bg-alas">
+      <div className="h-14 pl-1.5 pr-4 flex items-center gap-1 shrink-0 bg-white border-b border-garis lg:hidden">
         <button type="button" aria-label="Kembali" onClick={onKeluar}
-          className="min-w-11 h-11 px-2 flex items-center justify-center rounded-xl active:bg-slate-100 transition-colors">
-          <Ikon nama="kembali" className="w-5 h-5 text-slate-600" tebal={2} />
+          className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 transition-colors">
+          <Ikon nama="kembali" className="w-5.5 h-5.5" tebal={2} />
         </button>
-        <Ikon nama="sesi" className="w-4.5 h-4.5 text-indigo-600" />
-        <span className="text-sm font-semibold text-slate-700">Super Sesi</span>
+        <span className="text-base font-bold text-tinta">Super Sesi</span>
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 pb-24">
-        <div className="flex flex-col gap-4 pt-4 desktop:max-w-2xl desktop:mx-auto">
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Kumpulkan soal ulangan dari guru mapel, tugaskan pengawas per kelas, lalu mulai serentak.
+        <div className="flex flex-col gap-4 pt-4 desktop:max-w-2xl desktop:mx-auto lg:max-w-6xl lg:px-12 lg:pt-10 lg:gap-6">
+          <div className="hidden lg:block">
+            <p className="font-mono text-xs uppercase tracking-[0.14em] text-teks-3">Kepala sekolah</p>
+            <h1 className="mt-2 text-[38px] leading-tight font-extrabold tracking-tight text-tinta">Super Sesi</h1>
+          </div>
+          <p className="text-[13.5px] text-tinta-2 leading-relaxed px-1">
+            Kumpulkan soal ulangan dari guru mapel, lalu mulai serentak. Kelasnya bisa diambil guru mana pun
+            di sekolahmu, dan kamu mengawasi semua kelas dari sini.
           </p>
 
           <button type="button" onClick={() => setMembuat(true)}
-            className="w-full bg-linear-to-br from-indigo-600 to-indigo-700 active:from-indigo-700 active:to-indigo-800 rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left transition-colors shadow-lg shadow-indigo-200/70">
-            <span className="w-10 h-10 rounded-xl bg-white/20 border border-white/20 text-white flex items-center justify-center shrink-0">
-              <Ikon nama="tambah" className="w-5 h-5" />
+            className="w-full lg:max-w-xl bg-biru active:bg-biru-gelap rounded-[18px] p-4 lg:p-5 flex items-center gap-3.5 text-left transition-colors">
+            <span className="w-11.5 h-11.5 rounded-[13px] bg-white/18 text-white flex items-center justify-center shrink-0">
+              <Ikon nama="tambah" className="w-6 h-6" tebal={2} />
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white">Buat Super Sesi</p>
-              <p className="text-[11px] text-indigo-200">Ulangan baru untuk dikumpulkan dari guru mapel</p>
+              <p className="text-[17px] font-extrabold tracking-tight text-white">Buat Super Sesi</p>
+              <p className="text-[13px] text-biru-muda mt-0.5">Ulangan baru untuk dikumpulkan dari guru mapel</p>
             </div>
-            <Ikon nama="kanan" className="w-4 h-4 text-indigo-300 shrink-0" tebal={2} />
+            <Ikon nama="kanan" className="w-4.5 h-4.5 text-biru-muda shrink-0" tebal={2.2} />
           </button>
 
           {memuat && semuaSuperSesi.length === 0 ? (
             <div className="py-10 flex justify-center">
-              <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-biru-muda border-t-biru rounded-full animate-spin" />
             </div>
           ) : semuaSuperSesi.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 text-center py-10">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center">
-                <Ikon nama="sesi" className="w-8 h-8 text-indigo-300" tebal={1.5} />
+              <div className="w-16 h-16 rounded-2xl bg-biru-tint flex items-center justify-center">
+                <Ikon nama="perisai" className="w-8 h-8 text-biru" tebal={1.5} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-600">Belum ada Super Sesi</p>
-                <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+                <p className="text-[15px] font-bold text-tinta">Belum ada Super Sesi</p>
+                <p className="text-[13px] text-teks-3 mt-1 max-w-xs leading-relaxed">
                   Buat satu, lalu bagikan ke guru mapel supaya mereka bisa mengirim soal ulangan ke sini.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="bg-white rounded-[18px] border border-garis overflow-hidden divide-y divide-garis-2">
               {semuaSuperSesi.map(s => {
                 const st = statusBadge(s.status)
                 return (
                   <button key={s.id} type="button" onClick={() => fokuskan(s.id)}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3.5 bg-white rounded-2xl border border-slate-100 shadow-sm active:bg-slate-50 transition-colors">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                      <Ikon nama="sesi" className="w-5 h-5" tebal={1.5} />
+                    className="w-full text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-biru-tint text-biru flex items-center justify-center shrink-0">
+                      <Ikon nama="perisai" className="w-5.5 h-5.5" tebal={1.8} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{s.judul}</p>
+                    <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5">
+                      <p className="text-[15px] font-bold leading-snug text-tinta break-words">{s.judul}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge warna={st.warna}>{st.label}</Badge>
-                        <span className="text-[10px] text-slate-400">{labelWaktu(s.dibuatPada)}</span>
+                        <Badge warna={st.warna} titik={s.status === 'berjalan'}>{st.label}</Badge>
+                        <span className="text-xs text-teks-3">{labelWaktu(s.dibuatPada)}</span>
                       </div>
                     </div>
-                    <Ikon nama="kanan" className="w-4 h-4 text-slate-300 shrink-0" tebal={2} />
+                    <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
                   </button>
                 )
               })}

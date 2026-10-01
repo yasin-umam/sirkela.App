@@ -162,7 +162,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
       {children}
       {konfirmasiKeluar && (
         <div className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-6 pointer-events-none">
-          <p className="rounded-full bg-slate-900/90 text-white text-xs font-semibold px-4 py-2.5 shadow-lg">
+          <p className="rounded-full bg-tinta/90 text-white text-xs font-semibold px-4 py-2.5 shadow-lg">
             Tekan sekali lagi untuk keluar
           </p>
         </div>

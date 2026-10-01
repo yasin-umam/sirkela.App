@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes } from 'react'
 
-// Kolom isian Luang: kotak penuh bersudut 12px dengan cincin indigo saat fokus.
+// Kolom isian "Lembar Jawab": kotak putih 48px, bingkai 1.5px, berubah jadi biru
+// tebal saat fokus (seperti kolom yang sedang diisi pada lembar jawab).
 export function Input({ label, error, className = '', id, ...props }: InputHTMLAttributes<HTMLInputElement> & {
   label?: string
   error?: string
@@ -9,21 +10,21 @@ export function Input({ label, error, className = '', id, ...props }: InputHTMLA
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+        <label htmlFor={inputId} className="text-sm font-bold text-tinta">
           {label}
         </label>
       )}
       <input
         id={inputId}
-        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-800 text-sm
-          placeholder:text-slate-400
-          focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-          transition-all duration-150
-          ${error ? 'border-red-400 focus:ring-red-400' : 'border-slate-200'}
+        className={`w-full h-12 px-4 rounded-xl border-[1.5px] bg-white text-tinta
+          placeholder:text-teks-3
+          focus:outline-none focus:border-biru focus:ring-2 focus:ring-biru/20
+          transition-colors duration-150
+          ${error ? 'border-jingga focus:border-jingga focus:ring-jingga/20' : 'border-pinggir-2'}
           ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs font-medium text-jingga-gelap">{error}</p>}
     </div>
   )
 }

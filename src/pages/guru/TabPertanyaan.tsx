@@ -25,9 +25,22 @@ export interface PermintaanSorot {
   kali: number
 }
 
-export function TabPertanyaan({ sorot, onImpor }: {
+/** Dari rel pertanyaan desktop: lompat ke satu soal TANPA menandai masalah. */
+export interface PermintaanLompat {
+  soalId: string
+  /** Berubah tiap permintaan. */
+  kali: number
+  /** true = taruh kursor di pertanyaannya (soal yang baru ditambahkan). */
+  fokus?: boolean
+}
+
+export function TabPertanyaan({ sorot, lompat, onFokus, onImpor }: {
   /** Dari dialog Kirim yang menolak: gulir ke soal ini & tandai semua masalah. */
   sorot: PermintaanSorot | null
+  /** Dari rel pertanyaan desktop: pindah ke soal ini saja. */
+  lompat?: PermintaanLompat | null
+  /** Soal yang sedang aktif berubah -- rel & pratinjau desktop mengikutinya. */
+  onFokus?: (id: string | null) => void
   onImpor: () => void
 }) {
   const { aktif, soal, memuatSoal, ubahFormulir, tambahSoal, ubahSoal, hapusSoal, duplikatSoal, pindahSoal } = useFormulir()
@@ -45,6 +58,14 @@ export function TabPertanyaan({ sorot, onImpor }: {
   }, [sorot])
 
   useEffect(() => {
+    if (!lompat) return
+    setFokus(lompat.soalId)
+    setGulir({ id: lompat.soalId, cara: lompat.fokus ? 'fokus' : 'lihat' })
+  }, [lompat])
+
+  useEffect(() => { onFokus?.(fokus) }, [fokus, onFokus])
+
+  useEffect(() => {
     if (!urungkan) return
     const t = setTimeout(() => setUrungkan(null), 6000)
     return () => clearTimeout(t)
@@ -54,7 +75,7 @@ export function TabPertanyaan({ sorot, onImpor }: {
 
   if (!aktif) return null
   if (memuatSoal) {
-    return <div className="py-20 flex justify-center text-indigo-500"><Spinner size={28} /></div>
+    return <div className="py-20 flex justify-center text-biru"><Spinner size={28} /></div>
   }
 
   const berjalan = semuaSesi.filter(s => s.formulirId === aktif.id && s.status === 'aktif')
@@ -95,30 +116,30 @@ export function TabPertanyaan({ sorot, onImpor }: {
   const masalahForm = masalahFormulir(aktif)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 desktop:py-6 flex flex-col gap-3">
+    <div className="max-w-2xl lg:max-w-195 mx-auto px-4 lg:px-10 py-4 desktop:py-6 lg:py-8 flex flex-col gap-3 lg:gap-3.5">
       {/* ── Kartu kepala: judul, kelas, mapel & deskripsi ── */}
       <div onClick={() => setFokus('kepala')}
-        className={`bg-white rounded-2xl border shadow-sm px-4 py-4 flex flex-col gap-1 transition-shadow ${
-          kepalaAktif ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-100'}`}>
+        className={`bg-white rounded-[18px] border px-4 py-4 flex flex-col gap-1 transition-shadow ${
+          kepalaAktif ? 'border-biru ring-4 ring-biru-tint' : 'border-garis'}`}>
         <TeksOtomatis value={aktif.judul} placeholder="Judul formulir" aria-label="Judul formulir"
           onChange={e => ubahFormulir({ judul: e.target.value.replace(/\n/g, ' ') })}
           onKeyDown={e => { if (e.key === 'Enter') e.preventDefault() }}
           onBlur={() => { if (!aktif.judul.trim()) ubahFormulir({ judul: JUDUL_BAWAAN }) }}
-          className="w-full resize-none bg-transparent py-1 text-lg font-bold text-slate-800 placeholder:text-slate-300 placeholder:font-bold outline-none" />
+          className="w-full resize-none bg-transparent py-1 text-[21px] leading-tight font-extrabold tracking-tight text-tinta placeholder:text-teks-3 placeholder:font-extrabold outline-none" />
         <div className="flex gap-2 mt-0.5">
           <input value={aktif.kelas} placeholder="Kelas" aria-label="Kelas"
             onChange={e => ubahFormulir({ kelas: e.target.value })}
-            className="min-w-0 flex-1 bg-slate-50 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none border border-slate-200 focus:border-indigo-400 transition-colors" />
+            className="min-w-0 flex-1 h-10 bg-isian rounded-[10px] px-3 text-[13.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
           <input value={aktif.mapel} placeholder="Mapel" aria-label="Mata pelajaran"
             onChange={e => ubahFormulir({ mapel: e.target.value })}
-            className="min-w-0 flex-1 bg-slate-50 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none border border-slate-200 focus:border-indigo-400 transition-colors" />
+            className="min-w-0 flex-1 h-10 bg-isian rounded-[10px] px-3 text-[13.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
         </div>
         <TeksOtomatis value={aktif.deskripsi} placeholder="Deskripsi (opsional), dibaca murid sebelum mulai"
           aria-label="Deskripsi formulir"
           onChange={e => ubahFormulir({ deskripsi: e.target.value })}
-          className="w-full resize-none bg-transparent py-1 mt-1 text-sm text-slate-600 placeholder:text-slate-400 outline-none" />
+          className="w-full resize-none bg-transparent py-1 mt-1 text-sm text-tinta-2 placeholder:text-teks-3 outline-none" />
         {masalahForm && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-amber-600">
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-jingga-gelap">
             <Ikon nama="galat" className="w-3.5 h-3.5 shrink-0" />
             {masalahForm.charAt(0).toUpperCase() + masalahForm.slice(1)} (wajib sebelum Simpan)
           </p>
@@ -127,9 +148,9 @@ export function TabPertanyaan({ sorot, onImpor }: {
 
       {/* A6 dikatakan di tempat guru mengedit, bukan di dokumentasi. */}
       {berjalan.length > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-          <Ikon nama="sesi" className="w-5 h-5 text-emerald-600 mt-0.5" />
-          <p className="text-xs text-emerald-900 leading-relaxed">
+        <div className="flex items-start gap-3 rounded-2xl border border-hijau/25 bg-hijau-tint px-4 py-3">
+          <Ikon nama="sesi" className="w-5 h-5 text-hijau mt-0.5" />
+          <p className="text-[13px] text-hijau-teks leading-relaxed">
             Sesi <strong className="font-mono font-bold">{berjalan.map(s => s.kodeJoin).join(', ')}</strong> sedang
             dibuka. Perubahan di sini tidak mengubah soal yang sedang dikerjakan murid. Tekan Kirim lagi untuk sesi baru.
           </p>
@@ -157,9 +178,9 @@ export function TabPertanyaan({ sorot, onImpor }: {
       ))}
 
       {soal.length === 0 && (
-        <div className="border-2 border-dashed border-slate-200 rounded-2xl px-5 py-10 flex flex-col items-center gap-3 text-center">
-          <Ikon nama="soal" className="w-8 h-8 text-slate-300" tebal={1.5} />
-          <p className="text-sm font-semibold text-slate-500">Formulir ini belum punya pertanyaan</p>
+        <div className="border-2 border-dashed border-pinggir-2 rounded-[18px] px-5 py-10 flex flex-col items-center gap-3 text-center">
+          <Ikon nama="soal" className="w-8 h-8 text-pinggir" tebal={1.5} />
+          <p className="text-sm font-semibold text-teks-3">Formulir ini belum punya pertanyaan</p>
           <div className="flex flex-wrap justify-center gap-2">
             <Button size="sm" onClick={tambah}><Ikon nama="tambah" className="w-4 h-4" />Tambah pertanyaan</Button>
             <Button size="sm" variant="secondary" onClick={onImpor}><Ikon nama="impor" className="w-4 h-4" />Impor soal</Button>
@@ -178,18 +199,27 @@ export function TabPertanyaan({ sorot, onImpor }: {
           yang sama-sama terlihat cuma bikin bingung. Muncul lagi begitu ada
           soal pertama. */}
       {soal.length > 0 && (
-        <div className="sticky bottom-4 z-20 flex justify-center min-[900px]:justify-end pointer-events-none min-[900px]:-mr-16">
-          <div className="pointer-events-auto flex min-[900px]:flex-col bg-white rounded-2xl border border-slate-100 shadow-lg p-1">
+        <div className="sticky bottom-4 z-20 flex justify-center min-[900px]:justify-end pointer-events-none min-[900px]:-mr-16 lg:hidden">
+          <div className="pointer-events-auto flex min-[900px]:flex-col bg-white rounded-2xl border border-garis shadow-lg p-1">
             <TombolIkon nama="pensil" label="Tulis pertanyaan" onClick={tambah} ukuran="w-5.5 h-5.5" />
             <TombolIkon nama="gabung" label="Impor soal" onClick={onImpor} ukuran="w-5.5 h-5.5" />
           </div>
         </div>
       )}
 
+      {/* Desktop: tombol di ujung daftar (HP memakai bilah alat mengambang di
+          atas). Menyisipkan di bawah soal aktif, sama dengan tombol pensil. */}
+      {soal.length > 0 && (
+        <button type="button" onClick={tambah}
+          className="hidden lg:flex h-14.5 rounded-2xl border-[1.5px] border-dashed border-pinggir text-[15.5px] font-bold text-biru items-center justify-center gap-2 hover:bg-biru-tipis transition-colors">
+          <Ikon nama="tambah" className="w-4.5 h-4.5" tebal={2.4} />Tambah pertanyaan
+        </button>
+      )}
+
       {urungkan && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-4 z-40 flex items-center gap-3 rounded-xl bg-slate-800 pl-4 pr-2 py-2 text-sm font-medium text-white shadow-lg">
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-4 z-40 flex items-center gap-3 rounded-xl bg-tinta pl-4 pr-2 py-2 text-sm font-medium text-white shadow-lg">
           Pertanyaan dihapus
-          <button type="button" onClick={pulihkan} className="px-2.5 py-1.5 rounded-lg font-bold text-indigo-300 hover:bg-white/10">
+          <button type="button" onClick={pulihkan} className="px-2.5 py-1.5 rounded-lg font-bold text-biru-muda hover:bg-white/10">
             Urungkan
           </button>
         </div>

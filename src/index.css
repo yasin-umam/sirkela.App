@@ -7,22 +7,65 @@
 @theme {
   --breakpoint-desktop: 27.5rem;
 
-  /* Warna fungsional yang dipakai berulang di seluruh layar. Nilainya diambil
-     dari palet Tailwind yang SAMA dengan yang dipakai Luang (slate + indigo),
-     bukan palet sendiri -- supaya `text-teks-2` dan `text-slate-500` yang
-     berdampingan di satu kartu tidak pernah beda setengah nada.
+  /* ─── Bahasa desain "Lembar Jawab" (2026-10-01) ──────────────────────────────
+     Tampilannya diambil dari kertas ujian dan lembar jawab komputer (LJK): kertas
+     putih berbingkai garis tipis, gelembung jawaban yang diarsir saat dipilih,
+     tinta biru, dan stempel jingga untuk yang menyangkut waktu dan kunci.
+     Menggantikan desain "ikut Luang" (indigo + gradasi + kisi titik, 2026-09-22).
 
-     Sebelum 2026-09-22 palet ini meniru Google Form (ungu #673AB7, garis
-     #DADCE0, teks #202124) dan `--color-indigo-*` ditimpa jadi ungu itu.
-     Semuanya dibuang saat aplikasi didesain ulang mengikuti Luang: indigo
-     sekarang indigo Tailwind apa adanya, jadi `bg-indigo-600` di berkas mana
-     pun berarti warna yang sama dengan di Luang. */
-  --color-garis: #F1F5F9;   /* slate-100 -- garis kartu */
-  --color-teks: #1E293B;    /* slate-800 -- teks utama */
-  --color-teks-2: #64748B;  /* slate-500 -- teks sekunder */
-  --color-isian: #F8FAFC;   /* slate-50  -- latar kolom isian */
-  --color-benar: #059669;   /* emerald-600 */
-  --color-salah: #DC2626;   /* red-600 */
+     PALET INI TERTUTUP: semua warna bawaan Tailwind dibuang (`--color-*: initial`),
+     jadi `bg-indigo-600`, `text-slate-400`, dst. TIDAK menghasilkan apa pun. Warna
+     baru ditambahkan di sini, bukan lewat nilai sembarang `bg-[#...]`.
+
+     Pemakaian warna ber-ARTI, bukan hiasan:
+       biru   = aksi utama & jawaban yang dipilih
+       jingga = waktu, kunci layar, peringatan, galat (satu rumpun, bukan merah)
+       hijau  = kunci jawaban benar & sesi yang sedang berjalan
+       tinta  = teks utama & kartu gelap (hero sesi, kartu Sesi di Menu)
+     Hijau dan jingga SELALU datang bersama ikon atau kata ("Kunci", "Dijawab
+     salah", "Terkunci"): pembacaan benar/salah tidak boleh bergantung pada
+     hue saja.
+
+     Kontras (di atas putih / #EEF1F5): teks-3 5.7 / 5.1 · tinta-2 7.3 · biru 8.9 ·
+     jingga 4.9 · jingga-gelap 5.7 · hijau 6.5. `pinggir` (3.4) HANYA untuk kontur
+     gelembung & ikon, bukan teks. */
+  --color-*: initial;
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+
+  /* Netral (navy-tinted, bukan abu-abu murni) */
+  --color-tinta: #0F1A3A;       /* teks utama, kartu gelap */
+  --color-tinta-2: #3E4A6B;     /* teks isi sekunder */
+  --color-teks-3: #5A6683;      /* keterangan, label kecil */
+  --color-pinggir: #7F8BA8;     /* kontur gelembung/ikon (bukan teks) */
+  --color-pinggir-2: #B6BFD0;   /* kontur tombol sekunder & kolom isian */
+  --color-garis: #D9DEE7;       /* garis kartu */
+  --color-garis-2: #E6EAF0;     /* pemisah dalam kartu, latar chip netral */
+  --color-isian: #F6F8FB;       /* latar kolom isian & baris tenang */
+  --color-alas: #EEF1F5;        /* latar layar */
+
+  /* Biru tinta */
+  --color-biru: #1B3FAE;
+  --color-biru-gelap: #15318A;
+  --color-biru-tint: #E6EBFA;
+  --color-biru-tipis: #F4F7FE;
+  --color-biru-muda: #C3CFF5;   /* teks di atas kartu tinta */
+
+  /* Jingga sesi */
+  --color-jingga: #C8431B;
+  --color-jingga-gelap: #A8360F; /* teks di atas putih/tint */
+  --color-jingga-tint: #FDEBE4;
+  --color-jingga-tipis: #FFF7F3;
+  --color-jingga-garis: #F2BFAD;
+
+  /* Hijau kunci */
+  --color-hijau: #0A6B45;
+  --color-hijau-teks: #0A5C3B;
+  --color-hijau-tint: #E3F4EC;
+  --color-hijau-muda: #5FD3A0;   /* titik "hidup" di atas kartu tinta */
+
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
@@ -35,14 +78,15 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #F1F5F9;
-    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--color-alas);
+    font-family: var(--font-sans);
+    color: var(--color-tinta);
     overscroll-behavior: none;
     /* Tiap layar mengurus scroll-nya sendiri lewat wadah internal; dokumen tidak
        pernah sengaja discroll. */
     overflow: hidden;
     /* Light-theme only. Tanpa ini "auto dark mode" browser meng-invert warna
-       secara algoritmik dan warna Tailwind meleset. */
+       secara algoritmik dan palet di atas meleset. */
     color-scheme: light;
   }
 
@@ -60,6 +104,22 @@
 
   input, textarea, select {
     font-size: 16px; /* cegah auto-zoom iOS */
+    font-family: inherit;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  /* Cincin fokus papan ketik untuk semua yang bisa ditekan. Kolom isian punya
+     cincinnya sendiri (focus:ring di Input). */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  [role="radio"]:focus-visible,
+  [role="switch"]:focus-visible {
+    outline: 2px solid var(--color-biru);
+    outline-offset: 2px;
   }
 }
 
@@ -79,44 +139,16 @@
   @media (min-width: 440px) {
     .hide-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: rgb(148 163 184) transparent;
+      scrollbar-color: var(--color-pinggir-2) transparent;
     }
     .hide-scrollbar::-webkit-scrollbar {
       display: block;
       width: 6px;
     }
     .hide-scrollbar::-webkit-scrollbar-thumb {
-      background: rgb(148 163 184);
+      background: var(--color-pinggir-2);
       border-radius: 9999px;
     }
-  }
-
-  /* ─── Tekstur latar ────────────────────────────────────────────────────────
-     Disalin dari `.tekstur-luang` di Luang, dengan alasan yang sama: ruang
-     kosong antar kartu tidak lagi rata polos, dan kartu di puncak layar punya
-     halo alih-alih menempel di bidang datar.
-
-       1. KISI TITIK 22px -- kertas berpetak. Indigo, BUKAN abu-abu netral:
-          abu-abu terbaca seperti kisi wireframe, indigo terbaca sebagai warna
-          merek yang sama dengan tombol & kartu hero.
-       2. AURA di tepi atas -- gradasi indigo sangat tipis yang memberi arah
-          cahaya.
-
-     Di `background-image`, lapis yang disebut duluan digambar paling ATAS,
-     jadi urutannya aura lalu kisi titik.
-
-     SENGAJA cuma menyetel `background-image` (bukan `background-color`):
-     dipakai berdampingan dengan `bg-slate-50` di tiap layar. Ditempel di WADAH
-     LUAR yang TIDAK ikut menggulung, jadi teksturnya diam seperti alas meja dan
-     tidak ada repaint latar tiap frame scroll. */
-  .tekstur-latar {
-    --tekstur-titik: rgb(99 102 241 / 0.16);
-    --tekstur-aura: rgb(99 102 241 / 0.10);
-    background-image:
-      radial-gradient(120% 55% at 50% -8%, var(--tekstur-aura), transparent 62%),
-      radial-gradient(var(--tekstur-titik) 1px, transparent 1px);
-    background-size: 100% 100%, 22px 22px;
-    background-repeat: no-repeat, repeat;
   }
 }
 
@@ -140,6 +172,14 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Dialog naik dari bawah di HP (lembar), memudar di layar lebar. */
+.lembar-masuk { animation: lembar-masuk .2s ease-out; }
+
+@keyframes lembar-masuk {
+  from { opacity: 0.6; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tab-masuk, .halaman-masuk { animation: none; }
+  .tab-masuk, .halaman-masuk, .lembar-masuk { animation: none; }
 }
