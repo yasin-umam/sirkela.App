@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { Sakelar } from '../../components/ui/Sakelar'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
+import { kelasJurusan } from '../../lib/soal'
 
 // Kolom tabel kiriman di desktop (kartu bertumpuk di HP).
 // Panel detail desktop berbagi lebar dengan daftar Super Sesi di kiri, jadi kolom
@@ -18,17 +19,20 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
   superSesi: SuperSesi
   onKembali: () => void
 }) {
-  const { submisi, memuatSubmisi, mulaiSuperSesi } = useSuperSesi()
+  const { submisi, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi } = useSuperSesi()
   const [konfirmasiMulai, setKonfirmasiMulai] = useState(false)
+  const [konfirmasiAkhiri, setKonfirmasiAkhiri] = useState(false)
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState<string | null>(null)
 
   useKembali(() => {
+    if (konfirmasiAkhiri) { if (!sibuk) setKonfirmasiAkhiri(false); return true }
     if (konfirmasiMulai) { if (!sibuk) setKonfirmasiMulai(false); return true }
     return false
   })
 
   const mengumpulkan = superSesi.status === 'mengumpulkan'
+  const berjalan = superSesi.status === 'berjalan'
   // Tidak ada lagi pengecekan "semua kiriman sudah punya pengawas" -- sejak
   // klaim bebas, siapa yang mengawas ditentukan belakangan oleh guru sendiri.
   const belumAdaKiriman = !submisi || submisi.length === 0
@@ -40,6 +44,13 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
   const jumlahTerkunci = (submisi ?? []).reduce(
     (n, s) => n + (s.sesiStatus === 'aktif' ? s.murid.filter(m => m.terkunciPada !== null).length : 0), 0)
 
+  // Yang ikut tertutup kalau Super Sesi diakhiri: kelas yang masih aktif, diambil
+  // guru ataupun belum. Dibaca dari `submisi` yang sudah dipoling, jadi bisa
+  // tertinggal sampai 10 detik -- cukup untuk kalimat konfirmasi.
+  const kelasAktif = (submisi ?? []).filter(s => s.sesiStatus === 'aktif')
+  const kelasBelumDiambil = kelasAktif.filter(s => !s.pengawasId).length
+  const muridDiKelasAktif = kelasAktif.reduce((n, s) => n + s.jumlahMurid, 0)
+
   async function mulai() {
     setSibuk(true); setGalat(null)
     try {
@@ -47,6 +58,19 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
       setKonfirmasiMulai(false)
     } catch (e) {
       setGalat(e instanceof Error ? e.message : 'Gagal memulai. Coba lagi.')
+    } finally {
+      setSibuk(false)
+    }
+  }
+
+  async function akhiri() {
+    setSibuk(true); setGalat(null)
+    try {
+      await akhiriSuperSesi(superSesi.id)
+      setKonfirmasiAkhiri(false)
+    } catch (e) {
+      setKonfirmasiAkhiri(false)
+      setGalat(e instanceof Error ? e.message : 'Gagal mengakhiri Super Sesi. Coba lagi.')
     } finally {
       setSibuk(false)
     }
@@ -119,6 +143,22 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
           </div>
         )}
 
+        {/* Sakelar cuma bisa dimatikan, dan mematikannya selalu lewat konfirmasi: mengakhiri
+            menutup semua kelas sekaligus dan tidak bisa dibuka lagi. */}
+        {!mengumpulkan && (
+          <div className="flex items-center gap-3.5 bg-white rounded-[18px] border border-garis px-4 py-3.5 lg:px-5 lg:py-4">
+            <Ikon nama="sesi" className={`w-5 h-5 shrink-0 ${berjalan ? 'text-hijau' : 'text-teks-3'}`} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-tinta">{berjalan ? 'Super Sesi berjalan' : 'Super Sesi sudah diakhiri'}</p>
+              <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">
+                {berjalan ? 'Matikan untuk mengakhiri semua kelasnya sekaligus' : 'Semua kelasnya sudah ditutup'}
+              </p>
+            </div>
+            <Sakelar aktif={berjalan} label="Super Sesi berjalan" disabled={!berjalan || sibuk}
+              onUbah={() => setKonfirmasiAkhiri(true)} />
+          </div>
+        )}
+
         {galat && <p className="text-sm font-medium text-jingga-gelap px-1">{galat}</p>}
 
         {mengumpulkan && (
@@ -157,6 +197,24 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
           onBatal={() => setKonfirmasiMulai(false)}
         />
       )}
+
+      {konfirmasiAkhiri && (
+        <LembarKonfirmasi
+          judul="Akhiri Super Sesi sekarang?"
+          pesan={<>
+            Semua kelas yang masih berjalan ditutup sekaligus. HP murid yang masih membuka sesi mengirim otomatis jawaban yang sudah dipilih. Murid yang sudah menutup aplikasinya tidak mendapat nilai. Kode kelas tidak bisa dipakai lagi, dan kelas yang belum diambil guru tidak bisa diambil lagi.
+            <span className="block mt-3 rounded-xl bg-isian border border-garis-2 px-3.5 py-2.5 text-[13.5px]">
+              <strong className="text-tinta">{kelasAktif.length} kelas</strong> akan ditutup
+              {kelasBelumDiambil > 0 && <>, {kelasBelumDiambil} di antaranya belum diambil guru</>}
+              {muridDiKelasAktif > 0 && <> · {muridDiKelasAktif} murid sudah bergabung</>}
+            </span>
+          </>}
+          labelAksi="Akhiri"
+          sibuk={sibuk}
+          onAksi={() => void akhiri()}
+          onBatal={() => setKonfirmasiAkhiri(false)}
+        />
+      )}
     </div>
   )
 }
@@ -193,7 +251,7 @@ function KartuSubmisi({ submisi }: { submisi: SubmisiSuperSesi }) {
               {submisi.mapel || submisi.judul}
             </p>
             <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">
-              {submisi.kelas && `${submisi.kelas} · `}Soal: {submisi.guruMapelNama}
+              {kelasJurusan(submisi.kelas, submisi.jurusan) && `${kelasJurusan(submisi.kelas, submisi.jurusan)} · `}Soal: {submisi.guruMapelNama}
               {submisi.sesiId && ` · Pengawas: ${submisi.pengawasNama ?? 'belum diambil'}`}
             </p>
             {submisi.sesiId && (
@@ -216,7 +274,9 @@ function KartuSubmisi({ submisi }: { submisi: SubmisiSuperSesi }) {
         <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 min-h-16`}>
           <span className="min-w-0">
             <span className="block text-[15.5px] font-extrabold tracking-tight text-tinta">{submisi.mapel || submisi.judul}</span>
-            {submisi.kelas && <span className="block text-[13px] text-teks-3 mt-px">{submisi.kelas}</span>}
+            {kelasJurusan(submisi.kelas, submisi.jurusan) && (
+              <span className="block text-[13px] text-teks-3 mt-px">{kelasJurusan(submisi.kelas, submisi.jurusan)}</span>
+            )}
           </span>
           <span className="text-sm text-tinta-2 truncate">{submisi.guruMapelNama}</span>
           <span className={`text-sm ${submisi.sesiId && !submisi.pengawasNama ? 'font-bold text-jingga-gelap' : 'text-tinta-2'}`}>

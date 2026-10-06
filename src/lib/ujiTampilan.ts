@@ -23,15 +23,16 @@ const hariLalu = (h: number) => menitLalu(h * 24 * 60)
 
 function formulir(
   id: string, judul: string, kelas: string, mapel: string, jumlahSoal: number, durasiMenit: number, diperbarui: string,
+  jurusan = '',
 ): RingkasFormulir {
-  return { id, judul, deskripsi: '', kelas, mapel, durasiMenit, kunciLayar: false, jumlahSoal,
+  return { id, judul, deskripsi: '', kelas, jurusan, mapel, durasiMenit, kunciLayar: false, jumlahSoal,
     dibuatPada: hariLalu(14), diperbaruiPada: diperbarui }
 }
 
 export function formulirUji(): RingkasFormulir[] {
   return [
-    formulir('f1', 'Ulangan Harian: Jaringan Dasar', 'XI TKJ 1', 'Administrasi Sistem Jaringan', 6, 45, menitLalu(40)),
-    formulir('f2', 'Kuis Topologi Jaringan', 'X TKJ 2', 'Dasar Desain Jaringan', 3, 20, menitLalu(26 * 60)),
+    formulir('f1', 'Ulangan Harian: Jaringan Dasar', 'XI-1', 'Administrasi Sistem Jaringan', 6, 45, menitLalu(40), 'TKJ'),
+    formulir('f2', 'Kuis Topologi Jaringan', 'X-2', 'Dasar Desain Jaringan', 3, 20, menitLalu(26 * 60), 'TKJ'),
     formulir('f3', 'PAS Ganjil: Teknologi Layanan Jaringan', 'XI TKJ 2', 'Teknologi Layanan Jaringan', 40, 90, hariLalu(4)),
     formulir('f4', 'Remedial Matematika Bab 2', 'X TKJ 2', 'Matematika', 15, 30, hariLalu(6)),
     formulir('f5', 'Latihan Subnetting', '', '', 0, 30, hariLalu(8)),
@@ -110,7 +111,7 @@ export function sesiUji(): SesiKelas[] {
 }
 
 export const kelasTersediaUji: KelasSuperSesiTersedia[] = [
-  { sesiId: 'kt1', mapel: 'Teknologi Layanan Jaringan', kelas: 'XI TKJ 1', judul: 'PAS Ganjil: TLJ',
+  { sesiId: 'kt1', mapel: 'Teknologi Layanan Jaringan', kelas: 'XI-1', jurusan: 'TKJ', judul: 'PAS Ganjil: TLJ',
     superSesiJudul: 'PAS Ganjil 2026/2027', durasiMenit: 90, dibuatPada: menitLalu(20) },
 ]
 
@@ -150,10 +151,10 @@ function muridSuper(n: number, terkunci: number): MuridSuperSesi[] {
 
 function kiriman(
   id: string, mapel: string, kelas: string, guru: string, pengawas: string | null, kode: string | null,
-  jumlah: number, terkunci: number, berjalan: boolean,
+  jumlah: number, terkunci: number, berjalan: boolean, jurusan = '',
 ): SubmisiSuperSesi {
   return {
-    id, mapel, kelas, judul: mapel, guruMapelNama: guru,
+    id, mapel, kelas, jurusan, judul: mapel, guruMapelNama: guru,
     pengawasId: pengawas ? `p-${id}` : null, pengawasNama: pengawas,
     sesiId: kode ? `se-${id}` : null, kodeJoin: kode,
     sesiStatus: kode ? 'aktif' : null, mulaiPadaSesi: berjalan ? menitLalu(7) : null,
@@ -170,8 +171,8 @@ export function submisiUji(superSesiId: string): SubmisiSuperSesi[] {
     ]
   }
   return [
-    kiriman('a1', 'Administrasi Sistem Jaringan', 'XI TKJ 1', 'Bu Ratna', 'Pak Dimas', 'PAS-101', 31, 1, true),
-    kiriman('a2', 'Administrasi Sistem Jaringan', 'XI TKJ 2', 'Bu Ratna', 'Bu Sari', 'PAS-102', 30, 1, true),
+    kiriman('a1', 'Administrasi Sistem Jaringan', 'XI-1', 'Bu Ratna', 'Pak Dimas', 'PAS-101', 31, 1, true, 'TKJ'),
+    kiriman('a2', 'Administrasi Sistem Jaringan', 'XI-2', 'Bu Ratna', 'Bu Sari', 'PAS-102', 30, 1, true, 'TKJ'),
     kiriman('a3', 'Teknologi Layanan Jaringan', 'XI TKJ 1', 'Pak Hadi', null, 'PAS-103', 0, 0, false),
     kiriman('a4', 'Matematika', 'X TKJ 1', 'Bu Wulan', 'Pak Rudi', 'PAS-104', 33, 0, true),
     kiriman('a5', 'Matematika', 'X TKJ 2', 'Bu Wulan', 'Bu Ani', 'PAS-105', 32, 2, true),

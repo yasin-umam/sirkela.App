@@ -4,7 +4,7 @@ import { useFormulir, type RingkasFormulir } from '../../context/FormulirContext
 import { useSesi } from '../../context/SesiContext'
 import { useAksiGuru } from '../../context/AksiGuruContext'
 import { statusSesi } from '../../lib/keadaanSesi'
-import { jamMenit, labelWaktu, tanggalLengkap, waktuRingkas } from '../../lib/soal'
+import { jamMenit, kelasJurusan, labelWaktu, tanggalLengkap, waktuRingkas } from '../../lib/soal'
 import { supabase } from '../../lib/supabase'
 import { soalUji } from '../../lib/ujiTampilan'
 import { useKirimanSuper } from '../../lib/useKirimanSuper'
@@ -66,7 +66,7 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
 
   const kata = q.trim().toLowerCase()
   const formulirTampil = daftar.filter(f =>
-    (!kata || f.judul.toLowerCase().includes(kata) || f.mapel.toLowerCase().includes(kata))
+    (!kata || f.judul.toLowerCase().includes(kata) || f.mapel.toLowerCase().includes(kata) || f.jurusan.toLowerCase().includes(kata))
     && (!kelas || f.kelas.trim() === kelas) && (!mapel || f.mapel.trim() === mapel))
   const sesiTampil = semuaSesi.filter(s => !kata || s.judul.toLowerCase().includes(kata) || s.kodeJoin.toLowerCase().includes(kata))
   const dipilih = formulirTampil.find(f => f.id === dipilihId) ?? formulirTampil[0] ?? null
@@ -133,7 +133,7 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
                             <span className="block text-[12.5px] text-teks-3 truncate">{f.mapel.trim() || 'Belum diisi'}</span>
                           </span>
                         </span>
-                        <span className="text-[13.5px] text-tinta-2 truncate">{f.kelas.trim() || '–'}</span>
+                        <span className="text-[13.5px] text-tinta-2 truncate">{kelasJurusan(f.kelas, f.jurusan) || '–'}</span>
                         <span className="text-[13.5px] text-tinta-2">{f.jumlahSoal}</span>
                         <span className="text-[13px] text-teks-3">{waktuRingkas(f.diperbaruiPada)}</span>
                         <span className="flex flex-wrap gap-1.5">
@@ -224,7 +224,7 @@ function DetailFormulir({ f, onBukaFormulir, onBukaSesi }: {
   }, [f.id, f.jumlahSoal])
 
   const sesiLahir = semuaSesi.filter(s => s.formulirId === f.id)
-  const info = [f.kelas, f.mapel].filter(x => x?.trim()).join(' · ') || 'Kelas dan mapel belum diisi'
+  const info = [kelasJurusan(f.kelas, f.jurusan), f.mapel.trim()].filter(Boolean).join(' · ') || 'Kelas dan mapel belum diisi'
 
   return (
     <aside aria-label="Detail formulir terpilih" className="bg-white rounded-[18px] border border-garis p-5.5 flex flex-col gap-4.5 min-w-0">

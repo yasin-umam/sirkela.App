@@ -68,6 +68,7 @@ interface KelasTersediaServer {
   sesi_id: string
   mapel: string
   kelas: string
+  jurusan: string
   judul: string
   super_sesi_judul: string
   durasi_menit: number
@@ -76,7 +77,7 @@ interface KelasTersediaServer {
 
 function petakanKelasTersedia(k: KelasTersediaServer): KelasSuperSesiTersedia {
   return {
-    sesiId: k.sesi_id, mapel: k.mapel, kelas: k.kelas, judul: k.judul,
+    sesiId: k.sesi_id, mapel: k.mapel, kelas: k.kelas, jurusan: k.jurusan ?? '', judul: k.judul,
     superSesiJudul: k.super_sesi_judul, durasiMenit: k.durasi_menit, dibuatPada: k.created_at,
   }
 }

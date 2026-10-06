@@ -1,5 +1,5 @@
 import type { Formulir, Soal } from '../../types'
-import { masalahFormulir, masalahSoal } from '../../lib/soal'
+import { kelasButuhJurusan, masalahFormulir, masalahSoal } from '../../lib/soal'
 import { Gelembung } from '../../components/Gelembung'
 import { GambarSoal } from '../../components/GambarSoal'
 import { Ikon } from '../../components/ui/Ikon'
@@ -103,7 +103,8 @@ export function PanelKirim({ formulir, soal, aktifId, onKirim }: {
     <aside className="hidden lg:flex w-85 shrink-0 flex-col gap-4.5 py-5.5 pr-5.5 overflow-y-auto hide-scrollbar">
       <div className="bg-white rounded-[18px] border border-garis p-5.5 flex flex-col gap-4">
         <p className="text-[17px] font-extrabold tracking-tight text-tinta">Siap dikirim?</p>
-        <Cek ok={!masalahForm} judul={masalahForm ? kapital(masalahForm) : 'Judul, kelas, dan mapel terisi'} />
+        <Cek ok={!masalahForm} judul={masalahForm ? kapital(masalahForm)
+          : kelasButuhJurusan(formulir.kelas) ? 'Judul, kelas, jurusan, dan mapel terisi' : 'Judul, kelas, dan mapel terisi'} />
         <Cek ok={soal.length > 0} judul={soal.length > 0 ? `${soal.length} pertanyaan` : 'Belum ada pertanyaan'} />
         <Cek ok={soal.length > 0 && bermasalah.length === 0}
           judul={bermasalah.length > 0 ? `${bermasalah.length} pertanyaan belum lengkap` : `Kunci jawaban: ${berkunci} dari ${soal.length}`}

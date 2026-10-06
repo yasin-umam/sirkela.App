@@ -2,7 +2,7 @@ import { Document, ImageRun, Packer, Paragraph, TextRun, HeadingLevel } from 'do
 import type { Formulir, Soal } from '../types'
 import { HURUF_OPSI } from '../components/Gelembung'
 import { urlGambarSoal } from './gambarSoal'
-import { JUDUL_BAWAAN } from './soal'
+import { JUDUL_BAWAAN, kelasJurusan } from './soal'
 
 // ─── Unduh formulir sebagai .docx ─────────────────────────────────────────────
 // Murni klien (paket `docx`, di-pack ke Blob lewat Packer.toBlob) -- tidak ada
@@ -44,7 +44,7 @@ export async function unduhFormulirDocx(formulir: Formulir, soal: Soal[]): Promi
     new Paragraph({ text: formulir.judul.trim() || JUDUL_BAWAAN, heading: HeadingLevel.HEADING_1 }),
   ]
 
-  const keterangan = [formulir.kelas.trim(), formulir.mapel.trim()].filter(Boolean).join(' · ')
+  const keterangan = [kelasJurusan(formulir.kelas, formulir.jurusan), formulir.mapel.trim()].filter(Boolean).join(' · ')
   if (keterangan) {
     paragraf.push(new Paragraph({ children: [new TextRun({ text: keterangan, bold: true })], spacing: { after: 120 } }))
   }

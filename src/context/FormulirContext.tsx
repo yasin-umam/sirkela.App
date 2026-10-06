@@ -27,7 +27,7 @@ import { useAuth } from './AuthContext'
 const KUNCI_TERAKHIR = 'sesi-soal:formulir_terakhir'
 
 export type StatusSimpan = 'tersimpan' | 'menyimpan' | 'gagal'
-export type UbahanFormulir = Partial<Pick<Formulir, 'judul' | 'deskripsi' | 'kelas' | 'mapel' | 'durasiMenit' | 'kunciLayar'>>
+export type UbahanFormulir = Partial<Pick<Formulir, 'judul' | 'deskripsi' | 'kelas' | 'jurusan' | 'mapel' | 'durasiMenit' | 'kunciLayar'>>
 export interface RingkasFormulir extends Formulir { jumlahSoal: number }
 
 interface FormulirContextValue {
@@ -66,7 +66,7 @@ const FormulirContext = createContext<FormulirContextValue | null>(null)
 
 function petakanFormulir(r: DbFormulir): Formulir {
   return {
-    id: r.id, judul: r.judul, deskripsi: r.deskripsi, kelas: r.kelas, mapel: r.mapel,
+    id: r.id, judul: r.judul, deskripsi: r.deskripsi, kelas: r.kelas, jurusan: r.jurusan ?? '', mapel: r.mapel,
     durasiMenit: r.durasi_menit, kunciLayar: r.kunci_layar,
     dibuatPada: r.created_at, diperbaruiPada: r.diperbarui_pada,
   }
@@ -84,6 +84,7 @@ function barisFormulir(u: UbahanFormulir): Partial<DbFormulir> {
   if (u.judul !== undefined) b.judul = u.judul
   if (u.deskripsi !== undefined) b.deskripsi = u.deskripsi
   if (u.kelas !== undefined) b.kelas = u.kelas
+  if (u.jurusan !== undefined) b.jurusan = u.jurusan
   if (u.mapel !== undefined) b.mapel = u.mapel
   if (u.durasiMenit !== undefined) b.durasi_menit = u.durasiMenit
   if (u.kunciLayar !== undefined) b.kunci_layar = u.kunciLayar
@@ -106,13 +107,13 @@ function nomoriUlang(list: Soal[]): Soal[] {
 
 function cuplikForm(f: Formulir): Required<UbahanFormulir> {
   return {
-    judul: f.judul, deskripsi: f.deskripsi, kelas: f.kelas, mapel: f.mapel,
+    judul: f.judul, deskripsi: f.deskripsi, kelas: f.kelas, jurusan: f.jurusan, mapel: f.mapel,
     durasiMenit: f.durasiMenit, kunciLayar: f.kunciLayar,
   }
 }
 
 function samaFormulir(a: Required<UbahanFormulir>, b: Required<UbahanFormulir>): boolean {
-  return a.judul === b.judul && a.deskripsi === b.deskripsi && a.kelas === b.kelas && a.mapel === b.mapel
+  return a.judul === b.judul && a.deskripsi === b.deskripsi && a.kelas === b.kelas && a.jurusan === b.jurusan && a.mapel === b.mapel
     && a.durasiMenit === b.durasiMenit && a.kunciLayar === b.kunciLayar
 }
 
@@ -284,6 +285,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
       judul: awal.judul ?? 'Formulir tanpa judul',
       deskripsi: awal.deskripsi ?? '',
       kelas: awal.kelas ?? '',
+      jurusan: awal.jurusan ?? '',
       mapel: awal.mapel ?? '',
       durasiMenit: awal.durasiMenit ?? 45,
       kunciLayar: awal.kunciLayar ?? false,

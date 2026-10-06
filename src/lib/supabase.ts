@@ -6,6 +6,7 @@ export interface DbFormulir {
   judul: string
   deskripsi: string
   kelas: string
+  jurusan: string
   mapel: string
   durasi_menit: number
   kunci_layar: boolean

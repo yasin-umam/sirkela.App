@@ -34,6 +34,7 @@ interface KirimanServer {
   id: string
   mapel: string
   kelas: string
+  jurusan: string
   judul: string
   guru_mapel_nama: string
   pengawas_id: string | null
@@ -74,6 +75,12 @@ interface SuperSesiContextValue {
    */
   mulaiSuperSesi: (id: string) => Promise<void>
   /**
+   * Mengakhiri Super Sesi yang berjalan beserta SEMUA kelasnya yang masih aktif
+   * (diklaim atau belum) -- SS10. Satu-satunya jalan menutup kelas yang tidak
+   * pernah diklaim guru mana pun; akhiri_sesi() milik guru tidak bisa menyentuhnya.
+   */
+  akhiriSuperSesi: (id: string) => Promise<void>
+  /**
    * Wewenang buka kunci untuk sesi hasil Super Sesi ADA DI SINI, bukan di
    * pengawas (permintaan pemilik produk) -- lihat migrasi
    * 20260924300000_pengawasan_super_sesi.sql. Ketiganya me-refresh `submisi`
@@ -105,7 +112,7 @@ function petakanMurid(m: MuridServer): MuridSuperSesi {
 
 function petakanKiriman(k: KirimanServer): SubmisiSuperSesi {
   return {
-    id: k.id, mapel: k.mapel, kelas: k.kelas, judul: k.judul,
+    id: k.id, mapel: k.mapel, kelas: k.kelas, jurusan: k.jurusan ?? '', judul: k.judul,
     guruMapelNama: k.guru_mapel_nama,
     pengawasId: k.pengawas_id, pengawasNama: k.pengawas_nama,
     sesiId: k.sesi_id, kodeJoin: k.kode_join,
@@ -134,6 +141,7 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
       },
       submisi: idPantau ? submisiUji(idPantau) : null, submisiId: idPantau, memuatSubmisi: false,
       mulaiSuperSesi: async id => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, status: 'berjalan', mulaiPada: new Date().toISOString() } : s)) },
+      akhiriSuperSesi: async id => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, status: 'selesai' } : s)) },
       bukaKunciMuridSuper: tak, bukaKunciSemuaSuper: tak, aturKunciLayarSuper: tak,
     }
     return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>
@@ -217,6 +225,13 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
     await muatSubmisiRef.current()
   }, [])
 
+  const akhiriSuperSesi = useCallback(async (id: string) => {
+    const { error } = await supabase.rpc('akhiri_super_sesi', { p_super_sesi_id: id })
+    if (error) throw new Error('Gagal mengakhiri Super Sesi. Coba lagi.')
+    setSemuaSuperSesi(prev => prev.map(s => s.id === id ? { ...s, status: 'selesai' } : s))
+    await muatSubmisiRef.current()
+  }, [])
+
   const bukaKunciMuridSuper = useCallback(async (sesiId: string, muridId: string) => {
     const { error } = await supabase.rpc('buka_kunci_murid_kepsek', { p_sesi_id: sesiId, p_murid_id: muridId })
     if (error) throw new Error('Gagal membuka kunci. Coba lagi.')
@@ -237,9 +252,9 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SuperSesiContextValue>(() => ({
     semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi,
-    submisi, submisiId, memuatSubmisi, mulaiSuperSesi,
+    submisi, submisiId, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi,
     bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper,
-  }), [semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi, submisi, submisiId, memuatSubmisi, mulaiSuperSesi,
+  }), [semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi, submisi, submisiId, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi,
       bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper])
 
   return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>

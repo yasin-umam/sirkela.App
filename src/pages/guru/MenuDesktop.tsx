@@ -6,7 +6,7 @@ import { useSesi } from '../../context/SesiContext'
 import { useSuperSesi } from '../../context/SuperSesiContext'
 import { useAksiGuru } from '../../context/AksiGuruContext'
 import { hitungPeserta } from '../../lib/keadaanSesi'
-import { jamMenit, labelWaktu, waktuRingkas } from '../../lib/soal'
+import { jamMenit, kelasJurusan, labelWaktu, waktuRingkas } from '../../lib/soal'
 import { useKirimanSuper } from '../../lib/useKirimanSuper'
 import { menitDetik, useSisaDetik } from '../../lib/waktuSesi'
 import { BilahAtas } from '../../components/BilahAtas'
@@ -143,7 +143,7 @@ function KonsolSesi({ sesi, onBuka }: { sesi: SesiKelas; onBuka: () => void }) {
   const persen = sisa == null ? 100 : (sisa / (sesi.durasiMenit * 60)) * 100
   const mepet = persen < 20
   const asal = daftar.find(f => f.id === sesi.formulirId)
-  const info = asal ? [asal.kelas, asal.mapel].filter(x => x?.trim()).join(' · ') : ''
+  const info = asal ? [kelasJurusan(asal.kelas, asal.jurusan), asal.mapel.trim()].filter(Boolean).join(' · ') : ''
 
   const meter: { angka: number; label: string; warna: string }[] = mulai
     ? [
@@ -282,7 +282,7 @@ function BarisFormulir({ f, berjalan, superSesi }: { f: RingkasFormulir; berjala
         </span>
         <span className="min-w-0">
           <span className="block text-[14.5px] font-bold text-tinta truncate">{f.judul.trim() || 'Formulir tanpa judul'}</span>
-          <span className="block text-[13px] text-teks-3 truncate">{[f.kelas, f.mapel].filter(x => x?.trim()).join(' · ') || 'Belum diisi'}</span>
+          <span className="block text-[13px] text-teks-3 truncate">{[kelasJurusan(f.kelas, f.jurusan), f.mapel.trim()].filter(Boolean).join(' · ') || 'Belum diisi'}</span>
         </span>
       </button>
       <span className="text-sm text-tinta-2">{f.jumlahSoal} soal</span>
@@ -386,7 +386,7 @@ function BarisAmbil({ kelas }: { kelas: KelasSuperSesiTersedia }) {
         <span className="flex-1 min-w-0">
           <span className="block text-sm font-bold text-tinta truncate">{kelas.mapel || kelas.judul}</span>
           <span className="block text-[12.5px] text-teks-3 truncate">
-            {sibuk ? 'Mengambil…' : `${kelas.kelas ? `${kelas.kelas} · ` : ''}${kelas.superSesiJudul}`}
+            {sibuk ? 'Mengambil…' : [kelasJurusan(kelas.kelas, kelas.jurusan), kelas.superSesiJudul].filter(Boolean).join(' · ')}
           </span>
         </span>
         <button type="button" disabled={sibuk} onClick={() => void klaim()}

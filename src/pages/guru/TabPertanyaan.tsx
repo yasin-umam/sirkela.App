@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Soal } from '../../types'
 import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
-import { JUDUL_BAWAAN, masalahFormulir } from '../../lib/soal'
+import { JUDUL_BAWAAN, JURUSAN_UMUM, kelasButuhJurusan, masalahFormulir } from '../../lib/soal'
 import { Ikon, TombolIkon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
@@ -114,6 +114,7 @@ export function TabPertanyaan({ sorot, lompat, onFokus, onImpor }: {
 
   const kepalaAktif = fokus === 'kepala'
   const masalahForm = masalahFormulir(aktif)
+  const butuhJurusan = kelasButuhJurusan(aktif.kelas)
 
   return (
     <div className="max-w-2xl lg:max-w-195 mx-auto px-4 lg:px-10 py-4 desktop:py-6 lg:py-8 flex flex-col gap-3 lg:gap-3.5">
@@ -126,15 +127,28 @@ export function TabPertanyaan({ sorot, lompat, onFokus, onImpor }: {
           onKeyDown={e => { if (e.key === 'Enter') e.preventDefault() }}
           onBlur={() => { if (!aktif.judul.trim()) ubahFormulir({ judul: JUDUL_BAWAAN }) }}
           className="w-full resize-none bg-transparent py-1 text-[21px] lg:text-[26px] leading-tight font-extrabold tracking-tight text-tinta placeholder:text-teks-3 placeholder:font-extrabold outline-none" />
-        {/* Desktop: kelas & mapel punya label tampak (di HP cukup placeholder). */}
-        <div className="flex gap-2 mt-0.5 lg:gap-3.5 lg:mt-0">
-          <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+        {/* Desktop: kelas, jurusan & mapel punya label tampak (di HP cukup placeholder).
+            HP: kelas + jurusan sebaris, mapel satu baris penuh di bawahnya. */}
+        <div className="grid grid-cols-2 gap-2 mt-0.5 lg:grid-cols-[1fr_1fr_1.7fr] lg:gap-3.5 lg:mt-0">
+          <label className="min-w-0 flex flex-col gap-1.5">
             <span className="hidden lg:block text-[13px] text-teks-3">Kelas</span>
             <input value={aktif.kelas} placeholder="Kelas" aria-label="Kelas"
               onChange={e => ubahFormulir({ kelas: e.target.value })}
               className="min-w-0 h-10 lg:h-11 bg-isian rounded-[10px] lg:rounded-xl px-3 lg:px-3.5 text-[13.5px] lg:text-[14.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
           </label>
-          <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+          <label className="min-w-0 flex flex-col gap-1.5">
+            <span className="hidden lg:block text-[13px] text-teks-3">
+              Jurusan{butuhJurusan ? <span className="font-bold text-jingga-gelap"> · wajib</span> : ' (SMA/SMK)'}
+            </span>
+            <input value={aktif.jurusan} placeholder={butuhJurusan ? 'Jurusan (wajib)' : 'Jurusan (opsional)'}
+              aria-label="Jurusan" aria-required={butuhJurusan} list="saran-jurusan"
+              onChange={e => ubahFormulir({ jurusan: e.target.value })}
+              className="min-w-0 h-10 lg:h-11 bg-isian rounded-[10px] lg:rounded-xl px-3 lg:px-3.5 text-[13.5px] lg:text-[14.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
+            <datalist id="saran-jurusan">
+              {JURUSAN_UMUM.map(j => <option key={j} value={j} />)}
+            </datalist>
+          </label>
+          <label className="min-w-0 col-span-2 lg:col-span-1 flex flex-col gap-1.5">
             <span className="hidden lg:block text-[13px] text-teks-3">Mata pelajaran</span>
             <input value={aktif.mapel} placeholder="Mapel" aria-label="Mata pelajaran"
               onChange={e => ubahFormulir({ mapel: e.target.value })}

@@ -47,6 +47,8 @@ export interface Formulir {
   judul: string
   deskripsi: string
   kelas: string
+  /** Opsional (SMA/SMK): '' = tanpa jurusan. */
+  jurusan: string
   mapel: string
   durasiMenit: number
   kunciLayar: boolean
@@ -177,6 +179,7 @@ export interface KelasSuperSesiTersedia {
   sesiId: string
   mapel: string
   kelas: string
+  jurusan: string
   judul: string
   superSesiJudul: string
   durasiMenit: number
@@ -188,6 +191,7 @@ export interface SubmisiSuperSesi {
   id: string
   mapel: string
   kelas: string
+  jurusan: string
   judul: string
   guruMapelNama: string
   pengawasId: string | null

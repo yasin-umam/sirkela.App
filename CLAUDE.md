@@ -181,7 +181,22 @@ dipusatkan (`desktop:max-w-2xl`).
 - **Editor:** tiga kolom seperti v1, tapi "Impor soal" pindah ke toolbar, rel
   pertanyaan punya meter "Kunci jawaban n dari m", kartu diam menata opsi pendek
   DUA kolom (`lg:grid-cols-2` kalau semua opsi ≤ 42 karakter), dan kop formulir
-  punya label Kelas/Mata pelajaran yang tampak.
+  punya label Kelas/Jurusan/Mata pelajaran yang tampak.
+- **Jurusan (2026-10-06):** kolom `formulir.jurusan`, teks bebas dengan saran SMA/SMK
+  lewat `<datalist>` (`JURUSAN_UMUM` di `lib/soal.ts`). WAJIB hanya untuk SMA/SMK,
+  OPSIONAL untuk SD/SMP. Formulir dan `sekolah` tidak punya kolom jenjang, jadi
+  jenjangnya DIBACA DARI KELAS: `kelasButuhJurusan()` true untuk kelas X, XI, XII
+  atau 10-12 (huruf besar/kecil bebas, awalan "Kelas" boleh); "IX", "VII", "5", dan
+  tulisan tak lazim ("sebelas") tidak ditagih. Ditegakkan di KLIEN lewat
+  `masalahFormulir()` (urutan: judul, kelas, jurusan, mapel) -- memblokir Simpan dan
+  Kirim, sama dengan kelas & mapel, bukan CHECK di database. Konsekuensinya: formulir
+  lama berkelas X-XII yang jurusannya masih '' baru bisa disimpan/dikirim sesudah
+  jurusannya diisi. Kalau nanti butuh yang pasti, taruh `jenjang` di `sekolah` (diisi
+  skrip pemilik) alih-alih menebak dari kelas.
+  Jalurnya mengikuti kelas & mapel: tersalin ke `super_sesi_soal.jurusan` saat
+  `kirim_ke_super_sesi()` (SS1), dibawa `pantau_super_sesi()` dan
+  `ambil_kelas_tersedia_super_sesi()`. `sesi_kelas` TIDAK punya kolomnya (sesi memang
+  tidak membawa kelas/mapel). Tampil lewat `kelasJurusan(kelas, jurusan)` = "XI · TKJ".
 - **Dialog:** Kirim = dua kartu berdampingan (Sesi Mandiri | Kirim ke Super Sesi);
   Impor = panel dua kolom (`PanelImporDesktop`: cara di kiri, isian di kanan, ganti
   cara tanpa "Kembali") dengan isi yang SAMA persis dengan Dialog HP (`badanAi`/
@@ -659,6 +674,8 @@ supabase/migrations/
   20261001000000_hapus_admin.sql      # membongkar pengajuan kepala sekolah & fungsi admin, lihat "Menyiapkan sekolah & kepala sekolah"
   20261006000000_gambar_soal.sql      # G1-G3, kolom bank_soal.gambar, snapshot membawa gambar, bucket gambar-soal
   20261006100000_gabung_sekolah.sql   # SK4, perlu_kode_sekolah() & gabung_sekolah(): guru lama keluar dari 'Sekolah Default'
+  20261006200000_akhiri_super_sesi.sql # SS10, akhiri_super_sesi() + klaim_kelas_super_sesi() menolak kelas yang sudah berakhir
+  20261006300000_jurusan.sql          # formulir.jurusan & super_sesi_soal.jurusan; kirim_ke_super_sesi/pantau_super_sesi/ambil_kelas_tersedia_super_sesi membawanya
 scripts/
   buat-kepala-sekolah.mjs             # pemilik produk: sekolah + akun kepala sekolah (service role), `npm run kepsek`
   env.rahasia.contoh                  # contoh .env.rahasia (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -762,6 +779,7 @@ ke sana seperti baris A/K/M/F di atas.
 | SS7 | `sesi_kelas.guru_id` BOLEH `null` HANYA untuk baris hasil Super Sesi yang belum diklaim (CHECK `sesi_kelas_guru_id_super_sesi`) — sesi biasa (`super_sesi_id` null) tetap WAJIB `guru_id` terisi, longgaran ini tidak menyentuh `buka_sesi_formulir()` sama sekali |
 | SS8 | `ambil_kelas_tersedia_super_sesi()` (daftar kelas yang bisa diklaim, dilihat SEMUA guru sekolah) HANYA membawa metadata (mapel/kelas/judul) — TIDAK PERNAH `konten_list`, supaya kunci jawaban tidak terbaca sebelum ada yang benar-benar mengklaim |
 | SS9 | `klaim_kelas_super_sesi()` atomik lewat `update ... where guru_id is null` — guru kedua yang mengklaim kelas yang sama nyaris bersamaan mendapat pesan jelas ("sudah diambil guru lain"), bukan tabrakan diam-diam |
+| SS10 | `akhiri_super_sesi()` (kepala sekolah pemilik, hanya Super Sesi yang sudah `berjalan`, idempoten): menutup SEMUA kelas hasil distribusinya yang masih `aktif` — diklaim maupun belum — lalu menandai Super Sesi `selesai`, satu transaksi. Efek ke tiap sesi sama dengan `akhiri_sesi()`. Klaim sesudahnya ditolak ("Kelas ini sudah berakhir"). Klien: sakelar "Super Sesi berjalan" di `DetailSuperSesi` yang hanya bisa dimatikan, selalu lewat `LembarKonfirmasi` yang menyebut jumlah kelas, kelas belum diambil, dan murid |
 
 Baris `G*` ditambahkan 2026-10-06 untuk gambar di soal (migrasi `20261006000000_gambar_soal.sql`),
 juga tanpa padanan di Luang.
@@ -807,6 +825,7 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
 - Kelompok simpan Bank Soal (`simpan_id` + mapel/kelas/jurusan per baris) diganti
   tabel `formulir`; `bank_soal.urutan` WAJIB karena UPDATE memindahkan baris di
   heap Postgres. `sesi_kelas.mapel/kelas` dibuang, diganti `formulir_id` + `deskripsi`.
+  (`jurusan` ikut dibuang saat itu dan baru kembali 2026-10-06, sebagai kolom `formulir`.)
 - `nilai_murid.nilai` CHECK 0–100; guru hanya SELECT + UPDATE (Luang `for all`).
 - `gabung_sesi` menyaring `status = 'aktif'` SAAT mencari kode. Kode hanya unik di
   antara sesi aktif, jadi di Luang `limit 1` bisa memungut sesi lama yang sudah
@@ -881,13 +900,14 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
   jam) — bocor berarti orang luar bisa mendaftar jadi guru sekolah itu terus-
   menerus sampai diputar manual lewat SQL (`update sekolah set kode_sekolah=...`).
 - Tidak ada UI untuk mengelola sekolah (ganti kode, ubah nama, hapus, pindahkan guru antar sekolah asli, ganti kepala sekolah): semuanya SQL editor manual oleh pemilik. Yang ada cuma skrip pembuat sekolah + kepala sekolah, dan layar Hubungkan ke Sekolah yang memindahkan guru lama SEKALI dari 'Sekolah Default' (SK4). Guru yang salah memasukkan kode di layar itu nyangkut di sekolah yang salah sampai pemilik memindahkannya lewat SQL (`update profiles set sekolah_id = ...`). `gabung_sekolah()` bisa diadu-tebak kodenya (butuh login, tapi tanpa pembatas laju), sama lemahnya dengan `cek_kode_sekolah()` yang terbuka ke anon.
-- Kelas Super Sesi yang tidak pernah diklaim guru mana pun tertinggal
-  selamanya berstatus `aktif` tanpa pemilik: `akhiri_sesi()` mensyaratkan
-  `guru_id = auth.uid()`, jadi TIDAK ADA yang bisa mengakhirinya selama belum
-  diklaim. Kepala sekolah bisa melihatnya lewat `pantau_super_sesi()`
-  (`pengawasNama` tetap kosong), tapi tidak ada tombol "batalkan kelas ini" di
-  UI mana pun — jalan keluarnya masih SQL manual
-  (`update sesi_kelas set status = 'selesai' where id = '...'`).
+- Kelas Super Sesi yang tidak pernah diklaim guru mana pun tidak bisa diakhiri
+  SENDIRIAN: `akhiri_sesi()` mensyaratkan `guru_id = auth.uid()`. Jalan keluarnya
+  sejak 2026-10-06 adalah mengakhiri seluruh Super Sesi-nya (SS10, lihat di atas);
+  tetap tidak ada tombol "batalkan satu kelas ini".
+- Super Sesi yang masih `mengumpulkan` tidak punya jalan keluar sama sekali:
+  `akhiri_super_sesi()` menolaknya ("belum dimulai"), dan tidak ada hapus/tutup
+  untuknya di UI. Yang tidak dipakai lagi menumpuk di daftar dan di pilihan
+  "Kirim ke Super Sesi" milik guru.
 - `mulai_super_sesi()` sengaja TIDAK idempoten (beda dari A8) — panggilan
   kedua gagal jelas ("sudah dimulai") alih-alih diam-diam membuat sesi dobel;
   tombol "Mulai Super Sesi" di klien harus tetap disabled selama panggilan

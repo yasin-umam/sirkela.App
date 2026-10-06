@@ -10,6 +10,7 @@ import { Eyebrow } from '../../components/ui/Eyebrow'
 import { Button } from '../../components/ui/Button'
 import { KartuKodeSekolah } from '../../components/KartuKodeSekolah'
 import { NAMA_APLIKASI } from '../../lib/aplikasi'
+import { kelasJurusan } from '../../lib/soal'
 import { MenuDesktop } from './MenuDesktop'
 
 // ─── Tab Menu: peluncur (HP) ─────────────────────────────────────────────────
@@ -92,7 +93,7 @@ function BarisKelasTersedia({ kelas, onKlaim }: {
             {kelas.mapel || kelas.judul}
           </p>
           <p className="text-[13px] text-teks-3 truncate">
-            {sibuk ? 'Mengambil…' : `${kelas.kelas ? `${kelas.kelas} · ` : ''}Super Sesi ${kelas.superSesiJudul}`}
+            {sibuk ? 'Mengambil…' : [kelasJurusan(kelas.kelas, kelas.jurusan), `Super Sesi ${kelas.superSesiJudul}`].filter(Boolean).join(' · ')}
           </p>
         </div>
         <span className="shrink-0 rounded-[10px] bg-jingga px-3.5 py-2 text-[13px] font-bold text-white">Ambil</span>

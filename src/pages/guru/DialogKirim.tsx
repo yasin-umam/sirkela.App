@@ -14,7 +14,7 @@ import { BagikanSesi } from '../../components/BagikanSesi'
 // sini supaya guru langsung diantar ke soal yang bermasalah, dan di server
 // (buka_sesi_formulir) sebagai penentu.
 //
-// masalahFormulir() (judul/kelas/mapel) beda -- itu SUDAH ditegakkan lebih
+// masalahFormulir() (judul/kelas/jurusan/mapel) beda -- itu SUDAH ditegakkan lebih
 // awal oleh simpanSekarang() (FormulirContext, 2026-09-23), jadi begitu
 // buka() jalan di sini formulirnya sudah pasti lengkap. Pengecekan di bawah
 // cuma supaya guru yang belum sempat mengisi tidak melihat "Gagal menyimpan"
@@ -133,7 +133,7 @@ export function DialogKirim({ onTutup, onPerbaiki, onPantauSesi }: {
   if (masalahForm) {
     return (
       <Dialog judul="Belum bisa dikirim" onTutup={onTutup} aksi={<Button variant="ghost" onClick={onTutup}>Tutup</Button>}>
-        {masalahForm.charAt(0).toUpperCase() + masalahForm.slice(1)}. Lengkapi judul/kelas/mapel di kartu paling atas sebelum mengirim.
+        {masalahForm.charAt(0).toUpperCase() + masalahForm.slice(1)}. Lengkapi isiannya di kartu paling atas sebelum mengirim.
       </Dialog>
     )
   }
