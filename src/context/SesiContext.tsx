@@ -4,6 +4,7 @@ import type { SesiKelas, KontenItem, PesertaSesi, KelasSuperSesiTersedia } from 
 import { supabase } from '../lib/supabase'
 import type { DbSesiKelas, DbSesiMurid } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { kelasTersediaUji, sesiUji } from '../lib/ujiTampilan'
 
 // ─── Sesi milik guru ─────────────────────────────────────────────────────────
 // Semua sesi (aktif & selesai) dipegang dalam SATU daftar; tab Jawaban
@@ -82,12 +83,7 @@ function petakanKelasTersedia(k: KelasTersediaServer): KelasSuperSesiTersedia {
 
 export function SesiProvider({ children }: { children: ReactNode }) {
   if (import.meta.env.VITE_UJI_TAMPILAN) {
-    const [semuaSesi, setSemuaSesi] = useState<SesiKelas[]>([{
-      id: 'sesi1', formulirId: 'f1', judul: 'Ulangan Harian Bab 3', deskripsi: '', durasiMenit: 45,
-      mulaiPada: null, selesaiPada: null, status: 'aktif', kontenList: [], kodeJoin: 'AB12CD',
-      kunciLayar: false, muridJoined: [], dibuatPada: new Date().toISOString(),
-      superSesiId: null, superSesiJudul: null,
-    }])
+    const [semuaSesi, setSemuaSesi] = useState<SesiKelas[]>(sesiUji)
     const [fokusId, setFokusId] = useState<string | null>(null)
     const fokus = semuaSesi.find(s => s.id === fokusId) ?? null
     const ubah = (id: string, fn: (s: SesiKelas) => SesiKelas) =>
@@ -101,7 +97,7 @@ export function SesiProvider({ children }: { children: ReactNode }) {
       aturKunciLayar: async (id, aktif) => { ubah(id, s => ({ ...s, kunciLayar: aktif })) },
       bukaKunciMurid: async () => {},
       bukaKunciSemua: async () => {},
-      kelasTersedia: [],
+      kelasTersedia: kelasTersediaUji,
       klaimKelasSuper: async () => semuaSesi[0],
     }
     return <SesiContext.Provider value={value}>{children}</SesiContext.Provider>

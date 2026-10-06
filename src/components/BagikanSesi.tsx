@@ -86,11 +86,11 @@ export function BagikanSesi({ kode, qrSebaris = false }: { kode: string; qrSebar
       <div className="flex items-stretch gap-3.5 lg:flex-col lg:gap-4">
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
           <p className="font-mono text-xs uppercase tracking-[0.14em] text-teks-3">Kode sesi</p>
-          <p className="font-mono text-[34px] lg:text-[46px] font-medium tracking-[0.1em] leading-tight text-tinta select-all">{kode}</p>
+          <p className="font-mono text-[34px] lg:text-[42px] font-medium tracking-[0.1em] leading-tight text-tinta select-all">{kode}</p>
         </div>
         {qrSebaris && (
           <button type="button" onClick={() => void tampilkanQr()} aria-label="Perbesar QR"
-            className="w-29 h-29 lg:w-49 lg:h-49 lg:self-center lg:p-3 shrink-0 rounded-[14px] lg:rounded-2xl border-[1.5px] border-garis bg-white p-2 flex items-center justify-center active:scale-95 transition-transform">
+            className="w-29 h-29 lg:w-44 lg:h-44 lg:self-center lg:p-3 shrink-0 rounded-[14px] lg:rounded-2xl border-[1.5px] border-garis bg-white p-2 flex items-center justify-center active:scale-95 transition-transform">
             {qrKecil
               ? <img src={qrKecil} alt="QR sesi" className="w-full h-full" />
               : <Ikon nama="qr" className="w-9 h-9 text-pinggir-2" />}

@@ -197,53 +197,66 @@ export function DialogKirim({ onTutup, onPerbaiki, onPantauSesi }: {
   // mengetuk salah satunya LANGSUNG menjalankannya (tidak ada tombol konfirmasi
   // terpisah), jadi keduanya berupa baris besar yang bisa ditekan.
   return (
-    <Dialog judul="Kirim formulir" onTutup={sibuk ? undefined : onTutup} lebar="max-w-lg"
+    <Dialog judul="Kirim formulir" onTutup={sibuk ? undefined : onTutup} lebar="max-w-lg lg:max-w-195"
       aksi={<Button variant="ghost" onClick={onTutup} disabled={sibuk}>Batal</Button>}>
-      <p>
+      <p className="lg:text-sm lg:text-tinta-2">
+        {aktif.judul.trim() && <span className="hidden lg:inline font-bold text-tinta">{aktif.judul.trim()} · {soal.length} pertanyaan. </span>}
         Soal disalin saat ini juga, jadi mengedit formulir sesudahnya tidak mengubah
         sesi/kiriman yang sudah dibuat.
       </p>
       <div className="mt-3"><CatatanLengkap jumlah={soal.length} /></div>
 
-      <div className="mt-4 flex flex-col gap-2.5">
+      {/* Desktop: dua pilihan berdampingan (kartu setinggi sama). HP: bertumpuk. */}
+      <div className="mt-4 flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-3.5 lg:items-stretch">
         <button type="button" disabled={sibuk} onClick={() => void buka()}
-          className="w-full flex items-start gap-3 rounded-[18px] border-2 border-biru bg-biru-tipis px-4 py-3.5 text-left active:bg-biru-tint transition-colors disabled:opacity-60">
-          <span className="mt-0.5 w-6.5 h-6.5 rounded-full bg-biru text-white flex items-center justify-center shrink-0">
-            <Ikon nama="sesi" className="w-3.5 h-3.5" tebal={2.4} />
+          className="w-full flex items-start gap-3 rounded-[18px] border-2 border-biru bg-biru-tipis px-4 py-3.5 text-left active:bg-biru-tint transition-colors disabled:opacity-60 lg:flex-col lg:gap-3.5 lg:p-5">
+          <span className="mt-0.5 w-6.5 h-6.5 rounded-full bg-biru text-white flex items-center justify-center shrink-0 lg:mt-0 lg:w-11 lg:h-11 lg:rounded-[13px]">
+            <Ikon nama="sesi" className="w-3.5 h-3.5 lg:w-5.5 lg:h-5.5" tebal={2.4} />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-[17px] font-extrabold tracking-tight text-tinta">Sesi Mandiri</span>
-            <span className="block text-[13.5px] text-tinta-2 mt-0.5 leading-snug">
+            <span className="block text-[17px] lg:text-[18px] font-extrabold tracking-tight text-tinta">Sesi Mandiri</span>
+            <span className="block text-[13.5px] lg:text-sm text-tinta-2 mt-0.5 lg:mt-1.5 leading-snug lg:leading-normal">
               {membuka ? 'Membuka sesi…' : 'Buka dan kelola sendiri di kelasmu. Cocok untuk ulangan harian.'}
             </span>
           </span>
-          <Ikon nama="kanan" className="w-4.5 h-4.5 text-biru shrink-0 mt-1" tebal={2.2} />
+          <span className="hidden lg:block text-[13px] text-teks-3">Kode sesi langsung dibuat, kamu yang memulai dan mengakhiri.</span>
+          <Ikon nama="kanan" className="w-4.5 h-4.5 text-biru shrink-0 mt-1 lg:hidden" tebal={2.2} />
         </button>
 
         {superSesiTerbuka.length > 0 ? (
-          superSesiTerbuka.map(s => (
-            <button key={s.id} type="button" disabled={sibuk} onClick={() => void kirimSuper(s)}
-              className="w-full flex items-start gap-3 rounded-[18px] border-[1.5px] border-garis bg-white px-4 py-3.5 text-left active:bg-isian transition-colors disabled:opacity-60">
-              <span className="mt-0.5 w-6.5 h-6.5 rounded-full border-2 border-pinggir text-tinta-2 flex items-center justify-center shrink-0">
-                <Ikon nama="perisai" className="w-3.5 h-3.5" tebal={2.2} />
+          <div className="flex flex-col gap-2.5 lg:rounded-[18px] lg:border-[1.5px] lg:border-garis lg:p-5 lg:gap-3.5">
+            <div className="hidden lg:block">
+              <span className="flex w-11 h-11 rounded-[13px] bg-garis-2 text-tinta-2 items-center justify-center">
+                <Ikon nama="perisai" className="w-5.5 h-5.5" tebal={2} />
               </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[17px] font-extrabold tracking-tight text-tinta">Kirim ke Super Sesi</span>
-                <span className="block text-[13.5px] text-tinta-2 mt-0.5 leading-snug truncate">
-                  {mengirimSuper === s.id ? 'Mengirim…' : s.judul}
+              <span className="block mt-3.5 text-[18px] font-extrabold tracking-tight text-tinta">Kirim ke Super Sesi</span>
+              <span className="block mt-1.5 text-sm text-tinta-2 leading-normal">Soal dikumpulkan kepala sekolah, kelasnya diambil guru pengawas.</span>
+            </div>
+            {superSesiTerbuka.map(s => (
+              <button key={s.id} type="button" disabled={sibuk} onClick={() => void kirimSuper(s)}
+                className="w-full flex items-start gap-3 rounded-[18px] border-[1.5px] border-garis bg-white px-4 py-3.5 text-left active:bg-isian transition-colors disabled:opacity-60 lg:items-center lg:rounded-xl lg:border-pinggir-2 lg:py-2.5 lg:hover:bg-isian">
+                <span className="mt-0.5 w-6.5 h-6.5 rounded-full border-2 border-pinggir text-tinta-2 flex items-center justify-center shrink-0 lg:hidden">
+                  <Ikon nama="perisai" className="w-3.5 h-3.5" tebal={2.2} />
                 </span>
-              </span>
-              <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0 mt-1" tebal={2.2} />
-            </button>
-          ))
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[17px] font-extrabold tracking-tight text-tinta lg:hidden">Kirim ke Super Sesi</span>
+                  <span className="block text-[13.5px] text-tinta-2 mt-0.5 leading-snug truncate lg:mt-0 lg:text-sm lg:font-bold lg:text-tinta">
+                    {mengirimSuper === s.id ? 'Mengirim…' : s.judul}
+                  </span>
+                  <span className="hidden lg:block text-[12.5px] text-teks-3">Masih mengumpulkan kiriman</span>
+                </span>
+                <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0 mt-1 lg:mt-0" tebal={2.2} />
+              </button>
+            ))}
+          </div>
         ) : (
-          <div className="w-full flex items-start gap-3 rounded-[18px] border-[1.5px] border-dashed border-pinggir-2 px-4 py-3.5">
-            <span className="mt-0.5 w-6.5 h-6.5 rounded-full border-2 border-pinggir-2 text-teks-3 flex items-center justify-center shrink-0">
-              <Ikon nama="perisai" className="w-3.5 h-3.5" tebal={2.2} />
+          <div className="w-full flex items-start gap-3 rounded-[18px] border-[1.5px] border-dashed border-pinggir-2 px-4 py-3.5 lg:flex-col lg:gap-3.5 lg:p-5">
+            <span className="mt-0.5 w-6.5 h-6.5 rounded-full border-2 border-pinggir-2 text-teks-3 flex items-center justify-center shrink-0 lg:mt-0 lg:w-11 lg:h-11 lg:rounded-[13px]">
+              <Ikon nama="perisai" className="w-3.5 h-3.5 lg:w-5.5 lg:h-5.5" tebal={2.2} />
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[17px] font-extrabold tracking-tight text-teks-3">Kirim ke Super Sesi</span>
-              <span className="block text-[13.5px] text-teks-3 mt-0.5 leading-snug">Belum ada Super Sesi yang dibuka kepala sekolah</span>
+              <span className="block text-[17px] lg:text-[18px] font-extrabold tracking-tight text-teks-3">Kirim ke Super Sesi</span>
+              <span className="block text-[13.5px] lg:text-sm text-teks-3 mt-0.5 lg:mt-1.5 leading-snug">Belum ada Super Sesi yang dibuka kepala sekolah</span>
             </span>
           </div>
         )}

@@ -119,25 +119,32 @@ export function TabPertanyaan({ sorot, lompat, onFokus, onImpor }: {
     <div className="max-w-2xl lg:max-w-195 mx-auto px-4 lg:px-10 py-4 desktop:py-6 lg:py-8 flex flex-col gap-3 lg:gap-3.5">
       {/* ── Kartu kepala: judul, kelas, mapel & deskripsi ── */}
       <div onClick={() => setFokus('kepala')}
-        className={`bg-white rounded-[18px] border px-4 py-4 flex flex-col gap-1 transition-shadow ${
+        className={`bg-white rounded-[18px] border px-4 py-4 flex flex-col gap-1 transition-shadow lg:px-6 lg:py-5.5 lg:gap-3.5 ${
           kepalaAktif ? 'border-biru ring-4 ring-biru-tint' : 'border-garis'}`}>
         <TeksOtomatis value={aktif.judul} placeholder="Judul formulir" aria-label="Judul formulir"
           onChange={e => ubahFormulir({ judul: e.target.value.replace(/\n/g, ' ') })}
           onKeyDown={e => { if (e.key === 'Enter') e.preventDefault() }}
           onBlur={() => { if (!aktif.judul.trim()) ubahFormulir({ judul: JUDUL_BAWAAN }) }}
-          className="w-full resize-none bg-transparent py-1 text-[21px] leading-tight font-extrabold tracking-tight text-tinta placeholder:text-teks-3 placeholder:font-extrabold outline-none" />
-        <div className="flex gap-2 mt-0.5">
-          <input value={aktif.kelas} placeholder="Kelas" aria-label="Kelas"
-            onChange={e => ubahFormulir({ kelas: e.target.value })}
-            className="min-w-0 flex-1 h-10 bg-isian rounded-[10px] px-3 text-[13.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
-          <input value={aktif.mapel} placeholder="Mapel" aria-label="Mata pelajaran"
-            onChange={e => ubahFormulir({ mapel: e.target.value })}
-            className="min-w-0 flex-1 h-10 bg-isian rounded-[10px] px-3 text-[13.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
+          className="w-full resize-none bg-transparent py-1 text-[21px] lg:text-[26px] leading-tight font-extrabold tracking-tight text-tinta placeholder:text-teks-3 placeholder:font-extrabold outline-none" />
+        {/* Desktop: kelas & mapel punya label tampak (di HP cukup placeholder). */}
+        <div className="flex gap-2 mt-0.5 lg:gap-3.5 lg:mt-0">
+          <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+            <span className="hidden lg:block text-[13px] text-teks-3">Kelas</span>
+            <input value={aktif.kelas} placeholder="Kelas" aria-label="Kelas"
+              onChange={e => ubahFormulir({ kelas: e.target.value })}
+              className="min-w-0 h-10 lg:h-11 bg-isian rounded-[10px] lg:rounded-xl px-3 lg:px-3.5 text-[13.5px] lg:text-[14.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
+          </label>
+          <label className="min-w-0 flex-1 flex flex-col gap-1.5">
+            <span className="hidden lg:block text-[13px] text-teks-3">Mata pelajaran</span>
+            <input value={aktif.mapel} placeholder="Mapel" aria-label="Mata pelajaran"
+              onChange={e => ubahFormulir({ mapel: e.target.value })}
+              className="min-w-0 h-10 lg:h-11 bg-isian rounded-[10px] lg:rounded-xl px-3 lg:px-3.5 text-[13.5px] lg:text-[14.5px] font-medium text-tinta placeholder:text-teks-3 outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
+          </label>
         </div>
         <TeksOtomatis value={aktif.deskripsi} placeholder="Deskripsi (opsional), dibaca murid sebelum mulai"
           aria-label="Deskripsi formulir"
           onChange={e => ubahFormulir({ deskripsi: e.target.value })}
-          className="w-full resize-none bg-transparent py-1 mt-1 text-sm text-tinta-2 placeholder:text-teks-3 outline-none" />
+          className="w-full resize-none bg-transparent py-1 mt-1 text-sm text-tinta-2 placeholder:text-teks-3 outline-none lg:mt-0 lg:bg-isian lg:rounded-xl lg:border-[1.5px] lg:border-garis lg:px-3.5 lg:py-2.5 lg:text-[14.5px] lg:leading-normal lg:focus:border-biru lg:focus:bg-white lg:transition-colors" />
         {masalahForm && (
           <p className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-jingga-gelap">
             <Ikon nama="galat" className="w-3.5 h-3.5 shrink-0" />
@@ -167,6 +174,7 @@ export function TabPertanyaan({ sorot, lompat, onFokus, onImpor }: {
           tandaiMasalah={tandaiMasalah}
           bisaNaik={i > 0}
           bisaTurun={i < soal.length - 1}
+          izinGambar
           onAktifkan={() => setFokus(s.id)}
           onGulirSelesai={gulirSelesai}
           onUbah={ubahan => ubahSoal(s.id, ubahan)}

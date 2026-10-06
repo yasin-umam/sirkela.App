@@ -7,10 +7,12 @@ import { Button } from './ui/Button'
  * sesi", "keluar"). Satu komponen supaya kalimat tombolnya selalu
  * "Batal" + kata kerja aksinya, tidak pernah "Ya/Tidak".
  */
-export function LembarKonfirmasi({ judul, pesan, labelAksi, sibuk = false, onAksi, onBatal }: {
+export function LembarKonfirmasi({ judul, pesan, labelAksi, nada = 'bahaya', sibuk = false, onAksi, onBatal }: {
   judul: string
   pesan: ReactNode
   labelAksi: string
+  /** `biasa` = aksi yang tidak merusak apa pun (mis. "Mulai Super Sesi"): tombol biru, bukan jingga. */
+  nada?: 'bahaya' | 'biasa'
   sibuk?: boolean
   onAksi: () => void
   onBatal: () => void
@@ -21,7 +23,7 @@ export function LembarKonfirmasi({ judul, pesan, labelAksi, sibuk = false, onAks
       onTutup={sibuk ? undefined : onBatal}
       aksi={<>
         <Button variant="ghost" onClick={onBatal} disabled={sibuk}>Batal</Button>
-        <Button variant="danger" onClick={onAksi} disabled={sibuk}>
+        <Button variant={nada === 'bahaya' ? 'danger' : 'primary'} onClick={onAksi} disabled={sibuk}>
           {sibuk ? 'Memproses...' : labelAksi}
         </Button>
       </>}

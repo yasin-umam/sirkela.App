@@ -4,6 +4,8 @@ import type { Formulir, IsiSoal, Soal } from '../types'
 import { supabase } from '../lib/supabase'
 import type { DbBankSoal, DbFormulir } from '../lib/supabase'
 import { buatUuid, masalahFormulir } from '../lib/soal'
+import { tungguUnggahan } from '../lib/gambarSoal'
+import { formulirUji, soalUjiFormulir } from '../lib/ujiTampilan'
 import { useAuth } from './AuthContext'
 
 // ─── Formulir & soalnya, disimpan MANUAL ──────────────────────────────────────
@@ -73,7 +75,7 @@ function petakanFormulir(r: DbFormulir): Formulir {
 function petakanSoal(r: DbBankSoal): Soal {
   return {
     id: r.id, formulirId: r.formulir_id, pertanyaan: r.pertanyaan, pilihan: r.pilihan,
-    jawabanBenar: r.jawaban_benar, urutan: r.urutan,
+    jawabanBenar: r.jawaban_benar, gambar: r.gambar, urutan: r.urutan,
   }
 }
 
@@ -93,6 +95,7 @@ function barisSoal(u: Partial<IsiSoal>): Partial<DbBankSoal> {
   if (u.pertanyaan !== undefined) b.pertanyaan = u.pertanyaan
   if (u.pilihan !== undefined) b.pilihan = u.pilihan
   if (u.jawabanBenar !== undefined) b.jawaban_benar = u.jawabanBenar
+  if (u.gambar !== undefined) b.gambar = u.gambar
   return b
 }
 
@@ -115,7 +118,7 @@ function samaFormulir(a: Required<UbahanFormulir>, b: Required<UbahanFormulir>):
 
 function samaSoal(a: Soal[], b: Soal[]): boolean {
   if (a.length !== b.length) return false
-  const tanda = (s: Soal) => `${s.pertanyaan}\u0001${s.pilihan.join('\u0002')}\u0001${s.jawabanBenar}\u0001${s.urutan}`
+  const tanda = (s: Soal) => `${s.pertanyaan}\u0001${s.pilihan.join('\u0002')}\u0001${s.jawabanBenar}\u0001${s.gambar}\u0001${s.urutan}`
   const urutkan = (arr: Soal[]) => [...arr].sort((x, y) => x.id.localeCompare(y.id))
   const sa = urutkan(a), sb = urutkan(b)
   return sa.every((s, i) => s.id === sb[i].id && tanda(s) === tanda(sb[i]))
@@ -130,19 +133,17 @@ function tulisTerakhir(id: string) {
 
 export function FormulirProvider({ children }: { children: ReactNode }) {
   if (import.meta.env.VITE_UJI_TAMPILAN) {
-    const aktif: Formulir = {
-      id: 'f1', judul: 'Ulangan Harian Bab 3', deskripsi: '', kelas: '7A', mapel: 'Matematika',
-      durasiMenit: 45, kunciLayar: false,
-      dibuatPada: new Date().toISOString(), diperbaruiPada: new Date().toISOString(),
-    }
-    const soal: Soal[] = [
-      { id: 's1', formulirId: 'f1', pertanyaan: 'Berapa hasil dari 6 x 7?', pilihan: ['40', '42', '44', '46'], jawabanBenar: 1, urutan: 0 },
-      { id: 's2', formulirId: 'f1', pertanyaan: 'Ibu kota Indonesia adalah?', pilihan: ['Bandung', 'Jakarta', 'Surabaya'], jawabanBenar: 1, urutan: 1 },
-    ]
+    // Data contoh di lib/ujiTampilan.ts. Memilih formulir BENAR-BENAR berpindah
+    // supaya alur Kirim dari Riwayat/Menu bisa dilihat; selebihnya tidak menulis apa pun.
+    const [daftar] = useState(formulirUji)
+    const [aktifId, setAktifId] = useState('f1')
+    const aktifRingkas = daftar.find(f => f.id === aktifId) ?? daftar[0]
+    const aktif: Formulir = aktifRingkas
+    const soal = soalUjiFormulir(aktif.id)
     const value: FormulirContextValue = {
-      daftar: [{ ...aktif, jumlahSoal: soal.length }], memuat: false, aktif, soal, memuatSoal: false,
+      daftar, memuat: false, aktif, soal, memuatSoal: false,
       statusSimpan: 'tersimpan', galatSimpan: null, punyaPerubahan: false,
-      pilihFormulir: () => {}, buatFormulir: async () => aktif.id, ubahFormulir: () => {},
+      pilihFormulir: setAktifId, buatFormulir: async () => aktif.id, ubahFormulir: () => {},
       hapusFormulir: async () => {}, tambahSoal: () => '', ubahSoal: () => {}, hapusSoal: () => null,
       duplikatSoal: () => null, pindahSoal: () => {}, imporSoal: async () => {},
       batalkanPerubahan: () => {}, simpanSekarang: async () => true,
@@ -333,6 +334,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
       pertanyaan: isi.pertanyaan ?? '',
       pilihan: isi.pilihan ?? ['Opsi 1'],
       jawabanBenar: isi.jawabanBenar ?? null,
+      gambar: isi.gambar ?? null,
       urutan: -1,
     }
     const list = [...soalRef.current]
@@ -363,7 +365,9 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
     const posisi = soalRef.current.findIndex(s => s.id === id)
     if (posisi === -1) return null
     const s = soalRef.current[posisi]
-    return tambahSoal(posisi + 1, { pertanyaan: s.pertanyaan, pilihan: [...s.pilihan], jawabanBenar: s.jawabanBenar })
+    // Gambar ikut dengan path yang SAMA: berkasnya tak pernah dihapus (G1), jadi
+    // dua soal boleh menunjuk satu berkas.
+    return tambahSoal(posisi + 1, { pertanyaan: s.pertanyaan, pilihan: [...s.pilihan], jawabanBenar: s.jawabanBenar, gambar: s.gambar })
   }, [tambahSoal])
 
   const pindahSoal = useCallback((id: string, arah: -1 | 1) => {
@@ -381,7 +385,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
     const awal = soalRef.current.length
     const baru: Soal[] = daftarSoal.map((s, i) => ({
       id: buatUuid(), formulirId, pertanyaan: s.pertanyaan, pilihan: s.pilihan,
-      jawabanBenar: s.jawabanBenar, urutan: awal + i,
+      jawabanBenar: s.jawabanBenar, gambar: s.gambar ?? null, urutan: awal + i,
     }))
     const list = [...soalRef.current, ...baru]
     soalRef.current = list
@@ -419,6 +423,9 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
     setStatusSimpan('menyimpan')
     setGalatSimpan(null)
     try {
+      // Gambar yang masih naik harus sudah menempel di soalnya sebelum ditulis;
+      // soalRef dibaca SESUDAH ini, bukan sebelum.
+      await tungguUnggahan()
       const formSekarang = daftarRef.current.find(f => f.id === formulirId)
       if (!formSekarang) throw new Error('Formulir tidak ditemukan')
       const masalah = masalahFormulir(formSekarang)
@@ -445,7 +452,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
         const lama = asliMap.get(s.id)
         if (!lama) return false
         return lama.pertanyaan !== s.pertanyaan || lama.jawabanBenar !== s.jawabanBenar
-          || lama.urutan !== s.urutan || lama.pilihan.length !== s.pilihan.length
+          || lama.gambar !== s.gambar || lama.urutan !== s.urutan || lama.pilihan.length !== s.pilihan.length
           || lama.pilihan.some((p, i) => p !== s.pilihan[i])
       })
 

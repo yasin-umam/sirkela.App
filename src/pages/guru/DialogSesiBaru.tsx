@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFormulir } from '../../context/FormulirContext'
 import { labelWaktu } from '../../lib/soal'
 import { Dialog } from '../../components/ui/Dialog'
@@ -14,7 +14,12 @@ import { DialogKirim } from './DialogKirim'
 // Super Sesi, pemeriksaan kelengkapan, snapshot soal). Tidak ada jalur kedua
 // yang membuka sesi.
 
-export function DialogSesiBaru({ onTutup, onBaru, onPerbaiki, onPantauSesi }: {
+export function DialogSesiBaru({ formulirId, onTutup, onBaru, onPerbaiki, onPantauSesi }: {
+  /**
+   * Formulirnya SUDAH dipilih pemanggil (tombol Kirim di baris formulir desktop):
+   * layar pemilih dilewati dan dialog langsung menyiapkan DialogKirim.
+   */
+  formulirId?: string
   onTutup: () => void
   /** Belum punya formulir sama sekali: antar ke pembuatan formulir baru. */
   onBaru: () => void
@@ -23,12 +28,21 @@ export function DialogSesiBaru({ onTutup, onBaru, onPerbaiki, onPantauSesi }: {
   onPantauSesi: (sesiId: string) => void
 }) {
   const { daftar, memuat, memuatSoal, pilihFormulir } = useFormulir()
-  const [dipilih, setDipilih] = useState(false)
+  const [dipilih, setDipilih] = useState(formulirId !== undefined)
+  // Formulir yang dipilih lewat prop baru berpindah SETELAH render pertama: sampai
+  // itu terjadi, `aktif` masih formulir sebelumnya dan DialogKirim tidak boleh tampil.
+  const [siap, setSiap] = useState(formulirId === undefined)
+
+  useEffect(() => {
+    if (formulirId === undefined) return
+    pilihFormulir(formulirId)
+    setSiap(true)
+  }, [formulirId, pilihFormulir])
 
   if (dipilih) {
     // DialogKirim memeriksa `soal` formulir aktif: sebelum soalnya selesai
     // dimuat ia akan keliru mengatakan "belum punya pertanyaan".
-    if (memuatSoal) {
+    if (!siap || memuatSoal) {
       return (
         <Dialog judul="Menyiapkan formulir" onTutup={onTutup}>
           <div className="py-6 flex justify-center text-biru"><Spinner size={26} /></div>

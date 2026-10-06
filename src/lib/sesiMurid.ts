@@ -40,6 +40,8 @@ export interface SoalSesi {
   id: string
   pertanyaan: string
   pilihan: string[]
+  /** Path gambar soal; ubah jadi URL lewat urlGambarSoal() (lib/gambarSoal.ts). */
+  gambar?: string
 }
 
 export interface KontenSesi {

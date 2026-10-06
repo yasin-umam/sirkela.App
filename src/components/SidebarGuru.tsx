@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext'
+import { useSuperSesi } from '../context/SuperSesiContext'
 import { NAMA_APLIKASI } from '../lib/aplikasi'
 import { Lambang } from './Logo'
 import { Ikon, type NamaIkon } from './ui/Ikon'
@@ -10,6 +11,9 @@ import type { TabGuru } from './BottomNav'
 // sedangkan di HP keduanya menumpang sorotan Menu (`tabUntukSorotan`) karena
 // bilah bawah cuma punya tiga slot. Tab "Saya" diwakili kartu akun di dasar
 // sidebar, dengan tombol Keluar di sebelahnya.
+//
+// Lebar 232px (desain "Meja Pengawas", 2026-10-06): sidebar cuma peta navigasi;
+// judul halaman dan aksi cepat ada di bilah atas (BilahAtas).
 
 function Item({ aktif, label, ikon, onClick, lencana }: {
   aktif: boolean
@@ -20,7 +24,7 @@ function Item({ aktif, label, ikon, onClick, lencana }: {
 }) {
   return (
     <button type="button" onClick={onClick} aria-current={aktif ? 'page' : undefined}
-      className={`w-full h-11.5 px-3.5 rounded-xl flex items-center gap-3 text-[15px] text-left transition-colors ${
+      className={`w-full h-10.5 px-3 rounded-[10px] flex items-center gap-3 text-[14.5px] text-left transition-colors ${
         aktif ? 'bg-biru-tint text-biru font-extrabold' : 'text-tinta-2 font-semibold hover:bg-isian'}`}>
       <Ikon nama={ikon} className="w-5 h-5" tebal={aktif ? 2 : 1.8} />
       <span className="flex-1">{label}</span>
@@ -42,27 +46,29 @@ export function SidebarGuru({ tab, onPilih, sesiBerjalan, kepsek, onKeluar }: {
   onKeluar: () => void
 }) {
   const { user } = useAuth()
+  const { semuaSuperSesi } = useSuperSesi()
   const peran = kepsek ? 'Kepala sekolah' : 'Guru'
   const sayaAktif = tab === 'saya'
+  const superBerjalan = semuaSuperSesi.filter(s => s.status === 'berjalan').length
 
   return (
-    <aside className="hidden lg:flex w-66 shrink-0 flex-col bg-white border-r border-garis px-4 pt-6 pb-5">
+    <aside className="hidden lg:flex w-58 shrink-0 flex-col bg-white border-r border-garis px-3.5 pt-5 pb-5">
       <div className="flex items-center gap-3 px-1.5">
-        <Lambang className="w-10.5 h-10.5 rounded-xl" />
+        <Lambang className="w-10 h-10" />
         <div className="min-w-0">
-          <p className="text-[14.5px] font-extrabold tracking-tight leading-tight text-tinta">{NAMA_APLIKASI}</p>
+          <p className="text-sm font-extrabold tracking-tight leading-tight text-tinta">{NAMA_APLIKASI}</p>
           <p className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-teks-3 mt-0.5">{peran}</p>
         </div>
       </div>
 
-      <nav aria-label="Navigasi utama" className="mt-8 flex flex-col gap-1">
+      <nav aria-label="Navigasi utama" className="mt-7 flex flex-col gap-0.5">
         <Item aktif={tab === 'menu'} label="Menu" ikon="kisi" onClick={() => onPilih('menu')} />
         <Item aktif={tab === 'riwayat'} label="Riwayat" ikon="dokumen" onClick={() => onPilih('riwayat')} />
         <Item aktif={tab === 'sesi'} label="Sesi" ikon="sesi" lencana={sesiBerjalan} onClick={() => onPilih('sesi')} />
         {kepsek && (
           <>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-teks-3 mt-5.5 mb-2 px-3.5">Kepala sekolah</p>
-            <Item aktif={tab === 'superSesi'} label="Super Sesi" ikon="perisai" onClick={() => onPilih('superSesi')} />
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-teks-3 mt-5 mb-1.5 px-3">Kepala sekolah</p>
+            <Item aktif={tab === 'superSesi'} label="Super Sesi" ikon="perisai" lencana={superBerjalan} onClick={() => onPilih('superSesi')} />
           </>
         )}
       </nav>
@@ -72,17 +78,17 @@ export function SidebarGuru({ tab, onPilih, sesiBerjalan, kepsek, onKeluar }: {
       <div className={`flex items-center gap-1 rounded-[14px] border p-1.5 ${
         sayaAktif ? 'border-biru bg-biru-tipis' : 'border-garis'}`}>
         <button type="button" onClick={() => onPilih('saya')} aria-current={sayaAktif ? 'page' : undefined}
-          className="flex-1 min-w-0 flex items-center gap-3 p-1.5 rounded-[10px] text-left hover:bg-isian transition-colors">
-          <span className="w-10 h-10 rounded-xl bg-tinta text-white flex items-center justify-center text-[15px] font-extrabold shrink-0">
+          className="flex-1 min-w-0 flex items-center gap-2.5 p-1.5 rounded-[10px] text-left hover:bg-isian transition-colors">
+          <span className="w-9 h-9 rounded-[11px] bg-tinta text-white flex items-center justify-center text-sm font-extrabold shrink-0">
             {(user?.nama ?? '?').charAt(0).toUpperCase()}
           </span>
           <span className="min-w-0">
-            <span className="block text-sm font-bold text-tinta truncate">{user?.nama}</span>
+            <span className="block text-[13.5px] font-bold text-tinta truncate">{user?.nama}</span>
             <span className="block text-[12.5px] text-teks-3">{peran}</span>
           </span>
         </button>
         <button type="button" onClick={onKeluar} aria-label="Keluar" title="Keluar"
-          className="w-10 h-10 shrink-0 rounded-[10px] flex items-center justify-center text-teks-3 hover:bg-garis-2 hover:text-tinta transition-colors">
+          className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center text-teks-3 hover:bg-garis-2 hover:text-tinta transition-colors">
           <Ikon nama="keluar" className="w-4.5 h-4.5" tebal={1.9} />
         </button>
       </div>

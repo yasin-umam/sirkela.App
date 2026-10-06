@@ -36,9 +36,9 @@ Tab **Riwayat** (`RiwayatPage.tsx`) adalah arsip lengkap dengan dua pil
 akun: kartu profil + angka ringkas, lalu grup baris (Akun Saya, Akses — tempat
 setelan otorisasi nanti dibangun, Keluar).
 
-Layar Sesi (`SesiPage.tsx`) dan Jawaban & Nilai (`LihatJawaban.tsx`) adalah
+Di HP, layar Sesi (`SesiPage.tsx`) dan Jawaban & Nilai (`LihatJawaban.tsx`) adalah
 TAKEOVER layar penuh yang menumpuk di atas bilah tab (`navHidden`, sama pola
-dengan Luang) — dibuka dari kartu ajakan di Menu atau baris di Riwayat, ditutup
+dengan Luang; di desktop Sesi & Super Sesi master-detail, lihat "Tampilan desktop v2") — dibuka dari kartu ajakan di Menu atau baris di Riwayat, ditutup
 dengan panah kembali yang mengembalikan ke bilah tab. Menyunting satu formulir
 membuka `EditorFormulir.tsx` sebagai cabang render TERPISAH (di luar bilah tab
 sama sekali, seperti OperasionalPage Luang saat digenerate).
@@ -119,48 +119,103 @@ penuh (Sesi, Nilai, Super Sesi, editor) memakai bilah putih tipis dengan panah k
 karena server tidak punya RPC untuk itu; dialog Kirim langsung menjalankan pilihan
 yang diketuk (tidak ada tombol "Buka sesi" terpisah) seperti sebelumnya.
 
-### Tampilan desktop (2026-10-01)
+### Tampilan desktop v2: "Meja Pengawas" (2026-10-06)
 
-Sebelumnya desktop cuma kolom HP yang dilebarkan (maks 672px) dengan bilah tab
-bawah 430px di tengah. Sekarang ≥ 1024px (breakpoint `lg` Tailwind) punya
-kerangka sendiri; 440-1023px (tablet) tetap tata letak HP yang dipusatkan
-(`desktop:max-w-2xl`, bilah tab ikut selebar kolomnya).
+Redesain desktop kedua. Rancangannya ada di kanvas Claude Design "Sesi Soal Desktop
+v2" (`https://claude.ai/artifact/94ScR2Vg6PiWEKhVQoPqfB`); kanvas lama "Sesi Soal
+Redesign" masih memuat desktop versi 2026-10-01. Versi 1 cuma kartu HP yang
+dilebarkan dengan sidebar; v2 memberi desktop idiomnya sendiri: bilah atas tetap,
+tabel rapat, dan master-detail (daftar di kiri, detail di kanan) alih-alih layar
+penuh yang saling menutup. Bahasa visual Lembar Jawab TIDAK berubah. ≥ 1024px
+(`lg`) memakai kerangka ini; 440-1023px (tablet) tetap tata letak HP yang
+dipusatkan (`desktop:max-w-2xl`).
 
 - **Dua cara membedakan HP dan desktop, jangan dicampur sembarangan:** kelas
-  `lg:` untuk beda ukuran/susunan biasa (satu markup, satu sumber kebenaran);
-  hook `useDesktop()` (`lib/useDesktop.ts`, harus sama dengan `lg`) HANYA kalau
-  strukturnya berbeda jauh (tabel vs daftar bertumpuk di Riwayat/Sesi, master-detail
-  vs akordeon di Jawaban & nilai).
-- **Sidebar guru** (`SidebarGuru.tsx`) menggantikan `BottomNav` (`lg:hidden`).
-  Beda struktural dari HP: **Sesi dan Super Sesi punya item sendiri** (di HP
-  menumpang sorotan Menu); tab Saya diwakili kartu akun di dasar sidebar dengan
-  tombol Keluar. Editor tetap cabang render terpisah TANPA sidebar.
-- **Menu:** dua kolom (kiri membuat soal, kanan status), urutan DOM satu dan
-  kolom diatur `lg:order-*`. `KartuBerjalan` (kode, sisa waktu, tombol buka
-  kendali) cuma di desktop; HP tetap `BarisBerjalan`.
-- **Riwayat & daftar Sesi:** tabel (`TabelDesktop.tsx`: `KepalaTabel`/`BarisTabel`).
-- **Sesi berjalan:** kolom kiri 380px (kode & QR, sisa waktu, durasi, kunci layar),
-  kanan murid dalam dua kolom. **Penyaring murid (Semua/Terkunci/Senyap) cuma di
-  desktop** dan hanya menyaring tampilan; `keadaanPeserta()` satu-satunya tempat
-  "terkunci/senyap" dihitung (dipakai penyaring dan baris peserta).
-- **Jawaban & nilai:** empat angka di atas, lalu tabel murid + panel detail murid
-  terpilih (veto, jawaban per soal). Di desktop tampilan bawaan `murid`.
-- **Editor:** tiga kolom -- rel pertanyaan (`RelPertanyaan`), kartu-kartu
-  (`TabPertanyaan`, tetap satu-satunya kolom yang menggulir), panel "Siap
-  dikirim?" + pratinjau kecil (`PanelKirim`), semua di `PanelEditor.tsx`.
-  Panelnya turunan MURNI dari data formulir (`masalahSoal`, `masalahFormulir`),
-  tanpa keadaan atau panggilan server baru. Terhubung ke kartu lewat `lompat`
-  dan `onFokus` di `TabPertanyaan`. Bilah alat mengambang HP disembunyikan di desktop.
-- **Super Sesi (kepala sekolah):** kepala mendatar + TABEL kiriman; baris yang
-  berjalan bisa dibuka (kunci per kelas, daftar murid). Kartu HP dan baris tabel
-  hidup berdampingan di `KartuSubmisi` (satu `lg:hidden`, satu `hidden lg:grid`).
+  `lg:` untuk beda ukuran/susunan biasa (satu markup); hook `useDesktop()`
+  (`lib/useDesktop.ts`, harus sama dengan `lg`) kalau strukturnya berbeda jauh.
+  Sejak v2 itu berarti HAMPIR semua layar guru: `MenuPage`, `RiwayatPage`,
+  `SesiPage`, `SuperSesiPage`, dan `ProfilePage` masing-masing memilih cabang HP
+  atau `*Desktop` (`MenuDesktop`, `RiwayatDesktop`, `SesiDesktop`,
+  `kepsek/SuperSesiDesktop`, `ProfilDesktop`). Markup HP-nya sudah dibersihkan dari
+  kelas desktop; jangan menambahkan `lg:` ke sana lagi.
+- **Kerangka:** `SidebarGuru` 232px (navigasi saja; Sesi & Super Sesi item sendiri,
+  lencana hijau = jumlah yang aktif) + **`BilahAtas`** (`components/BilahAtas.tsx`).
+  Bilah atas dipasang oleh TIAP halaman di bagian paling atasnya (bukan sekali di
+  GuruHome) supaya halaman yang menentukan judul/jejaknya (`jejak` di Jawaban &
+  nilai: Sesi › judul › Jawaban & nilai); di HP ia tidak dirender. Isinya: judul,
+  **pil sesi yang sedang berjalan** (kode, sisa waktu, murid terkunci; menyala di
+  semua layar kecuali Menu dan Sesi lewat `tanpaSesi`), dan tombol **Formulir baru ▾**
+  yang menu cabangnya memuat Generate/Tempel/PDF. Aksi tingkat GuruHome (formulir
+  baru, impor, Kirim untuk satu formulir, buka sesi, buat Super Sesi) dipinjam lewat
+  `AksiGuruContext`, bukan props. Editor tetap cabang render terpisah TANPA sidebar.
+- **Menu (`MenuDesktop`):** dasbor dua kolom. Kiri = yang SEDANG terjadi: konsol sesi
+  berbentuk karcis (kode besar, garis sobekan, sisa waktu, meter bergabung/
+  mengerjakan/senyap/terkunci), lalu tabel **Formulir terbaru** (baris menampilkan
+  Edit/Kirim saat disorot atau difokus papan ketik). Kanan = yang bisa dikerjakan:
+  Buat soal, Siap diambil, Super Sesi siap dimulai, Mulai sesi baru. Tabel formulir
+  SENGAJA ada di desktop walau di HP daftar itu dibuang dari Menu (tumpang tindih
+  dengan Riwayat): ruangnya cukup. **Kepala sekolah** dapat versi sendiri: konsol
+  Super Sesi (berjalan, kalau tidak ada yang mengumpulkan) dan tabel Super Sesi
+  didahulukan. Angkanya (kiriman, berjalan, belum diambil, terkunci) berasal dari
+  `pantau_super_sesi` Super Sesi `bawaan` yang SEKARANG dipoling terus oleh
+  `SuperSesiContext` walau tidak ada yang difokuskan (`bawaan`/`submisiId`), bukan
+  cuma saat layar Super Sesi terbuka.
+- **Riwayat (`RiwayatDesktop`):** tabel + panel detail formulir terpilih. Satu
+  ketukan MEMILIH baris, ketuk dua kali membuka editor. Pencarian dan penyaring
+  kelas/mapel murni di klien terhadap daftar yang sudah dimuat (belum ada di HP).
+  Panel detail memuat tiga pertanyaan pertama lewat satu query `bank_soal` per
+  formulir terpilih dan menampilkan sesi yang pernah lahir dari formulir itu.
+  `useKirimanSuper` (lib) dipakai Riwayat dan Menu untuk lencana "Super Sesi".
+- **Sesi (`SesiDesktop`):** daftar sesi tetap di kiri (Berjalan · Menunggu dimulai ·
+  Selesai), kendali sesi terpilih di kanan. Tidak ada layar daftar tanpa pilihan:
+  `SesiPage` memilihkan sesi berjalan (kalau tidak ada, yang terbaru) lewat
+  `fokuskan`, jadi Realtime-nya tetap hidup. Menekan item Sesi di sidebar
+  mengembalikan ke pilihan bawaan itu. Kartu bersama HP/desktop (Durasi, Kunci
+  layar, Konfirmasi akhiri) ada di `SesiKartu.tsx`; hitungan terkunci/senyap di
+  `lib/keadaanSesi.ts` (`keadaanPeserta`, `hitungPeserta`) -- satu-satunya tempat
+  "terkunci/senyap" dihitung, dipakai konsol Menu, pil bilah atas, penyaring, dan
+  baris murid. Penyaring murid cuma di desktop dan hanya menyaring tampilan.
+- **Jawaban & nilai (`LihatJawaban`):** tetap takeover (sudah berpasangan dengan
+  jejak di bilah atas); satu kartu empat angka, tabel murid dengan meter nilai,
+  panel murid terpilih (veto, jawaban per soal dengan status berkata + gelembung).
+- **Editor:** tiga kolom seperti v1, tapi "Impor soal" pindah ke toolbar, rel
+  pertanyaan punya meter "Kunci jawaban n dari m", kartu diam menata opsi pendek
+  DUA kolom (`lg:grid-cols-2` kalau semua opsi ≤ 42 karakter), dan kop formulir
+  punya label Kelas/Mata pelajaran yang tampak.
+- **Dialog:** Kirim = dua kartu berdampingan (Sesi Mandiri | Kirim ke Super Sesi);
+  Impor = panel dua kolom (`PanelImporDesktop`: cara di kiri, isian di kanan, ganti
+  cara tanpa "Kembali") dengan isi yang SAMA persis dengan Dialog HP (`badanAi`/
+  `badanPdf`/`badanTeks`); Buat Super Sesi menampilkan tiga langkah sesudahnya.
+  `LembarKonfirmasi` punya `nada="biasa"` (tombol biru) untuk aksi yang tidak
+  merusak, mis. Mulai Super Sesi.
+- **Super Sesi (kepala sekolah):** `SuperSesiDesktop` = daftar di kiri +
+  `DetailSuperSesi` di kanan (bawaan: yang berjalan). Tombol Mulai pindah ke kepala
+  kartu tinta; catatan "tidak perlu menunjuk pengawas" tampil saat mengumpulkan.
+  Lebar kolom tabel kiriman dijaga kecil (`KOLOM_KIRIMAN`): panel detail berbagi
+  lebar dengan daftar, dan kolom tetap yang besar membuat kolom Mapel menyusut
+  sampai teksnya saling menimpa (cacat yang ada juga di rancangan kanvas).
+- **Saya (`ProfilDesktop`):** profil dan Akun Saya satu halaman (tanpa sub-halaman);
+  kanan "Isi akunmu" dan Keluar.
+- **Ikon Sesi** diganti dari kunci jadi gelombang siaran: kunci sudah milik
+  `kunci` (kunci layar) dan keduanya sering terlihat di layar yang sama.
 - **Murid:** pintu depan dua kolom (judul + tiga langkah | karcis; tombol Pindai
   QR disembunyikan karena PC lab tidak punya kamera). Layar mengerjakan: panel
   peta jawaban + tombol Kirim menempel di kiri, bilah kirim bawah dan strip bulat
-  atas disembunyikan.
+  atas disembunyikan. (Tidak berubah di v2.)
+- **Lebar layar:** dirancang untuk 1366-1920px. Titik putus tambahan: `min-[1400px]`
+  (daftar Sesi/Super Sesi melebar, kolom kode & kunci layar di Sesi bersisian dengan
+  tabel murid; di bawahnya kolom itu turun ke bawah tabel) dan `xl` 1280px (Menu,
+  Riwayat, Jawaban & nilai memecah ke satu kolom di bawahnya). 1024-1279px terbaca
+  tapi belum disetel halus.
+- **Menguji tampilan tanpa Supabase:** `VITE_UJI_TAMPILAN=1 npm run dev` (tambah
+  `VITE_UJI_PERAN=kepala_sekolah` untuk sisi kepala sekolah). Data contoh ada di
+  `lib/ujiTampilan.ts`; Auth, Formulir, Sesi, SuperSesi, dan `bacaHasilSoalSesi`
+  punya cabang yang membacanya. Cabangnya mati di build produksi.
 - **Jebakan kelas:** `Button` sudah membawa `inline-flex`, jadi `hidden` biasa
   TIDAK menyembunyikannya (yang dipakai: `max-lg:hidden`). Kelas yang dibuang
-  Tailwind diam-diam tidak ketahuan sampai dilihat di layar.
+  Tailwind diam-diam tidak ketahuan sampai dilihat di layar: setelah menambah kelas
+  baru, bandingkan semua kelas di berkas yang berubah dengan CSS hasil `npm run
+  build`.
 
 ## Stack & perintah
 
@@ -304,6 +359,56 @@ padanan di app ini).
   salah hitung atau salah fakta pada materi yang dikarangnya sendiri, sama seperti
   bug "5 + 7 = 11" yang pernah ditemukan di Impor PDF.
 
+### Gambar di soal (ditambah 2026-10-06)
+Satu soal boleh membawa SATU gambar (diagram, peta, grafik, foto) yang tampil di
+antara teks pertanyaan dan opsi. Gambar di OPSI belum ada. Guru menambahkannya di
+kartu pertanyaan yang sedang disunting: tombol "Tambah gambar" (galeri/kamera HP),
+atau tempel tangkapan layar (Ctrl+V) di kolom pertanyaan.
+
+- **Penyimpanan:** Supabase Storage, bucket publik `gambar-soal` (dibuat migrasi
+  `20261006000000_gambar_soal.sql`, jadi `supabase db push` sudah cukup). Soal hanya
+  menyimpan PATH-nya di `bank_soal.gambar` (`<id guru>/<uuid>.jpg`); URL dirakit di
+  klien lewat `urlGambarSoal()`. BUKAN base64 di kolom: `konten_list` dibaca ulang
+  tiap polling sesi (`status_sesi` memakai md5-nya, `ambil_konten_sesi` mengirimnya
+  utuh), jadi gambar di dalamnya membengkakkan setiap poll semua murid.
+- **Klien** (`lib/gambarSoal.ts`): sebelum diunggah gambar SELALU dikecilkan di
+  browser jadi JPEG berlatar putih, sisi terpanjang ≤ 1600 px, kualitas diturunkan
+  bertahap (0,88 → 0,58) sampai di bawah ~900 KB (satu kelas, satu wifi sekolah).
+  Satu bentuk keluaran = satu ekstensi (dijaga CHECK) dan
+  langsung bisa masuk .docx; WebP sengaja tidak dipakai karena Safari diam-diam jatuh
+  ke PNG. Unggahan terjadi SAAT dipilih, bukan saat Simpan, tapi path-nya baru ditulis
+  ke database oleh Simpan seperti semua isi soal lain. Simpan/Kirim yang ditekan
+  selagi gambar masih naik MENUNGGU (`catatUnggahan`/`tungguUnggahan`, dipanggil di
+  `lakukanSimpan`), kalau tidak sesi terbuka tanpa gambarnya.
+- **Tampil** (`components/GambarSoal.tsx`, satu komponen untuk murid, pratinjau, editor,
+  tinjauan nilai, dan panel desktop): ketuk untuk layar penuh. Viewport mengunci
+  pinch-zoom (`user-scalable=no`), jadi tampilan penuh itu SATU-SATUNYA cara membaca
+  diagram bertulisan kecil — ada tombol Perbesar (250%, bisa digulir). Gambar yang
+  gagal dimuat menampilkan tombol "Muat ulang gambar": tanpa itu murid menatap kartu
+  soal kosong di tengah ujian. Lapisan penuh lewat portal ke `<body>` karena layar
+  murid membungkus soal dengan `zoom`. Layar terkunci membongkar daftar soal (dan
+  lapisan ini), jadi murid terkunci tidak bisa terus membaca gambarnya.
+- **Ikut ke mana-mana:** `rakit_snapshot_soal()` menambahkan `gambar` ke snapshot,
+  dipakai `buka_sesi_formulir()` DAN `kirim_ke_super_sesi()` — dua jalur itu tidak
+  disentuh. `ambil_konten_sesi()` cuma membuang `jawabanBenar`, jadi `gambar` sampai ke
+  murid apa adanya (A1 tidak terdampak: kunci tidak pernah ada di gambar). Duplikat
+  soal memakai path yang sama. Unduh .docx (`unduhFormulir.ts`) memuat gambarnya
+  (diambil lewat GET ke bucket publik); yang gagal diambil jadi "[gambar tidak dapat
+  dimuat]", bukan menggagalkan unduhan.
+- **Cuma di editor formulir.** `KartuPertanyaan` menerima `izinGambar`, dinyalakan
+  hanya oleh `TabPertanyaan`. Kartu di layar Tinjau impor (Google Form/PDF/AI) tidak
+  menawarkannya: drafnya belum punya formulir dan tombol Impor tidak menunggu unggahan.
+  Guru menambahkan gambar sesudah soal masuk formulir.
+- **Impor PDF tetap mengabaikan gambar di dalam PDF** (AI cuma membaca teksnya).
+- **Diuji di Edge headless** lewat mode uji tampilan (`VITE_UJI_TAMPILAN=1`, data
+  tiruan): pengecilan PNG transparan 4000×3000 → JPEG 1600×1200 berpojok putih, noise
+  acak 4000×3000 (kasus terburuk) → 589 KB lewat penurunan kualitas, tolak
+  non-gambar/SVG/>20 MB, tampilan penuh + Perbesar + Escape, gambar gagal → muat ulang,
+  dan penantian unggahan. Migrasi diuji di PGlite dengan skema `storage` tiruan
+  (CHECK path, bentuk snapshot, policy unggah). BELUM diuji: unggah ke Supabase
+  Storage sungguhan dan alur "Tambah gambar → Simpan → Kirim → murid melihat"
+  menyeluruh — mode uji tampilan membuat `ubahSoal` tak berbuat apa-apa.
+
 ### Super Sesi (ditambah 2026-09-24)
 Peran KETIGA, `kepala_sekolah`, dan tiga tabel baru (`sekolah`, `super_sesi`,
 `super_sesi_soal`) untuk kebutuhan yang sama sekali tidak ada di Luang: saat
@@ -421,6 +526,31 @@ dicek dulu lewat RPC anon `cek_kode_sekolah()` SEBELUM `signUp()` — supaya kod
 salah ditolak dengan pesan jelas di layar Daftar, bukan lewat kegagalan trigger
 `handle_new_user()` yang belum tentu tembus apa adanya lewat GoTrue).
 
+**Kepala sekolah melihat kodenya (2026-10-06):** kartu "Kode sekolah" di Menu kepala
+sekolah (`components/KartuKodeSekolah.tsx`, HP dan desktop) menampilkan kode dengan
+tombol Salin dan peringatan bahwa siapa pun yang tahu kodenya bisa mendaftar jadi
+guru sekolah itu. Sebelumnya tidak ada satu layar pun yang menampilkannya -- guru
+disuruh "tanyakan ke kepala sekolahmu" sementara kolomnya cuma ada di database.
+`lib/useSekolahSaya.ts` membaca baris `sekolah` sendiri langsung lewat policy RLS
+`sekolah_anggota_select` (tanpa RPC baru; anggota mana pun memang boleh membacanya,
+tapi cuma Menu kepala sekolah yang menampilkannya).
+
+**Guru lama dan "Sekolah Default" (2026-10-06):** migrasi `20260924000000_sekolah.sql`
+menaruh semua guru yang akunnya lahir SEBELUM konsep sekolah ada ke satu sekolah
+bawaan (kode `DEFAULT`), jadi kepala sekolah yang sebenarnya tidak melihat mereka
+dan kelas Super Sesi tidak sampai ke mereka. Jalan keluarnya (migrasi
+`20261006100000_gabung_sekolah.sql`): `perlu_kode_sekolah()` (true = guru yang masih
+di `DEFAULT`, dipanggil `AuthContext.resolveSession` sekali per sesi login) dan
+`gabung_sekolah(kode)`. Kalau `perluKodeSekolah`, `App.tsx` menampilkan
+`HubungkanSekolahPage` (AuthPages) sebelum GuruHome: kode diperiksa dulu lewat
+`cek_kode_sekolah()` dan NAMA sekolahnya ditampilkan sebagai konfirmasi, baru
+`gabung_sekolah()` dipanggil. "Nanti saja" cuma melewatinya untuk sesi itu (muncul
+lagi saat masuk berikutnya). Klien tidak pernah menulis `profiles.sekolah_id`
+(grant kolom cuma `nama`); satu-satunya jalan lewat fungsi security definer itu.
+Gagal bertanya `perlu_kode_sekolah` (mis. migrasi belum di-push) dianggap "tidak
+perlu", supaya login tidak macet. Uji: `VITE_UJI_KODE_SEKOLAH=1` (kode contoh
+`SMK1-CONTOH`, lihat `lib/sekolah.ts`).
+
 **Kunci jawaban tetap salinan** (gaya A6, lihat SS1): `super_sesi_soal.konten_list`
 adalah snapshot formulir SAAT dikirim, bukan referensi — mengedit/menghapus
 formulir sesudah dikirim tidak mengubah kiriman yang sudah masuk, dan
@@ -479,35 +609,41 @@ update public.pengaturan_sesi set kunci_layar_aktif = false where id = 1;
 
 ```
 src/
-  context/   Auth · Nav (penjaga tombol kembali)
+  context/   Auth · Nav (penjaga tombol kembali) · AksiGuru (aksi GuruHome untuk BilahAtas, desktop)
              Sesi (fokus sesi + kelasTersedia/klaimKelasSuper -- klaim bebas kelas Super Sesi)
              Formulir (simpan otomatis)
-             SuperSesi (fokus Super Sesi milik kepala sekolah, poling pantau_super_sesi)
+             SuperSesi (fokus Super Sesi milik kepala sekolah; poling pantau_super_sesi untuk fokus ATAU `bawaan`)
   lib/       useDesktop (breakpoint lg) · waktuSesi (useSisaDetik, menitDetik)
+             keadaanSesi (terkunci/senyap/statusSesi, satu sumber kebenaran) · useKirimanSuper
+             ujiTampilan (data contoh untuk VITE_UJI_TAMPILAN, tanpa Supabase) · useSekolahSaya (nama + kode sekolah sendiri)
              sesiMurid (RPC murid + antrean offline) · sesiGuru (jawaban & veto)
              kunciLayar (sensor + fullscreen + wake lock) · sesiCapture (?sesi=)
              soal (masalahSoal = cermin validasi server, uuid) · tempelSoal (impor teks)
              imporPdf (panggil Edge Function impor-pdf)
              generateSoal (panggil Edge Function generate-soal, AI mengarang dari topik)
+             gambarSoal (kecilkan + unggah ke bucket gambar-soal, urlGambarSoal, catatUnggahan/tungguUnggahan)
              sekolah (cek_kode_sekolah sebelum daftar, lihat Super Sesi)
   components/
     ui/      Button · Card · Badge · Dialog (lembar bawah di HP) · Input · Sakelar · Eyebrow · Ikon (SVG garis) · TeksOtomatis
     Gelembung (huruf opsi dalam lingkaran: kosong/dipilih/benar/salah/kunci, dipakai murid, editor guru, tinjauan nilai)
-    Logo (lambang + nama) · LayarMurid (kartu kepala/soal, dipakai murid & pratinjau guru)
+    GambarSoal (gambar di bawah pertanyaan + layar penuh/Perbesar + muat ulang, dipakai murid, editor, pratinjau, tinjauan nilai)
+    Logo (lambang + nama; lambangnya logo resmi SMKN 2 dari `src/assets/logo-smk.webp`, latar transparan, tanpa kotak & tanpa `rounded-*` di pemanggil karena memotong ujung segi lima — ganti logo = timpa berkas itu) · LayarMurid (kartu kepala/soal, dipakai murid & pratinjau guru)
     BottomNav (HP: Riwayat · Menu · Saya, Sesi menumpang sorotan Menu) · SidebarGuru (desktop: Sesi & Super Sesi item sendiri)
+    BilahAtas (desktop: judul/jejak + pil sesi berjalan + Formulir baru ▾, dipasang tiap halaman)
+    KartuKodeSekolah (kepala sekolah: kode sekolah + Salin, di Menu HP & desktop)
     TabelDesktop (KepalaTabel/BarisTabel, grid CSS)
     BagikanSesi (kode + QR + link) · LembarKonfirmasi · ScannerQr · TombolZoom
   pages/
-    auth/    AuthPages (login, daftar + Kode Sekolah, lupa & reset password) — guru & kepala sekolah
+    auth/    AuthPages (login, daftar + Kode Sekolah, Hubungkan ke Sekolah untuk guru lama, lupa & reset password) — guru & kepala sekolah
     guru/    GuruHome (shell bertab Riwayat · Menu · Saya + dua cabang layar penuh, dipakai guru DAN kepala sekolah)
-             MenuPage (peluncur: kelas Super Sesi siap diambil · super sesi siap dimulai · sedang berjalan · ajakan formulir/sesi · bawa dari luar)
+             MenuPage (peluncur HP: kelas Super Sesi siap diambil · super sesi siap dimulai · sedang berjalan · ajakan formulir/sesi · bawa dari luar) · MenuDesktop (dasbor: konsol sesi/Super Sesi + tabel)
              SuperSesiPage (kepala sekolah saja: daftar Super Sesi -> DetailSuperSesi, dibuka dari kartu di Menu)
-             RiwayatPage (arsip, pil Formulir/Sesi)
-             ProfilePage (akun, sub Akun Saya)
-             SesiPage (takeover: daftar sesi & kendali satu sesi) · LihatJawaban (ringkasan, murid, veto)
+             RiwayatPage (arsip HP, pil Formulir/Sesi) · RiwayatDesktop (tabel + panel detail + cari/saring)
+             ProfilePage (akun, sub Akun Saya; desktop: ProfilDesktop satu halaman)
+             SesiPage (HP takeover: daftar sesi & kendali satu sesi) · SesiDesktop (daftar + kendali) · SesiKartu (Durasi, Kunci layar, Konfirmasi akhiri) · LihatJawaban (ringkasan, murid, veto)
              EditorFormulir (layar penuh; desktop: rel + kartu + panel kirim) · TabPertanyaan · KartuPertanyaan · PanelEditor (RelPertanyaan, PanelKirim)
              TabSetelan · DialogKirim (Buka sesi ATAU kirim ke Super Sesi) · DialogImpor (3 cara: AI/teks/PDF) · Pratinjau
-    kepsek/  DialogBuatSuperSesi · DetailSuperSesi (kiriman & status klaim, tombol Mulai) -- dipakai lewat SuperSesiPage di atas
+    kepsek/  DialogBuatSuperSesi · DetailSuperSesi (kiriman & status klaim, tombol Mulai) · SuperSesiDesktop (daftar + detail) -- dipakai lewat SuperSesiPage di atas
     murid/   MuridHome (tanpa tab) · MuridSesiPage · KerjakanSesi
 supabase/migrations/
   20260917000000_skema_awal.sql       # skema lengkap, lihat kepalanya
@@ -521,6 +657,8 @@ supabase/migrations/
   20260924500000_kepsek_guru_gabung.sql    # kepala sekolah pakai GuruHome yang sama dgn guru, longgarkan adalah_guru()
   20260925000000_klaim_kelas_super_sesi.sql # SS7-SS9, klaim bebas kelas Super Sesi menggantikan penugasan pengawas
   20261001000000_hapus_admin.sql      # membongkar pengajuan kepala sekolah & fungsi admin, lihat "Menyiapkan sekolah & kepala sekolah"
+  20261006000000_gambar_soal.sql      # G1-G3, kolom bank_soal.gambar, snapshot membawa gambar, bucket gambar-soal
+  20261006100000_gabung_sekolah.sql   # SK4, perlu_kode_sekolah() & gabung_sekolah(): guru lama keluar dari 'Sekolah Default'
 scripts/
   buat-kepala-sekolah.mjs             # pemilik produk: sekolah + akun kepala sekolah (service role), `npm run kepsek`
   env.rahasia.contoh                  # contoh .env.rahasia (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -614,6 +752,7 @@ ke sana seperti baris A/K/M/F di atas.
 | SK1 | Peran `kepala_sekolah` HANYA lewat skrip pemilik (`scripts/buat-kepala-sekolah.mjs`, service role) atau SQL manual, tidak pernah dari metadata klien — `handle_new_user()` selalu menulis `'guru'` untuk akun non-anonim (M1 tetap berlaku) |
 | SK2 | Guru/kepala sekolah non-anonim WAJIB `sekolah_id` terisi (`profiles_sekolah_wajib_staf`); `kode_sekolah` di metadata signup divalidasi di `handle_new_user()`, bukan dipercaya begitu saja |
 | SK3 | (dihapus 2026-10-01 bersama peran admin; nomornya tidak dipakai ulang) |
+| SK4 | `gabung_sekolah()` hanya memindahkan akun berperan `guru` yang MASIH di sekolah `DEFAULT`, dan SATU ARAH: akun yang sudah punya sekolah asli (juga kepala sekolah, murid, atau tanpa login) ditolak. Kode `DEFAULT` sendiri bukan tujuan. Disengaja: kode sekolah umur panjang dan bisa bocor, jadi tidak boleh jadi tiket pindah sekolah bagi guru yang sudah terhubung |
 | SS1 | Kiriman (`super_sesi_soal`) adalah SALINAN formulir saat dikirim (gaya A6) — mengedit/menghapus formulir sesudahnya tidak mengubahnya |
 | SS2 | `mulai_super_sesi()` menulis `sesi_kelas.guru_id = pengawas_id`, BUKAN guru mapel pengirim — baris hasilnya sesi BIASA milik pengawas, langsung kena semua policy `sesi_kelas` yang sudah ada tanpa policy baru |
 | SS3 | `sesi_kelas.super_sesi_id`/`super_sesi_judul` disalin saat distribusi supaya pengawas tahu asalnya TANPA akses ke tabel `super_sesi`/`super_sesi_soal` (yang secara struktural memang tidak mereka punya) |
@@ -623,6 +762,13 @@ ke sana seperti baris A/K/M/F di atas.
 | SS7 | `sesi_kelas.guru_id` BOLEH `null` HANYA untuk baris hasil Super Sesi yang belum diklaim (CHECK `sesi_kelas_guru_id_super_sesi`) — sesi biasa (`super_sesi_id` null) tetap WAJIB `guru_id` terisi, longgaran ini tidak menyentuh `buka_sesi_formulir()` sama sekali |
 | SS8 | `ambil_kelas_tersedia_super_sesi()` (daftar kelas yang bisa diklaim, dilihat SEMUA guru sekolah) HANYA membawa metadata (mapel/kelas/judul) — TIDAK PERNAH `konten_list`, supaya kunci jawaban tidak terbaca sebelum ada yang benar-benar mengklaim |
 | SS9 | `klaim_kelas_super_sesi()` atomik lewat `update ... where guru_id is null` — guru kedua yang mengklaim kelas yang sama nyaris bersamaan mendapat pesan jelas ("sudah diambil guru lain"), bukan tabrakan diam-diam |
+
+Baris `G*` ditambahkan 2026-10-06 untuk gambar di soal (migrasi `20261006000000_gambar_soal.sql`),
+juga tanpa padanan di Luang.
+
+| G1 | Berkas di bucket `gambar-soal` TAK BERUBAH dan TAK PERNAH dihapus: tiap unggahan memakai path acak baru, bucket tidak punya policy UPDATE/DELETE. Inilah yang menjaga A6 — sesi dan kiriman Super Sesi memegang SALINAN soal (path ikut tersalin), jadi berkas yang dihapus/ditimpa merusak sesi yang berjalan. Klien yang "menghapus gambar" cuma mengosongkan `bank_soal.gambar`. Harganya: berkas yatim menumpuk (lihat "Yang belum ditangani") |
+| G2 | Hanya `adalah_guru()` yang bisa mengunggah, dan hanya ke folder bernama id-nya sendiri; murid anonim tidak punya jalan menulis ke bucket |
+| G3 | `bank_soal.gambar` dibatasi CHECK ke `<uuid>/<uuid>.jpg` (huruf kecil). Path itu disalin ke murid dan disambung ke URL storage di klien — kolom bebas membiarkan guru menyelipkan `../` atau path bucket lain. Bucket PUBLIK: path tak bisa ditebak dan hanya sampai ke murid lewat `ambil_konten_sesi()`, tapi siapa pun yang memegang URL-nya bisa membukanya |
 
 Kunci efektif = sakelar darurat DAN `sesi_kelas.kunci_layar` DAN `terkunci_pada`
 terisi. Kunci pertama baru bisa lahir 30 dtk (`kunci_layar_jeda_detik()`) setelah
@@ -706,8 +852,16 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
 - Murid yang menutup aplikasi sebelum Kirim tidak punya baris nilai
   (`akhiri_sesi` tidak menyelesaikan murid yang tertinggal) — sama dengan Luang.
 - Soal satu formulir dimuat tanpa paginasi; `max_rows` 1000 memotong diam-diam.
-- Gambar di soal (termasuk dari impor Google Form/PDF) belum didukung — Impor PDF
-  cuma mengambil teksnya, gambar di dalam PDF diabaikan AI.
+- Gambar di soal hanya bisa ditambahkan manual di editor, satu per soal, dan tidak
+  untuk opsi. Impor Google Form/PDF tidak membawa gambar — Impor PDF cuma mengambil
+  teksnya, gambar di dalam PDF diabaikan AI.
+- Berkas gambar yatim menumpuk di bucket `gambar-soal` (G1: tidak pernah dihapus):
+  gambar yang diganti/dibuang, unggahan yang dibatalkan sebelum Simpan, formulir yang
+  dihapus. Membersihkannya butuh pemindai yang membandingkan isi bucket dengan semua
+  `bank_soal.gambar`, `sesi_kelas.konten_list`, dan `super_sesi_soal.konten_list` —
+  belum ada. Tiap berkas ≤ 2 MB (umumnya jauh di bawahnya), tapi jumlahnya tidak berbatas.
+- Tidak ada batas jumlah/ukuran gambar per guru selain 20 MB per berkas mentah dan
+  2 MB hasil kecilkan (bucket). Guru bisa mengunggah tanpa henti.
 - Impor PDF DAN Generate dari Topik sama-sama tidak punya batas biaya/kuota per
   guru — satu guru yang mengunggah PDF besar atau generate berkali-kali memakai
   kredit OpenRouter yang SAMA untuk semua guru (satu secret `OPENROUTER_API_KEY`,
@@ -726,7 +880,7 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
 - `kode_sekolah` umur panjang, tanpa rotasi/kedaluwarsa (beda dari kode sesi 3
   jam) — bocor berarti orang luar bisa mendaftar jadi guru sekolah itu terus-
   menerus sampai diputar manual lewat SQL (`update sekolah set kode_sekolah=...`).
-- Tidak ada UI untuk mengelola sekolah (ganti kode, ubah nama, hapus, pindahkan guru, ganti kepala sekolah): semuanya SQL editor manual oleh pemilik. Yang ada cuma skrip pembuat sekolah + kepala sekolah.
+- Tidak ada UI untuk mengelola sekolah (ganti kode, ubah nama, hapus, pindahkan guru antar sekolah asli, ganti kepala sekolah): semuanya SQL editor manual oleh pemilik. Yang ada cuma skrip pembuat sekolah + kepala sekolah, dan layar Hubungkan ke Sekolah yang memindahkan guru lama SEKALI dari 'Sekolah Default' (SK4). Guru yang salah memasukkan kode di layar itu nyangkut di sekolah yang salah sampai pemilik memindahkannya lewat SQL (`update profiles set sekolah_id = ...`). `gabung_sekolah()` bisa diadu-tebak kodenya (butuh login, tapi tanpa pembatas laju), sama lemahnya dengan `cek_kode_sekolah()` yang terbuka ke anon.
 - Kelas Super Sesi yang tidak pernah diklaim guru mana pun tertinggal
   selamanya berstatus `aktif` tanpa pemilik: `akhiri_sesi()` mensyaratkan
   `guru_id = auth.uid()`, jadi TIDAK ADA yang bisa mengakhirinya selama belum

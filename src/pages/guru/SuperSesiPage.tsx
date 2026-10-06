@@ -5,8 +5,10 @@ import { useKembali } from '../../context/NavContext'
 import { labelWaktu } from '../../lib/soal'
 import { Ikon } from '../../components/ui/Ikon'
 import { Badge, type WarnaBadge } from '../../components/ui/Badge'
+import { useDesktop } from '../../lib/useDesktop'
 import { DialogBuatSuperSesi } from '../kepsek/DialogBuatSuperSesi'
 import { DetailSuperSesi } from '../kepsek/DetailSuperSesi'
+import { SuperSesiDesktop } from '../kepsek/SuperSesiDesktop'
 
 // ─── Layar Super Sesi (takeover dari kartu Super Sesi di Menu) ───────────────
 // Dulu ini KepsekHome, layar penuh TERPISAH dengan bilah aplikasinya sendiri
@@ -28,7 +30,15 @@ export function SuperSesiPage({ onKeluar, onLayarPenuh }: {
   onLayarPenuh: (v: boolean) => void
 }) {
   const { semuaSuperSesi, memuat, fokus, fokuskan } = useSuperSesi()
+  const desktop = useDesktop()
   const [membuat, setMembuat] = useState(false)
+
+  // Desktop memakai master-detail (SuperSesiDesktop): tidak ada layar daftar tanpa
+  // pilihan, jadi kalau belum ada yang difokuskan, yang berjalan dipilih.
+  useEffect(() => {
+    if (!desktop || fokus || semuaSuperSesi.length === 0) return
+    fokuskan((semuaSuperSesi.find(s => s.status === 'berjalan') ?? semuaSuperSesi[0]).id)
+  }, [desktop, fokus, semuaSuperSesi, fokuskan])
 
   useEffect(() => {
     onLayarPenuh(!!fokus)
@@ -37,16 +47,28 @@ export function SuperSesiPage({ onKeluar, onLayarPenuh }: {
 
   useKembali(() => {
     if (membuat) { setMembuat(false); return true }
-    if (fokus) { fokuskan(null); return true }
+    if (fokus && !desktop) { fokuskan(null); return true }
     onKeluar()
     return true
   })
+
+  if (desktop) {
+    return (
+      <>
+        <SuperSesiDesktop onBuat={() => setMembuat(true)} />
+        {membuat && (
+          <DialogBuatSuperSesi onTutup={() => setMembuat(false)}
+            onDibuat={id => { setMembuat(false); fokuskan(id) }} />
+        )}
+      </>
+    )
+  }
 
   if (fokus) return <DetailSuperSesi superSesi={fokus} onKembali={() => fokuskan(null)} />
 
   return (
     <div className="flex flex-col h-full bg-alas">
-      <div className="h-14 pl-1.5 pr-4 flex items-center gap-1 shrink-0 bg-white border-b border-garis lg:hidden">
+      <div className="h-14 pl-1.5 pr-4 flex items-center gap-1 shrink-0 bg-white border-b border-garis">
         <button type="button" aria-label="Kembali" onClick={onKeluar}
           className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 transition-colors">
           <Ikon nama="kembali" className="w-5.5 h-5.5" tebal={2} />
@@ -55,18 +77,14 @@ export function SuperSesiPage({ onKeluar, onLayarPenuh }: {
       </div>
 
       <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 pb-24">
-        <div className="flex flex-col gap-4 pt-4 desktop:max-w-2xl desktop:mx-auto lg:max-w-6xl lg:px-12 lg:pt-10 lg:gap-6">
-          <div className="hidden lg:block">
-            <p className="font-mono text-xs uppercase tracking-[0.14em] text-teks-3">Kepala sekolah</p>
-            <h1 className="mt-2 text-[38px] leading-tight font-extrabold tracking-tight text-tinta">Super Sesi</h1>
-          </div>
+        <div className="flex flex-col gap-4 pt-4 desktop:max-w-2xl desktop:mx-auto">
           <p className="text-[13.5px] text-tinta-2 leading-relaxed px-1">
             Kumpulkan soal ulangan dari guru mapel, lalu mulai serentak. Kelasnya bisa diambil guru mana pun
             di sekolahmu, dan kamu mengawasi semua kelas dari sini.
           </p>
 
           <button type="button" onClick={() => setMembuat(true)}
-            className="w-full lg:max-w-xl bg-biru active:bg-biru-gelap rounded-[18px] p-4 lg:p-5 flex items-center gap-3.5 text-left transition-colors">
+            className="w-full bg-biru active:bg-biru-gelap rounded-[18px] p-4 flex items-center gap-3.5 text-left transition-colors">
             <span className="w-11.5 h-11.5 rounded-[13px] bg-white/18 text-white flex items-center justify-center shrink-0">
               <Ikon nama="tambah" className="w-6 h-6" tebal={2} />
             </span>

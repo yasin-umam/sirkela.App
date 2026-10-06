@@ -137,6 +137,10 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
           </div>
           <TombolSimpan status={statusSimpan} galatSimpan={galatSimpan} punyaPerubahan={punyaPerubahan}
             onSimpan={() => void simpanSekarang()} />
+          {/* Desktop: Impor soal ada di toolbar (di HP lewat bilah alat mengambang). */}
+          <Button size="sm" variant="ghost" onClick={onImpor} className="max-lg:hidden h-11!">
+            <Ikon nama="impor" className="w-4.5 h-4.5" />Impor soal
+          </Button>
           <TombolIkon nama="lihat" label="Pratinjau" onClick={() => setPratinjau(true)} className="w-10 h-10 lg:hidden" />
           <Button size="sm" variant="secondary" onClick={() => setPratinjau(true)} className="max-lg:hidden h-11!">
             <Ikon nama="lihat" className="w-4.5 h-4.5" />Pratinjau
@@ -173,8 +177,7 @@ export function EditorFormulir({ onKeluar, onPantauSesi, onImpor, onTerhapus }: 
       <div className="flex-1 min-h-0 flex">
         <RelPertanyaan soal={soal} aktifId={fokusId}
           onPilih={id => setLompat({ soalId: id, kali: Date.now() })}
-          onTambah={() => { const id = tambahSoal(soal.length); setLompat({ soalId: id, kali: Date.now(), fokus: true }) }}
-          onImpor={onImpor} />
+          onTambah={() => { const id = tambahSoal(soal.length); setLompat({ soalId: id, kali: Date.now(), fokus: true }) }} />
         <main className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain hide-scrollbar">
           <TabPertanyaan sorot={sorot} lompat={lompat} onFokus={setFokusId} onImpor={onImpor} />
         </main>

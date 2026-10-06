@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ClipboardEvent, KeyboardEvent } from 'react'
+import type { ChangeEvent, ClipboardEvent, KeyboardEvent } from 'react'
 import type { IsiSoal, Soal } from '../../types'
 import { useKembali } from '../../context/NavContext'
 import { MAKS_PILIHAN, masalahSoal } from '../../lib/soal'
+import { catatUnggahan, unggahGambarSoal } from '../../lib/gambarSoal'
 import { Gelembung, HURUF_OPSI } from '../../components/Gelembung'
+import { GambarSoal } from '../../components/GambarSoal'
 import { Ikon, TombolIkon } from '../../components/ui/Ikon'
+import { Spinner } from '../../components/ui/Spinner'
 import { TeksOtomatis } from '../../components/ui/TeksOtomatis'
 import { Button } from '../../components/ui/Button'
 
@@ -26,12 +29,18 @@ function kapital(s: string) {
 }
 
 export function KartuPertanyaan({
-  soal, nomor, aktif, gulir, tandaiMasalah, bisaNaik, bisaTurun,
+  soal, nomor, aktif, gulir, tandaiMasalah, bisaNaik, bisaTurun, izinGambar = false,
   onAktifkan, onGulirSelesai, onUbah, onDuplikat, onHapus, onNaik, onTurun,
 }: {
   soal: Soal
   /** Nomor urut di formulir. Sama dengan nomor yang disebut server saat menolak. */
   nomor?: number
+  /**
+   * Tampilkan tombol tambah/ganti/hapus gambar. Hanya editor formulir yang
+   * menyalakannya: kartu di layar Tinjau impor memegang draf yang belum punya
+   * formulir, dan tombol Impor-nya tidak menunggu unggahan yang sedang berjalan.
+   */
+  izinGambar?: boolean
   aktif: boolean
   /** 'fokus' = soal baru: gulir ke sana & taruh kursor di pertanyaan. 'lihat' = gulir saja. */
   gulir: 'fokus' | 'lihat' | null
@@ -50,8 +59,11 @@ export function KartuPertanyaan({
   const kartuRef = useRef<HTMLDivElement>(null)
   const pertanyaanRef = useRef<HTMLTextAreaElement>(null)
   const opsiRefs = useRef<(HTMLInputElement | null)[]>([])
+  const berkasRef = useRef<HTMLInputElement>(null)
   const [modeKunci, setModeKunci] = useState(false)
   const [fokusOpsi, setFokusOpsi] = useState<number | null>(null)
+  const [mengunggah, setMengunggah] = useState(false)
+  const [galatGambar, setGalatGambar] = useState<string | null>(null)
 
   const masalah = masalahSoal(soal)
   const { pilihan, jawabanBenar } = soal
@@ -130,6 +142,39 @@ export function KartuPertanyaan({
     sisipkanOpsi(i, baris.slice(1))
   }
 
+  // Path baru menempel ke soal begitu unggahan selesai. Unggahan dicatat
+  // (catatUnggahan) supaya Simpan/Kirim yang ditekan sebelum itu menunggunya,
+  // bukan menulis soal tanpa gambar.
+  function pasangGambar(berkas: Blob) {
+    if (mengunggah) return
+    setGalatGambar(null)
+    setMengunggah(true)
+    catatUnggahan((async () => {
+      const path = await unggahGambarSoal(berkas)
+      onUbah({ gambar: path })
+    })())
+      .catch(e => setGalatGambar(e instanceof Error ? e.message : 'Gambar gagal diunggah.'))
+      .finally(() => setMengunggah(false))
+  }
+
+  function pilihBerkas(e: ChangeEvent<HTMLInputElement>) {
+    const berkas = e.target.files?.[0]
+    // Dikosongkan supaya memilih berkas yang SAMA lagi (setelah dibuang) tetap memicu onChange.
+    e.target.value = ''
+    if (berkas) pasangGambar(berkas)
+  }
+
+  // Tangkapan layar yang ditempel (Ctrl+V) di kolom pertanyaan jadi gambar soal.
+  // Isi papan klip yang membawa TEKS juga (salinan dari Word/web) dibiarkan jadi
+  // teks: gambar di sana cuma render dari teksnya.
+  function tempelPertanyaan(e: ClipboardEvent<HTMLTextAreaElement>) {
+    if (!izinGambar) return
+    const berkas = Array.from(e.clipboardData.files).find(f => f.type.startsWith('image/'))
+    if (!berkas || e.clipboardData.getData('text')) return
+    e.preventDefault()
+    pasangGambar(berkas)
+  }
+
   const catatanMasalah = masalah && (
     <p className="mt-3 flex items-center gap-1.5 text-[13px] font-bold text-jingga-gelap">
       <Ikon nama="galat" className="w-4 h-4" />{kapital(masalah)}
@@ -157,7 +202,17 @@ export function KartuPertanyaan({
             {soal.pertanyaan.trim() || 'Pertanyaan'}
           </p>
         </div>
-        <div className="mt-3 flex flex-col gap-2">
+        {soal.gambar && (
+          // Mengetuk gambar membuka tampilan besarnya, bukan mengaktifkan kartu
+          // (lapisan layar penuh di portal juga menggelembung ke sini lewat React).
+          <div className="mt-3" onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+            <GambarSoal path={soal.gambar} ukuran="kecil" />
+          </div>
+        )}
+        {/* Desktop: opsi pendek berderet DUA kolom, seperti lembar jawab -- kartu
+            diam jadi setengah tinggi dan lebih banyak soal terlihat sekaligus. */}
+        <div className={`mt-3 flex flex-col gap-2 lg:pl-10 ${
+          pilihan.length >= 2 && pilihan.every(p => p.length <= 42) ? 'lg:grid lg:grid-cols-2 lg:gap-x-6' : ''}`}>
           {pilihan.map((p, j) => {
             const kunci = j === jawabanBenar
             return (
@@ -191,6 +246,7 @@ export function KartuPertanyaan({
               {soal.pertanyaan.trim() || 'Pertanyaan'}
             </p>
           </div>
+          {soal.gambar && <GambarSoal path={soal.gambar} ukuran="kecil" className="mt-3" />}
           <div className="mt-3 flex flex-col gap-2">
             {pilihan.map((p, j) => {
               const benar = j === jawabanBenar
@@ -224,8 +280,35 @@ export function KartuPertanyaan({
           {lencanaNomor}
           <TeksOtomatis ref={pertanyaanRef} value={soal.pertanyaan} placeholder="Tulis pertanyaan"
             onChange={e => onUbah({ pertanyaan: e.target.value })}
+            onPaste={tempelPertanyaan}
             className="flex-1 min-w-0 -mt-1 resize-none bg-isian rounded-xl px-3 py-2.5 text-[15px] leading-snug font-semibold text-tinta placeholder:text-teks-3 placeholder:font-normal outline-none border-[1.5px] border-garis focus:border-biru focus:bg-white transition-colors" />
         </div>
+
+        {izinGambar && (
+          <div className="mt-3">
+            {soal.gambar && <GambarSoal path={soal.gambar} />}
+            <div className={`flex flex-wrap items-center gap-1 ${soal.gambar ? 'mt-1.5' : ''}`}>
+              <button type="button" onClick={() => berkasRef.current?.click()} disabled={mengunggah}
+                className="inline-flex items-center gap-1.5 h-10 px-2 rounded-lg text-sm font-bold text-biru hover:bg-biru-tint disabled:opacity-60 disabled:pointer-events-none">
+                {mengunggah
+                  ? <><Spinner size={16} />Mengunggah…</>
+                  : <><Ikon nama="gambar" className="w-4.5 h-4.5" />{soal.gambar ? 'Ganti gambar' : 'Tambah gambar'}</>}
+              </button>
+              {soal.gambar && !mengunggah && (
+                <button type="button" onClick={() => onUbah({ gambar: null })}
+                  className="inline-flex items-center gap-1.5 h-10 px-2 rounded-lg text-sm font-bold text-jingga-gelap hover:bg-jingga-tint">
+                  <Ikon nama="hapus" className="w-4 h-4" />Hapus gambar
+                </button>
+              )}
+            </div>
+            {galatGambar && (
+              <p className="mt-1 flex items-center gap-1.5 text-[13px] font-bold text-jingga-gelap">
+                <Ikon nama="galat" className="w-4 h-4 shrink-0" />{galatGambar}
+              </p>
+            )}
+            <input ref={berkasRef} type="file" accept="image/*" hidden onChange={pilihBerkas} />
+          </div>
+        )}
 
         <div className="mt-3 flex flex-col gap-2">
           {pilihan.map((p, j) => (

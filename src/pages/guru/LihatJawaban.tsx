@@ -2,10 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { HasilSoal, PesertaSesi, SesiKelas } from '../../types'
 import { bacaHasilSoalSesi, ratakanSoalGuru, vetoNilaiSesi, type JawabanSoalMurid } from '../../lib/sesiGuru'
 import { Gelembung, type StatusGelembung } from '../../components/Gelembung'
+import { GambarSoal } from '../../components/GambarSoal'
 import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
 import { Badge } from '../../components/ui/Badge'
+import { BilahAtas } from '../../components/BilahAtas'
+import { jamMenit, labelWaktu } from '../../lib/soal'
 import { useDesktop } from '../../lib/useDesktop'
 
 // ─── Jawaban & nilai satu sesi ───────────────────────────────────────────────
@@ -26,7 +29,7 @@ const JEDA_MUAT_ULANG_MS = 10_000
 // MASTER-DETAIL -- tabel murid di kiri, jawaban & veto murid terpilih di kanan --
 // karena layarnya cukup lebar untuk keduanya sekaligus. Strukturnya cukup beda
 // sampai dipilih lewat `useDesktop`, bukan kelas `lg:`.
-const KOLOM_TABEL = 'grid-cols-[minmax(0,1fr)_128px_84px]'
+const KOLOM_TABEL = 'grid-cols-[minmax(0,1fr)_140px_132px]'
 
 export function LihatJawaban({ sesi, onKembali }: { sesi: SesiKelas; onKembali: () => void }) {
   const [hasil, setHasil] = useState<JawabanSoalMurid[] | null>(null)
@@ -90,6 +93,7 @@ export function LihatJawaban({ sesi, onKembali }: { sesi: SesiKelas; onKembali: 
 
   return (
     <div className="flex flex-col h-full bg-alas">
+      <BilahAtas jejak={[{ label: 'Sesi', onClick: onKembali }, { label: sesi.judul, onClick: onKembali }, { label: 'Jawaban & nilai' }]} />
       <div className="h-14 pl-1.5 pr-4 flex items-center gap-1 shrink-0 bg-white border-b border-garis lg:hidden">
         <button type="button" aria-label="Kembali" onClick={onKembali}
           className="w-11 h-11 flex items-center justify-center rounded-xl text-tinta active:bg-garis-2 transition-colors">
@@ -101,19 +105,20 @@ export function LihatJawaban({ sesi, onKembali }: { sesi: SesiKelas; onKembali: 
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-6xl lg:px-12 lg:pt-10 lg:pb-12">
-        <div className="flex flex-col gap-3 lg:gap-6">
-          {/* Kepala desktop: jejak + judul + pilihan tampilan */}
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-350 lg:px-8 lg:pt-7 lg:pb-10">
+        <div className="flex flex-col gap-3 lg:gap-5">
+          {/* Kepala desktop: jejaknya ada di bilah atas; di sini judul + pilihan tampilan */}
           <div className="hidden lg:flex items-end justify-between gap-6">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[13.5px] text-teks-3">
-                <button type="button" onClick={onKembali} className="font-semibold hover:text-tinta transition-colors">Sesi</button>
-                <Ikon nama="kanan" className="w-3.5 h-3.5" tebal={2.2} />
-                <button type="button" onClick={onKembali} className="font-semibold hover:text-tinta transition-colors truncate">{sesi.judul}</button>
-                <Ikon nama="kanan" className="w-3.5 h-3.5" tebal={2.2} />
-                <span>Jawaban &amp; nilai</span>
-              </div>
-              <h1 className="mt-2.5 text-[34px] leading-tight font-extrabold tracking-tight text-tinta">Jawaban &amp; nilai</h1>
+              <h1 className="text-[26px] leading-tight font-extrabold tracking-tight text-tinta break-words">{sesi.judul}</h1>
+              <p className="mt-1.5 text-sm text-teks-3">
+                {soalList.length} soal ·{' '}
+                {aktif
+                  ? 'Sesi masih berjalan, nilai masuk begitu murid menekan Kirim.'
+                  : sesi.selesaiPada
+                    ? `Selesai ${labelWaktu(sesi.selesaiPada).toLowerCase()} pukul ${jamMenit(sesi.selesaiPada)}. Nilai masih bisa diveto.`
+                    : 'Sesi selesai. Nilai masih bisa diveto.'}
+              </p>
             </div>
             {pilihan}
           </div>
@@ -139,19 +144,19 @@ export function LihatJawaban({ sesi, onKembali }: { sesi: SesiKelas; onKembali: 
               <p className="text-[12.5px] text-tinta-2 shrink-0">{nilai.length} dari {jumlahMurid} sudah mengirim</p>
             </div>
           </div>
-          <div className="hidden lg:flex gap-4">
+          <div className="hidden lg:grid grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.5fr)] bg-white rounded-[18px] border border-garis">
             {angka.map(([label, n]) => (
-              <div key={label} className="flex-1 bg-white rounded-[18px] border border-garis px-5.5 py-4.5">
+              <div key={label} className="px-6 py-4.5 border-r border-garis-2">
                 <p className="text-[13px] text-teks-3">{label}</p>
-                <p className="text-[44px] font-extrabold tracking-tight leading-tight text-tinta mt-0.5">{n ?? '–'}</p>
+                <p className="text-[38px] font-extrabold tracking-tight leading-[1.15] text-tinta mt-0.5">{n ?? '–'}</p>
               </div>
             ))}
-            <div className="flex-1 bg-white rounded-[18px] border border-garis px-5.5 py-4.5">
+            <div className="px-6 py-4.5">
               <p className="text-[13px] text-teks-3">Sudah mengirim</p>
-              <p className="text-[44px] font-extrabold tracking-tight leading-tight text-tinta mt-0.5">
-                {nilai.length} <span className="text-xl font-semibold tracking-normal text-teks-3">dari {jumlahMurid}</span>
+              <p className="text-[38px] font-extrabold tracking-tight leading-[1.15] text-tinta mt-0.5">
+                {nilai.length} <span className="text-lg font-semibold tracking-normal text-teks-3">dari {jumlahMurid}</span>
               </p>
-              <div className="h-2 rounded-full bg-biru-tint overflow-hidden mt-2.5">
+              <div className="h-2 rounded-full bg-biru-tint overflow-hidden mt-2">
                 <div className="h-full rounded-full bg-biru" style={{ width: `${persenKirim}%` }} />
               </div>
             </div>
@@ -176,9 +181,9 @@ export function LihatJawaban({ sesi, onKembali }: { sesi: SesiKelas; onKembali: 
               <p className="text-sm font-bold text-teks-3">Belum ada murid yang bergabung</p>
             </div>
           ) : desktop && muridAktif ? (
-            <div className="grid grid-cols-[minmax(0,1fr)_500px] gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_480px] gap-5 items-start">
               <div className="bg-white rounded-[18px] border border-garis overflow-hidden">
-                <div className={`grid ${KOLOM_TABEL} items-center gap-x-4 px-5.5 h-11.5`}>
+                <div className={`grid ${KOLOM_TABEL} items-center gap-x-4 px-5 h-10 bg-isian`}>
                   {['Murid', 'Status', 'Nilai'].map((t, i) => (
                     <span key={t} className={`font-mono text-[11.5px] uppercase tracking-[0.14em] text-teks-3 ${i === 2 ? 'text-right' : ''}`}>{t}</span>
                   ))}
@@ -233,6 +238,7 @@ function Ringkasan({ soalList, hasil }: { soalList: HasilSoal[]; hasil: JawabanS
                 </p>
               </div>
             </div>
+            {s.gambar && <GambarSoal path={s.gambar} ukuran="kecil" className="mt-3" />}
             <div className="mt-3.5 flex flex-col gap-3">
               {s.pilihan.map((p, j) => {
                 const jumlah = pilihanMurid.filter(x => x === j).length
@@ -285,22 +291,31 @@ function BarisTabelMurid({ peserta, hasil, aktif, terpilih, onPilih }: {
   const { sudahKirim, teks, sinyal } = ringkasStatus(peserta, hasil, aktif)
   return (
     <button type="button" onClick={onPilih} aria-pressed={terpilih}
-      className={`grid ${KOLOM_TABEL} w-full items-center gap-x-4 px-5.5 min-h-15.5 text-left border-t border-garis-2 transition-colors ${
-        terpilih ? 'bg-biru-tipis ring-2 ring-inset ring-biru' : 'hover:bg-isian'}`}>
+      className={`grid ${KOLOM_TABEL} w-full items-center gap-x-4 px-5 min-h-13 text-left border-t border-garis-2 transition-colors ${
+        terpilih ? 'bg-biru-tipis ring-[1.5px] ring-inset ring-biru' : 'hover:bg-isian'}`}>
       <span className="flex items-center gap-3 min-w-0">
-        <span className="w-10 h-10 rounded-xl bg-biru-tint text-biru flex items-center justify-center shrink-0 text-[15px] font-extrabold">
+        <span className="w-8 h-8 rounded-[10px] bg-biru-tint text-biru flex items-center justify-center shrink-0 text-[13.5px] font-extrabold">
           {peserta.nama.charAt(0).toUpperCase()}
         </span>
         <span className="min-w-0">
-          <span className="block text-[15px] font-bold text-tinta truncate">{peserta.nama}</span>
-          {sinyal && <span className="block text-[12.5px] font-bold text-jingga-gelap truncate">{sinyal}</span>}
+          <span className="block text-sm font-bold text-tinta truncate">{peserta.nama}</span>
+          {sinyal && <span className="block text-[12.5px] text-teks-3 truncate">{sinyal}</span>}
         </span>
       </span>
-      <span className="text-sm text-tinta-2">{teks}</span>
-      <span className="text-[22px] font-extrabold tracking-tight text-right text-tinta">
-        {sudahKirim
-          ? <>{hasil!.nilai}{hasil!.diubahGuru && <span className="text-jingga-gelap">*</span>}</>
-          : <span className="text-[13px] font-semibold tracking-normal text-teks-3">Belum ada</span>}
+      {/* Status SELALU berupa kata; warna cuma penegas. */}
+      <span className={`text-[13px] font-bold ${
+        !sudahKirim ? 'text-teks-3' : hasil!.diubahGuru ? 'text-biru' : 'text-hijau-teks'}`}>{teks}</span>
+      <span className="flex items-center justify-end gap-2.5">
+        {sudahKirim ? (
+          <>
+            <span aria-hidden className="w-14 h-1.5 rounded-full bg-biru-tint overflow-hidden">
+              <span className="block h-full bg-biru" style={{ width: `${hasil!.nilai}%` }} />
+            </span>
+            <span className="min-w-9 text-right text-base font-extrabold tracking-tight text-tinta">
+              {hasil!.nilai}{hasil!.diubahGuru && <span className="text-jingga-gelap" title="Diubah guru">*</span>}
+            </span>
+          </>
+        ) : <span className="text-[13px] font-semibold text-teks-3">–</span>}
       </span>
     </button>
   )
@@ -317,17 +332,22 @@ function PanelMurid({ peserta, hasil, soalList, aktif, onVeto }: {
   return (
     <div className="bg-white rounded-[18px] border border-garis">
       <div className="flex items-center gap-3.5 px-5.5 pt-5.5">
-        <div className="w-13 h-13 rounded-[14px] bg-biru-tint text-biru flex items-center justify-center text-xl font-extrabold shrink-0">
+        <div className="w-12 h-12 rounded-[14px] bg-biru-tint text-biru flex items-center justify-center text-[19px] font-extrabold shrink-0">
           {peserta.nama.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[19px] font-extrabold tracking-tight text-tinta truncate">{peserta.nama}</p>
-          <p className="text-[13px] text-teks-3">
-            {teks}{sinyal && <span className="text-jingga-gelap font-bold"> · {sinyal}</span>}
+          <p className="text-[13.5px] text-teks-3">
+            {teks}{sinyal && <span> · {sinyal}</span>}
           </p>
         </div>
         {sudahKirim
-          ? <p className="text-[46px] font-extrabold tracking-tight leading-none text-tinta">{hasil!.nilai}</p>
+          ? (
+            <div className="text-right">
+              <p className="text-[44px] font-extrabold tracking-tight leading-none text-tinta">{hasil!.nilai}</p>
+              <p className="text-[12.5px] text-teks-3 mt-0.5">dari 100</p>
+            </div>
+          )
           : <Badge warna="slate">Belum ada nilai</Badge>}
       </div>
       <JawabanMurid hasil={hasil} soalList={soalList} onVeto={onVeto} kelas="px-5.5 pt-4 pb-5.5" />
@@ -420,7 +440,7 @@ function JawabanMurid({ hasil, soalList, onVeto, kelas = 'px-4 pt-3 pb-4' }: {
   return (
     <div className={`${kelas} flex flex-col gap-2.5`}>
       {hasil?.nilaiId ? (
-        <div className="rounded-[14px] bg-white border border-garis px-3 py-3 flex flex-wrap items-center gap-2">
+        <div className="rounded-[14px] bg-white border border-garis px-3 py-3 flex flex-wrap items-center gap-2 lg:bg-isian lg:border-garis-2 lg:p-3.5">
           <p className="text-[13px] text-tinta-2 flex-1 min-w-40 leading-snug">
             Nilai otomatis dari {benar} benar dari {soalList.length} soal{hasil.diubahGuru && '. Sudah diubah guru'}.
           </p>
@@ -446,6 +466,7 @@ function JawabanMurid({ hasil, soalList, onVeto, kelas = 'px-4 pt-3 pb-4' }: {
               <p className="flex-1 min-w-0 text-[13.5px] font-semibold leading-snug text-tinta whitespace-pre-wrap break-words">{s.pertanyaan}</p>
               {dipilih === undefined && <span className="text-xs font-bold text-jingga-gelap shrink-0">Tidak dijawab</span>}
             </div>
+            {s.gambar && <GambarSoal path={s.gambar} ukuran="kecil" className="mt-2" />}
             <div className="mt-2 flex flex-col gap-1">
               {s.pilihan.map((p, j) => {
                 const kunci = j === s.jawabanBenar
@@ -454,8 +475,10 @@ function JawabanMurid({ hasil, soalList, onVeto, kelas = 'px-4 pt-3 pb-4' }: {
                 const status: StatusGelembung = pilihMurid ? (kunci ? 'benar' : 'salah') : kunci ? 'kunci' : 'kosong'
                 const kata = pilihMurid ? (kunci ? 'Kunci · dijawab' : 'Dijawab salah') : kunci ? 'Kunci' : null
                 return (
-                  <div key={j} className={`flex items-center gap-2.5 px-2 py-1.5 rounded-[10px] ${
-                    pilihMurid ? (kunci ? 'bg-hijau-tint' : 'bg-jingga-tint') : ''}`}>
+                  <div key={j} className={`flex items-center gap-2.5 px-2 py-1.5 rounded-[10px] lg:border ${
+                    pilihMurid
+                      ? (kunci ? 'bg-hijau-tint lg:border-hijau' : 'bg-jingga-tint lg:border-jingga-garis')
+                      : kunci ? 'lg:border-hijau' : 'lg:border-transparent'}`}>
                     <Gelembung indeks={j} ukuran="sm" status={status} />
                     <span className={`flex-1 min-w-0 text-[13.5px] text-tinta break-words ${pilihMurid || kunci ? 'font-bold' : ''}`}>{p}</span>
                     {kata && (

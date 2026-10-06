@@ -27,7 +27,7 @@ export function DialogBuatSuperSesi({ onTutup, onDibuat }: {
   }
 
   return (
-    <Dialog judul="Buat Super Sesi" onTutup={sibuk ? undefined : onTutup}
+    <Dialog judul="Buat Super Sesi" onTutup={sibuk ? undefined : onTutup} lebar="max-w-md lg:max-w-160"
       aksi={<>
         <Button variant="ghost" onClick={onTutup} disabled={sibuk}>Batal</Button>
         <Button onClick={() => void buat()} disabled={sibuk}>{sibuk ? 'Membuat…' : 'Buat'}</Button>
@@ -38,6 +38,22 @@ export function DialogBuatSuperSesi({ onTutup, onDibuat }: {
           onChange={e => setJudul(e.target.value)} autoFocus />
         <Input label="Keterangan (opsional)" placeholder="mis. Kelas 7-9, 25 November 2026" value={deskripsi}
           onChange={e => setDeskripsi(e.target.value)} />
+        {/* Desktop: alur lengkapnya dikatakan sebelum dibuat -- siapa mengerjakan apa. */}
+        <div className="hidden lg:block rounded-2xl bg-isian border border-garis-2 px-4.5 py-4">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-teks-3 mb-3">Setelah dibuat</p>
+          <ol className="flex flex-col gap-3">
+            {[
+              'Guru mapel mengirim formulir soal ke Super Sesi ini lewat tombol Kirim.',
+              <>Kamu menekan <strong className="text-tinta">Mulai Super Sesi</strong> setelah semua kiriman masuk.</>,
+              'Guru mana pun di sekolahmu mengambil kelasnya dan mengawas. Kamu memantau semuanya dari sini.',
+            ].map((langkah, i) => (
+              <li key={i} className="flex gap-3 items-start">
+                <span className="w-6 h-6 rounded-full bg-tinta text-white flex items-center justify-center text-[12.5px] font-extrabold shrink-0">{i + 1}</span>
+                <span className="text-sm leading-snug text-tinta-2">{langkah}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
         {galat && <p className="text-sm text-jingga-gelap">{galat}</p>}
       </div>
     </Dialog>

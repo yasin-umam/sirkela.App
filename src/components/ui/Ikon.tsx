@@ -33,7 +33,10 @@ const PATH = {
   kunciJawaban: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-5 7l2 2 4-4',
   dokumen: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   soal: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
-  sesi: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+  // Gelombang siaran (titik + dua lingkar busur): "sesi yang sedang disiarkan ke
+  // kelas". Sebelum 2026-10-06 berupa kunci, yang membingungkan dengan `kunci`
+  // (kunci layar) di layar yang sama.
+  sesi: ['M12 10a2 2 0 100 4 2 2 0 000-4z', 'M16.24 7.76a6 6 0 010 8.49m-8.48-.01a6 6 0 010-8.49m11.31-2.82a10 10 0 010 14.14m-14.14 0a10 10 0 010-14.14'],
   profil: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
   // Ikon tab "Menu" -- path yang sama dengan BottomNav Luang.
   kisi: 'M4 5h7v7H4V5zm9 0h7v7h-7V5zM4 14h7v7H4v-7zm9 0h7v7h-7v-7z',
@@ -60,9 +63,13 @@ const PATH = {
   // dipakai satu-satunya untuk Generate dari Topik supaya "ini yang mengarang
   // dari nol" gampang dibedakan sekilas dari ikon "impor" (baca dokumen).
   ai: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.456-2.456L14.25 6l1.035-.259a3.375 3.375 0 002.456-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z',
+  // Bingkai foto dengan gunung dan matahari: tombol "Tambah gambar" di kartu soal.
+  gambar: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
   // Tiga titik -- garis nol-panjang + strokeLinecap round, trik yang sama
   // dipakai titik seru `galat` di atas.
   lainnya: 'M12 6h.01M12 12h.01M12 18h.01',
+  // Kaca pembesar -- kolom cari di Riwayat desktop.
+  cari: 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z',
 } satisfies Record<string, string | string[]>
 
 export type NamaIkon = keyof typeof PATH

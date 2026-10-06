@@ -28,7 +28,7 @@ export function Pratinjau({ onTutup }: { onTutup: () => void }) {
             {soal.length} pertanyaan · durasi ditentukan saat sesi dibuka
           </KartuKepalaMurid>
           {soal.map((s, i) => (
-            <KartuSoalMurid key={s.id} nomor={i + 1} pertanyaan={s.pertanyaan.trim() || 'Pertanyaan'} pilihan={s.pilihan}
+            <KartuSoalMurid key={s.id} nomor={i + 1} pertanyaan={s.pertanyaan.trim() || 'Pertanyaan'} gambar={s.gambar} pilihan={s.pilihan}
               dipilih={pilihan[s.id]} onPilih={j => setPilihan(p => ({ ...p, [s.id]: j }))} />
           ))}
           <div className="flex items-center gap-3 pt-1 pb-8">

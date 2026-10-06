@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Gelembung } from './Gelembung'
+import { GambarSoal } from './GambarSoal'
 
 // ─── Kerangka layar murid ────────────────────────────────────────────────────
 // Dipakai layar murid (MuridSesiPage, KerjakanSesi) DAN pratinjau guru, supaya
@@ -43,11 +44,13 @@ export function KartuKepalaMurid({ judul, deskripsi, penanda = 'Sesi kelas', chi
   )
 }
 
-export function KartuSoalMurid({ nomor, pertanyaan, pilihan, dipilih, onPilih, catatan }: {
+export function KartuSoalMurid({ nomor, pertanyaan, gambar, pilihan, dipilih, onPilih, catatan }: {
   /** Nomor urut yang tampil di pojok kartu. Tanpa ini murid tidak punya cara
    *  menyebut soal mana yang ia tanyakan ke gurunya. */
   nomor?: number
   pertanyaan: string
+  /** Path gambar soal (bucket `gambar-soal`), tampil di antara pertanyaan dan opsi. */
+  gambar?: string | null
   pilihan: string[]
   dipilih: number | undefined
   onPilih: (i: number) => void
@@ -66,6 +69,7 @@ export function KartuSoalMurid({ nomor, pertanyaan, pilihan, dipilih, onPilih, c
           {pertanyaan}
         </p>
       </div>
+      {gambar && <GambarSoal path={gambar} />}
       <div role="radiogroup" aria-label="Pilihan jawaban" className="flex flex-col gap-2">
         {pilihan.map((p, j) => {
           const nyala = dipilih === j

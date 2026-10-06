@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { hasilUji } from './ujiTampilan'
 import type { KontenItem, HasilSoal, PesertaSesi } from '../types'
 
 /**
@@ -38,6 +39,7 @@ export interface JawabanSoalMurid {
  * sama dengan daftar "Murid Bergabung".
  */
 export async function bacaHasilSoalSesi(sesiId: string, peserta: PesertaSesi[]): Promise<JawabanSoalMurid[]> {
+  if (import.meta.env.VITE_UJI_TAMPILAN) return hasilUji(peserta)
   const [jawabanRes, nilaiRes] = await Promise.all([
     supabase.from('jawaban_sesi').select('murid_id, soal_id, jawaban').eq('sesi_id', sesiId),
     supabase.from('nilai_murid').select('id, murid_id, nilai, diubah_guru').eq('sesi_id', sesiId),
@@ -79,6 +81,7 @@ export async function bacaHasilSoalSesi(sesiId: string, peserta: PesertaSesi[]):
  * terlihat sama dengan hitungan otomatis.
  */
 export async function vetoNilaiSesi(nilaiId: string, nilaiBaru: number): Promise<void> {
+  if (import.meta.env.VITE_UJI_TAMPILAN) return
   const { error } = await supabase
     .from('nilai_murid')
     .update({ nilai: nilaiBaru, diubah_guru: true })

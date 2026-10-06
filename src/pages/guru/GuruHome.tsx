@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 import { LayarAktif, useKembali } from '../../context/NavContext'
 import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
+import { useSuperSesi } from '../../context/SuperSesiContext'
+import { AksiGuruProvider, type AksiGuru } from '../../context/AksiGuruContext'
 import { BottomNav, type TabGuru } from '../../components/BottomNav'
 import { SidebarGuru } from '../../components/SidebarGuru'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
@@ -15,6 +17,7 @@ import { ProfilePage } from './ProfilePage'
 import { EditorFormulir } from './EditorFormulir'
 import { DialogImpor } from './DialogImpor'
 import { DialogSesiBaru } from './DialogSesiBaru'
+import { DialogBuatSuperSesi } from '../kepsek/DialogBuatSuperSesi'
 
 // ─── Rumah guru: Riwayat · Menu · Saya ───────────────────────────────────────
 // Shell yang sama dengan Luang, sampai ke pembagian tabnya:
@@ -45,14 +48,21 @@ export function GuruHome() {
   const { user, logout } = useAuth()
   const { aktif, pilihFormulir, buatFormulir, simpanSekarang } = useFormulir()
   const { semuaSesi, fokuskan } = useSesi()
+  const { fokuskan: fokuskanSuper } = useSuperSesi()
 
   const [tab, setTab] = useState<TabGuru>('menu')
   /** id formulir yang sedang disunting layar penuh. null = tidak ada. */
   const [editor, setEditor] = useState<string | null>(null)
   const [impor, setImpor] = useState<{ tujuan: 'baru' | 'ini'; metode?: 'teks' | 'pdf' | 'ai' } | null>(null)
   const [membuat, setMembuat] = useState(false)
-  /** Dialog "Mulai sesi baru" dari kartu Sesi di Menu: pilih formulir -> Kirim. */
-  const [sesiBaru, setSesiBaru] = useState(false)
+  /**
+   * Dialog "Mulai sesi baru": pilih formulir -> Kirim. Dibuka dari kartu Sesi di
+   * Menu (tanpa `formulirId`: guru memilih) atau tombol Kirim di baris formulir
+   * desktop (dengan `formulirId`: formulirnya sudah dipilih).
+   */
+  const [sesiBaru, setSesiBaru] = useState<{ formulirId?: string } | null>(null)
+  /** Dialog Buat Super Sesi (kepala sekolah), dibuka dari Menu desktop. */
+  const [buatSuper, setBuatSuper] = useState(false)
   const [keluar, setKeluar] = useState(false)
   const [sibuk, setSibuk] = useState(false)
   const [galatKeluar, setGalatKeluar] = useState<string | null>(null)
@@ -140,8 +150,22 @@ export function GuruHome() {
     setTab(t)
   }
 
-  function bukaSuperSesi() {
+  function bukaSuperSesi(id?: string) {
+    if (id) fokuskanSuper(id)
     setTab('superSesi')
+  }
+
+  // Bilah atas desktop (BilahAtas) dan Menu desktop meminjam aksi-aksi ini.
+  const aksi: AksiGuru = {
+    formulirBaru: () => void formulirBaru(),
+    imporDariLuar: metode => setImpor({ tujuan: 'baru', metode }),
+    mulaiSesiBaru: formulirId => setSesiBaru({ formulirId }),
+    bukaSesi,
+    buatSuperSesi: () => setBuatSuper(true),
+    keSuperSesi: bukaSuperSesi,
+    keRiwayat: () => { setNavHidden(false); setTab('riwayat') },
+    bukaFormulir: bukaEditor,
+    membuat,
   }
 
   function pantauSesi(id: string) {
@@ -183,6 +207,7 @@ export function GuruHome() {
   const sesiBerjalan = semuaSesi.filter(s => s.status === 'aktif').length
 
   return (
+    <AksiGuruProvider value={aksi}>
     <div className="relative h-full flex bg-alas">
       {/* Anak PERTAMA = diperiksa paling akhir: pulang ke Menu baru dikerjakan
           setelah semua lapisan di atasnya sempat menutup diri. Tab Sesi &
@@ -216,8 +241,8 @@ export function GuruHome() {
               onBaru={() => void formulirBaru()}
               onImpor={metode => setImpor({ tujuan: 'baru', metode })}
               onKeSesi={bukaSesi}
-              onMulaiSesi={() => setSesiBaru(true)}
-              onKeSuperSesi={bukaSuperSesi}
+              onMulaiSesi={() => setSesiBaru({})}
+              onKeSuperSesi={() => bukaSuperSesi()}
             />
           </LayarAktif>
         </div>
@@ -267,11 +292,16 @@ export function GuruHome() {
       )}
 
       {sesiBaru && (
-        <DialogSesiBaru
-          onTutup={() => setSesiBaru(false)}
-          onBaru={() => { setSesiBaru(false); void formulirBaru() }}
-          onPerbaiki={() => { setSesiBaru(false); if (aktif) setEditor(aktif.id) }}
-          onPantauSesi={id => { setSesiBaru(false); pantauSesi(id) }} />
+        <DialogSesiBaru formulirId={sesiBaru.formulirId}
+          onTutup={() => setSesiBaru(null)}
+          onBaru={() => { setSesiBaru(null); void formulirBaru() }}
+          onPerbaiki={() => { setSesiBaru(null); if (aktif) setEditor(aktif.id) }}
+          onPantauSesi={id => { setSesiBaru(null); pantauSesi(id) }} />
+      )}
+
+      {buatSuper && (
+        <DialogBuatSuperSesi onTutup={() => setBuatSuper(false)}
+          onDibuat={id => { setBuatSuper(false); bukaSuperSesi(id) }} />
       )}
 
       {keluar && (
@@ -294,11 +324,13 @@ export function GuruHome() {
           ditutup satu per satu dari yang paling atas. */}
       <Penjaga tangani={() => {
         if (keluar) { if (!sibuk) setKeluar(false); return true }
-        if (sesiBaru) { setSesiBaru(false); return true }
+        if (buatSuper) { setBuatSuper(false); return true }
+        if (sesiBaru) { setSesiBaru(null); return true }
         if (impor) { setImpor(null); return true }
         return false
       }} />
     </div>
+    </AksiGuruProvider>
   )
 }
 

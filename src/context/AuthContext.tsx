@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo } 
 import type { ReactNode } from 'react'
 import type { User, Role } from '../types'
 import { supabase } from '../lib/supabase'
+import { PERAN_UJI } from '../lib/ujiTampilan'
 
 interface AuthContextValue {
   user: User | null
@@ -22,6 +23,8 @@ interface AuthContextValue {
    */
   masukTamu: () => Promise<string | null>
   logout: () => Promise<void>
+  /** Akun sudah terhubung ke sekolah (gabungSekolah berhasil): layar kode tidak tampil lagi. */
+  selesaiKodeSekolah: () => void
   updateNama: (nama: string) => Promise<string | null>
   sendPasswordReset: (email: string) => Promise<string | null>
   updatePassword: (password: string) => Promise<string | null>
@@ -31,11 +34,16 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   if (import.meta.env.VITE_UJI_TAMPILAN) {
+    const kepsek = PERAN_UJI === 'kepala_sekolah'
+    const [perluKode, setPerluKode] = useState(!!import.meta.env.VITE_UJI_KODE_SEKOLAH)
     const value: AuthContextValue = {
-      user: { id: 'g1', nama: 'Guru Uji', email: 'guru@uji.test', role: 'guru' },
+      user: kepsek
+        ? { id: 'g1', nama: 'Pak Budi', email: 'kepsek@uji.test', role: 'kepala_sekolah' }
+        // VITE_UJI_KODE_SEKOLAH=1: guru lama di "Sekolah Default" (layar Hubungkan ke Sekolah).
+        : { id: 'g1', nama: 'Bu Ratna', email: 'ratna@uji.test', role: 'guru', perluKodeSekolah: perluKode },
       authLoading: false, passwordRecovery: false,
       clearPasswordRecovery: () => {}, login: async () => null, register: async () => null,
-      masukTamu: async () => null, logout: async () => {}, updateNama: async () => null,
+      masukTamu: async () => null, logout: async () => {}, selesaiKodeSekolah: () => setPerluKode(false), updateNama: async () => null,
       sendPasswordReset: async () => null, updatePassword: async () => null,
     }
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -56,7 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!profile) return 'Profil tidak ditemukan. Silakan daftar ulang.'
 
     const p = profile as { nama: string; role: Role }
-    setUser({ id: userId, nama: p.nama, email, role: p.role })
+    // Guru lama yang masih di "Sekolah Default" diminta kode sekolah SEKALI
+    // (HubungkanSekolahPage). Gagal bertanya -- mis. migrasinya belum di-push --
+    // dianggap "tidak perlu": login tidak boleh macet gara-gara fitur tambahan.
+    let perluKodeSekolah = false
+    if (p.role === 'guru') {
+      const { data } = await supabase.rpc('perlu_kode_sekolah')
+      perluKodeSekolah = data === true
+    }
+    setUser({ id: userId, nama: p.nama, email, role: p.role, perluKodeSekolah })
     return null
   }
 
@@ -135,6 +151,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const selesaiKodeSekolah = useCallback(() => {
+    setUser(prev => prev ? { ...prev, perluKodeSekolah: false } : prev)
+  }, [])
+
   const updateNama = useCallback(async (nama: string): Promise<string | null> => {
     if (!user) return 'Belum login'
     const bersih = nama.trim()
@@ -161,8 +181,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(() => ({
     user, authLoading, passwordRecovery, clearPasswordRecovery,
-    login, register, masukTamu, logout, updateNama, sendPasswordReset, updatePassword,
-  }), [user, authLoading, passwordRecovery, clearPasswordRecovery, login, register, masukTamu, logout, updateNama, sendPasswordReset, updatePassword])
+    login, register, masukTamu, logout, selesaiKodeSekolah, updateNama, sendPasswordReset, updatePassword,
+  }), [user, authLoading, passwordRecovery, clearPasswordRecovery, login, register, masukTamu, logout, selesaiKodeSekolah, updateNama, sendPasswordReset, updatePassword])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

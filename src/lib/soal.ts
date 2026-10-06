@@ -61,3 +61,14 @@ export function labelWaktu(iso: string): string {
 export function jamMenit(iso: string): string {
   return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
+
+/** "Hari ini, 09:12" / "Kemarin, 14:30" / "Minggu ini" / "6 Oktober": untuk sel tabel desktop. */
+export function waktuRingkas(iso: string): string {
+  const l = labelWaktu(iso)
+  return l === 'Hari ini' || l === 'Kemarin' ? `${l}, ${jamMenit(iso)}` : l
+}
+
+/** "12 September 2026". */
+export function tanggalLengkap(iso: string): string {
+  return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+}

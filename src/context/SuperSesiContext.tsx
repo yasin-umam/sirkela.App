@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { SuperSesi, SubmisiSuperSesi, MuridSuperSesi } from '../types'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { PERAN_UJI, submisiUji, superSesiUji } from '../lib/ujiTampilan'
 
 // ─── Super Sesi milik kepala sekolah ─────────────────────────────────────────
 // Sama pola fokus/fokuskan dengan SesiContext, tapi TANPA Realtime: kepala
@@ -51,9 +52,17 @@ interface SuperSesiContextValue {
   memuat: boolean
   fokus: SuperSesi | null
   fokuskan: (id: string | null) => void
+  /**
+   * Super Sesi yang paling relevan SEKARANG (yang berjalan, kalau tidak ada yang
+   * mengumpulkan) -- dipantau terus walau tidak ada yang difokuskan, supaya
+   * konsol di Menu kepala sekolah punya angkanya tanpa membuka layar Super Sesi.
+   */
+  bawaan: SuperSesi | null
   buatSuperSesi: (judul: string, deskripsi: string) => Promise<string>
   /** null = belum dimuat sama sekali (beda dari [] = sudah dimuat, kosong). */
   submisi: SubmisiSuperSesi[] | null
+  /** Super Sesi mana yang dimiliki `submisi` -- fokus kalau ada, kalau tidak `bawaan`. */
+  submisiId: string | null
   memuatSubmisi: boolean
   /**
    * Pengawas TIDAK LAGI ditugaskan kepala sekolah -- sejak migrasi
@@ -108,11 +117,34 @@ function petakanKiriman(k: KirimanServer): SubmisiSuperSesi {
 }
 
 export function SuperSesiProvider({ children }: { children: ReactNode }) {
+  if (import.meta.env.VITE_UJI_TAMPILAN) {
+    // Data contoh di lib/ujiTampilan.ts; tidak menyentuh server.
+    const [semuaSuperSesi, setSemuaSuperSesi] = useState<SuperSesi[]>(() => (PERAN_UJI === 'kepala_sekolah' ? superSesiUji() : []))
+    const [fokusId, setFokusId] = useState<string | null>(null)
+    const fokus = semuaSuperSesi.find(s => s.id === fokusId) ?? null
+    const bawaan = semuaSuperSesi.find(s => s.status === 'berjalan') ?? semuaSuperSesi.find(s => s.status === 'mengumpulkan') ?? null
+    const idPantau = fokusId ?? bawaan?.id ?? null
+    const tak = async () => {}
+    const value: SuperSesiContextValue = {
+      semuaSuperSesi, memuat: false, fokus, fokuskan: setFokusId, bawaan,
+      buatSuperSesi: async (judul, deskripsi) => {
+        const baru: SuperSesi = { id: `ss${Date.now()}`, judul, deskripsi, status: 'mengumpulkan', mulaiPada: null, dibuatPada: new Date().toISOString() }
+        setSemuaSuperSesi(p => [baru, ...p])
+        return baru.id
+      },
+      submisi: idPantau ? submisiUji(idPantau) : null, submisiId: idPantau, memuatSubmisi: false,
+      mulaiSuperSesi: async id => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, status: 'berjalan', mulaiPada: new Date().toISOString() } : s)) },
+      bukaKunciMuridSuper: tak, bukaKunciSemuaSuper: tak, aturKunciLayarSuper: tak,
+    }
+    return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>
+  }
+
   const { user } = useAuth()
   const [semuaSuperSesi, setSemuaSuperSesi] = useState<SuperSesi[]>([])
   const [memuat, setMemuat] = useState(false)
   const [fokusId, setFokusId] = useState<string | null>(null)
   const [submisi, setSubmisi] = useState<SubmisiSuperSesi[] | null>(null)
+  const [submisiId, setSubmisiId] = useState<string | null>(null)
   const [memuatSubmisi, setMemuatSubmisi] = useState(false)
 
   useEffect(() => {
@@ -136,27 +168,38 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
   const fokuskan = useCallback((id: string | null) => {
     setFokusId(id)
     setSubmisi(null)
+    setSubmisiId(null)
   }, [])
+
+  // Yang berjalan dulu, baru yang masih mengumpulkan. Yang selesai tidak pernah
+  // dipantau sendiri-sendiri: cuma lewat fokus.
+  const bawaan = useMemo(
+    () => semuaSuperSesi.find(s => s.status === 'berjalan') ?? semuaSuperSesi.find(s => s.status === 'mengumpulkan') ?? null,
+    [semuaSuperSesi])
+  const idPantau = fokusId ?? bawaan?.id ?? null
 
   const muatSubmisiRef = useRef<() => Promise<void>>(async () => {})
 
   useEffect(() => {
-    if (!fokusId) return
+    setSubmisi(null)
+    setSubmisiId(null)
+    if (!idPantau) return
     let batal = false
     async function muat() {
       setMemuatSubmisi(true)
-      const { data, error } = await supabase.rpc('pantau_super_sesi', { p_super_sesi_id: fokusId })
+      const { data, error } = await supabase.rpc('pantau_super_sesi', { p_super_sesi_id: idPantau })
       if (batal) return
       setMemuatSubmisi(false)
       if (error) return
       const kiriman = (data as { kiriman?: KirimanServer[] })?.kiriman ?? []
       setSubmisi(kiriman.map(petakanKiriman))
+      setSubmisiId(idPantau)
     }
     muatSubmisiRef.current = muat
     void muat()
     const id = setInterval(() => void muat(), JEDA_POLING_MS)
     return () => { batal = true; clearInterval(id) }
-  }, [fokusId])
+  }, [idPantau])
 
   const buatSuperSesi = useCallback(async (judul: string, deskripsi: string): Promise<string> => {
     const { data, error } = await supabase
@@ -193,10 +236,10 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<SuperSesiContextValue>(() => ({
-    semuaSuperSesi, memuat, fokus, fokuskan, buatSuperSesi,
-    submisi, memuatSubmisi, mulaiSuperSesi,
+    semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi,
+    submisi, submisiId, memuatSubmisi, mulaiSuperSesi,
     bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper,
-  }), [semuaSuperSesi, memuat, fokus, fokuskan, buatSuperSesi, submisi, memuatSubmisi, mulaiSuperSesi,
+  }), [semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi, submisi, submisiId, memuatSubmisi, mulaiSuperSesi,
       bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper])
 
   return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>

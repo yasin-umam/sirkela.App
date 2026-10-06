@@ -9,6 +9,8 @@ import { Input } from '../../components/ui/Input'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { Ikon, type NamaIkon } from '../../components/ui/Ikon'
 import { NAMA_APLIKASI } from '../../lib/aplikasi'
+import { useDesktop } from '../../lib/useDesktop'
+import { BilahAtas } from '../../components/BilahAtas'
 
 // ─── Tab Saya ────────────────────────────────────────────────────────────────
 // Bentuknya mengikuti ProfilePage Luang: kartu profil di puncak, lalu grup baris
@@ -74,6 +76,7 @@ export function ProfilePage({ onKeluar, onLayarPenuh }: {
   const { daftar } = useFormulir()
   const { semuaSesi } = useSesi()
   const [sub, setSub] = useState<SubHalaman>(null)
+  const desktop = useDesktop()
   useEffect(() => {
     onLayarPenuh(sub !== null)
     return () => onLayarPenuh(false)
@@ -84,6 +87,9 @@ export function ProfilePage({ onKeluar, onLayarPenuh }: {
     setSub(null)
     return true
   })
+
+  // Desktop: profil & Akun Saya satu halaman (tanpa sub-halaman layar penuh).
+  if (desktop) return <ProfilDesktop onKeluar={onKeluar} />
 
   if (sub === 'akun') return <AkunSaya onKembali={() => setSub(null)} />
 
@@ -202,6 +208,122 @@ function AkunSaya({ onKembali }: { onKembali: () => void }) {
           <p className="text-[11px] text-teks-3 mt-2 leading-relaxed">
             Email dipakai untuk masuk dan mengatur ulang password. Mengubahnya belum didukung.
           </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Saya desktop (≥ 1024px) ─────────────────────────────────────────────────
+// Kiri: kartu akun dengan form nama di tempat (Akun Saya tidak jadi sub-halaman),
+// lalu Akses. Kanan: isi akun (angka untuk memastikan akunnya benar) dan Keluar.
+
+function ProfilDesktop({ onKeluar }: { onKeluar: () => void }) {
+  const { user, updateNama } = useAuth()
+  const { daftar } = useFormulir()
+  const { semuaSesi } = useSesi()
+  const [nama, setNama] = useState(user?.nama ?? '')
+  const [menyimpan, setMenyimpan] = useState(false)
+  const [galat, setGalat] = useState<string | null>(null)
+  const [tersimpan, setTersimpan] = useState(false)
+
+  const berubah = nama.trim() !== (user?.nama ?? '').trim() && nama.trim() !== ''
+  const totalSoal = daftar.reduce((n, f) => n + f.jumlahSoal, 0)
+
+  async function simpan() {
+    setMenyimpan(true); setGalat(null)
+    const err = await updateNama(nama)
+    setMenyimpan(false)
+    if (err) { setGalat(err); return }
+    setTersimpan(true)
+    setTimeout(() => setTersimpan(false), 2000)
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-alas">
+      <BilahAtas judul="Saya" />
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar">
+        <div className="px-8 pt-7 pb-10 max-w-350 mx-auto grid grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+          <div className="flex flex-col gap-6 min-w-0">
+            <section aria-label="Akun saya" className="bg-white rounded-[18px] border border-garis px-7 py-6.5 flex flex-col gap-5.5">
+              <div className="flex items-center gap-4.5">
+                <span className="w-17 h-17 rounded-[20px] bg-tinta text-white flex items-center justify-center text-[28px] font-extrabold shrink-0">
+                  {(user?.nama ?? '?').charAt(0).toUpperCase()}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-tinta truncate">{user?.nama}</h2>
+                  <p className="text-[14.5px] text-teks-3 mt-1 truncate">{user?.email}</p>
+                </div>
+                <span className="text-[13px] font-bold px-3.5 py-1.25 rounded-full bg-biru-tint text-biru shrink-0">
+                  {user?.role === 'kepala_sekolah' ? 'Kepala sekolah' : 'Guru'}
+                </span>
+              </div>
+              <div className="h-px bg-garis-2" />
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="nama-saya" className="block text-[13.5px] font-bold text-tinta mb-2">Nama</label>
+                  <input id="nama-saya" value={nama} onChange={e => { setNama(e.target.value); setGalat(null) }}
+                    autoComplete="name" placeholder="Nama yang dilihat muridmu"
+                    className="w-full h-11.5 rounded-xl border-[1.5px] border-pinggir-2 bg-white px-3.5 text-[15px] text-tinta outline-none focus:border-biru transition-colors" />
+                  <p className="mt-1.5 text-[12.5px] text-teks-3">Muncul di daftar hasil dan pesan bagikan sesi.</p>
+                </div>
+                <div>
+                  <label htmlFor="email-saya" className="block text-[13.5px] font-bold text-tinta mb-2">Email</label>
+                  <input id="email-saya" value={user?.email ?? ''} readOnly
+                    className="w-full h-11.5 rounded-xl border-[1.5px] border-garis-2 bg-isian px-3.5 text-[15px] text-teks-3 outline-none" />
+                  <p className="mt-1.5 text-[12.5px] text-teks-3">Dipakai untuk masuk dan mengatur ulang password. Belum bisa diubah.</p>
+                </div>
+              </div>
+              {galat && <p className="text-sm font-medium text-jingga-gelap">{galat}</p>}
+              <div className="flex items-center gap-3">
+                <Button disabled={!berubah || menyimpan} onClick={() => void simpan()}>
+                  {menyimpan ? 'Menyimpan…' : 'Simpan'}
+                </Button>
+                <span className={`text-[13px] ${tersimpan ? 'font-bold text-hijau' : 'text-teks-3'}`}>
+                  {tersimpan ? 'Tersimpan' : berubah ? 'Ada perubahan belum disimpan' : 'Tidak ada perubahan'}
+                </span>
+              </div>
+            </section>
+
+            <section aria-label="Akses" className="bg-white rounded-[18px] border border-garis px-7 py-5">
+              <div className="flex items-center gap-3.5">
+                <span className="w-10.5 h-10.5 rounded-xl bg-garis-2 text-pinggir flex items-center justify-center shrink-0">
+                  <Ikon nama="perisai" className="w-5.25 h-5.25" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold text-teks-3">Setelan otorisasi</p>
+                  <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">Siapa boleh membuka dan menilai sesi milikmu. Belum dibangun, akan muncul di sini.</p>
+                </div>
+                <span className="text-xs font-bold text-tinta-2 bg-garis-2 px-3 py-1 rounded-full shrink-0">Segera</span>
+              </div>
+            </section>
+          </div>
+
+          <div className="flex flex-col gap-6 min-w-0">
+            <section aria-label="Isi akun" className="bg-white rounded-[18px] border border-garis p-5.5">
+              <h3 className="text-[16.5px] font-extrabold tracking-tight text-tinta mb-3.5">Isi akunmu</h3>
+              <div className="grid grid-cols-3">
+                {([['Formulir', daftar.length], ['Pertanyaan', totalSoal], ['Sesi', semuaSesi.length]] as const).map(([label, n], i) => (
+                  <div key={label} className={i === 0 ? '' : 'pl-4 border-l border-garis-2'}>
+                    <p className="text-[32px] font-extrabold tracking-tight leading-[1.1] text-tinta">{n}</p>
+                    <p className="text-[13px] text-teks-3 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3.5 text-[13px] leading-normal text-teks-3">
+                Gunakan angka ini untuk memastikan kamu masuk ke akun yang benar sebelum menulis apa pun.
+              </p>
+            </section>
+
+            <button type="button" onClick={onKeluar}
+              className="w-full flex items-center gap-3.5 px-5.5 py-4.5 rounded-[18px] border border-jingga-garis bg-white text-left hover:bg-jingga-tipis transition-colors">
+              <Ikon nama="keluar" className="w-5 h-5 text-jingga" tebal={1.9} />
+              <span className="flex-1">
+                <span className="block text-[15px] font-bold text-jingga-gelap">Keluar</span>
+                <span className="block text-[13px] text-teks-3 mt-px">Formulirmu tersimpan di akun</span>
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

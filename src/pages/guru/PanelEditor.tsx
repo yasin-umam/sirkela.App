@@ -1,6 +1,7 @@
 import type { Formulir, Soal } from '../../types'
 import { masalahFormulir, masalahSoal } from '../../lib/soal'
 import { Gelembung } from '../../components/Gelembung'
+import { GambarSoal } from '../../components/GambarSoal'
 import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Eyebrow } from '../../components/ui/Eyebrow'
@@ -17,18 +18,30 @@ function kapital(s: string) {
 }
 
 /** Daftar nomor pertanyaan: ketuk untuk melompat, ikon menandai yang belum lengkap. */
-export function RelPertanyaan({ soal, aktifId, onPilih, onTambah, onImpor }: {
+export function RelPertanyaan({ soal, aktifId, onPilih, onTambah }: {
   soal: Soal[]
   aktifId: string | null
   onPilih: (id: string) => void
   onTambah: () => void
-  onImpor: () => void
 }) {
+  const berkunci = soal.filter(s => s.jawabanBenar !== null).length
   return (
     <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-1.5 bg-white border-r border-garis px-4 py-5.5 overflow-y-auto hide-scrollbar">
-      <Eyebrow className="mb-2.5">Pertanyaan · {soal.length}</Eyebrow>
+      <Eyebrow className="px-1">Pertanyaan · {soal.length}</Eyebrow>
+      {/* Berapa soal yang sudah punya kunci: yang paling sering menahan Kirim. */}
+      {soal.length > 0 && (
+        <div className="px-1 pt-2 pb-2.5">
+          <div className="flex justify-between text-[12.5px] text-tinta-2">
+            <span>Kunci jawaban</span>
+            <span className="font-extrabold text-tinta">{berkunci} dari {soal.length}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-biru-tint overflow-hidden mt-1.5">
+            <div className="h-full bg-biru" style={{ width: `${(berkunci / soal.length) * 100}%` }} />
+          </div>
+        </div>
+      )}
       {soal.length === 0 && (
-        <p className="text-[13px] text-teks-3 leading-relaxed px-1">Belum ada pertanyaan. Tulis satu atau impor dari luar.</p>
+        <p className="text-[13px] text-teks-3 leading-relaxed px-1 mt-2">Belum ada pertanyaan. Tulis satu, atau impor dari luar lewat tombol Impor soal di atas.</p>
       )}
       {soal.map((s, i) => {
         const masalah = masalahSoal(s)
@@ -54,10 +67,6 @@ export function RelPertanyaan({ soal, aktifId, onPilih, onTambah, onImpor }: {
       <button type="button" onClick={onTambah}
         className="mt-2.5 h-11.5 rounded-xl border-[1.5px] border-dashed border-pinggir text-sm font-bold text-biru flex items-center justify-center gap-1.75 hover:bg-biru-tipis transition-colors">
         <Ikon nama="tambah" className="w-4 h-4" tebal={2.4} />Tambah pertanyaan
-      </button>
-      <button type="button" onClick={onImpor}
-        className="h-11.5 rounded-xl text-sm font-bold text-tinta-2 flex items-center justify-center gap-1.75 hover:bg-isian transition-colors">
-        <Ikon nama="impor" className="w-4 h-4" tebal={2} />Impor soal
       </button>
     </aside>
   )
@@ -124,6 +133,7 @@ export function PanelKirim({ formulir, soal, aktifId, onKirim }: {
                 </span>
                 <p className="text-[12.5px] font-semibold leading-snug text-tinta break-words">{contoh.pertanyaan.trim() || 'Pertanyaan'}</p>
               </div>
+              {contoh.gambar && <GambarSoal path={contoh.gambar} ukuran="kecil" />}
               {contoh.pilihan.map((p, j) => (
                 <div key={j} className="flex items-center gap-2 rounded-lg border border-garis px-2 py-1.5">
                   <Gelembung indeks={j} ukuran="sm" />

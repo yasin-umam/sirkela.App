@@ -7,6 +7,12 @@ export interface User {
   nama: string
   email: string
   role: Role
+  /**
+   * true = guru yang masih di "Sekolah Default" (akun lama, lahir sebelum konsep
+   * sekolah ada), jadi belum terlihat oleh kepala sekolahnya. Diminta kode
+   * sekolah SEKALI sesudah login (HubungkanSekolahPage); lihat gabung_sekolah().
+   */
+  perluKodeSekolah?: boolean
 }
 
 // ─── Navigasi ───────────────────────────────────────────────────────────────
@@ -31,6 +37,8 @@ export interface HasilSoal {
   pertanyaan: string
   pilihan: string[]
   jawabanBenar: number
+  /** Path di bucket `gambar-soal` (lihat lib/gambarSoal.ts). Tidak ada = soal tanpa gambar. */
+  gambar?: string
 }
 
 /** Satu formulir = judul + deskripsi + soal berurutan + setelan sesi. */
@@ -57,10 +65,13 @@ export interface Soal {
   pilihan: string[]
   /** null = kunci belum dipilih. BUKAN 0: "belum dipilih" harus beda dari "opsi pertama". */
   jawabanBenar: number | null
+  /** Path gambar di bucket `gambar-soal`, null = tanpa gambar. Satu gambar per soal. */
+  gambar: string | null
   urutan: number
 }
 
-export type IsiSoal = Pick<Soal, 'pertanyaan' | 'pilihan' | 'jawabanBenar'>
+/** `gambar` opsional: soal hasil impor (teks/PDF/AI) tidak pernah membawanya. */
+export type IsiSoal = Pick<Soal, 'pertanyaan' | 'pilihan' | 'jawabanBenar'> & Partial<Pick<Soal, 'gambar'>>
 
 // ─── Sesi ───────────────────────────────────────────────────────────────────
 

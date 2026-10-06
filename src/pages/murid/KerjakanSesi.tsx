@@ -603,7 +603,7 @@ export function KerjakanSesi({ sesi, onKeluar, onTerkirim }: {
 
             {soalList.map((soal, i) => (
               <div key={soal.id} id={`soal-${soal.id}`} className="scroll-mt-2">
-                <KartuSoalMurid nomor={i + 1} pertanyaan={soal.pertanyaan} pilihan={soal.pilihan}
+                <KartuSoalMurid nomor={i + 1} pertanyaan={soal.pertanyaan} gambar={soal.gambar} pilihan={soal.pilihan}
                   dipilih={jawaban[soal.id]} onPilih={j => void pilih(soal.id, j)} />
               </div>
             ))}

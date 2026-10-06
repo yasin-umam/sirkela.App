@@ -21,6 +21,8 @@ export interface DbBankSoal {
   pilihan: string[]
   /** null = draf, kunci belum dipilih (F1). */
   jawaban_benar: number | null
+  /** Path di bucket `gambar-soal`, null = tanpa gambar. */
+  gambar: string | null
   urutan: number
   created_at: string
 }

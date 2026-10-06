@@ -10,7 +10,9 @@ import { Sakelar } from '../../components/ui/Sakelar'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
 
 // Kolom tabel kiriman di desktop (kartu bertumpuk di HP).
-const KOLOM_KIRIMAN = 'grid-cols-[minmax(0,1.5fr)_150px_150px_120px_90px_150px_24px]'
+// Panel detail desktop berbagi lebar dengan daftar Super Sesi di kiri, jadi kolom
+// tetapnya dijaga kecil supaya kolom Mapel tetap lega (>= 200px di layar 1440px).
+const KOLOM_KIRIMAN = 'grid-cols-[minmax(0,1fr)_104px_108px_84px_68px_124px_20px]'
 
 export function DetailSuperSesi({ superSesi, onKembali }: {
   superSesi: SuperSesi
@@ -63,33 +65,39 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 flex flex-col gap-3 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-6xl lg:px-12 lg:pt-10 lg:pb-12 lg:gap-6">
-        {/* Jejak desktop: kembali ke daftar Super Sesi. */}
-        <button type="button" onClick={onKembali}
-          className="hidden lg:flex items-center gap-2 text-[13.5px] font-semibold text-teks-3 hover:text-tinta transition-colors self-start -mb-2">
-          <Ikon nama="kembali" className="w-4 h-4" tebal={2.2} />Semua Super Sesi
-        </button>
-
-        <div className="rounded-[20px] bg-tinta text-white p-[18px] lg:p-8 lg:flex lg:items-center lg:gap-10">
-          <div className="lg:flex-[1.2] min-w-0">
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 flex flex-col gap-3 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-300 lg:px-8 lg:pt-6 lg:pb-10 lg:gap-5">
+        <div className="rounded-[20px] bg-tinta text-white p-[18px] lg:px-7.5 lg:py-6.5 lg:flex lg:items-center lg:gap-8">
+          <div className="lg:flex-[1.4] min-w-0">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 font-mono text-[11.5px] uppercase tracking-[0.12em]">
             {superSesi.status === 'berjalan' && <span className="w-2 h-2 rounded-full bg-hijau-muda" />}
             {mengumpulkan ? 'Mengumpulkan kiriman' : superSesi.status === 'berjalan' ? 'Berjalan' : 'Selesai'}
           </span>
-          <h1 className="mt-3 text-[26px] lg:text-4xl font-extrabold tracking-tight leading-tight break-words">{superSesi.judul}</h1>
+          <h1 className="mt-3 text-[26px] lg:text-[30px] font-extrabold tracking-tight leading-tight break-words">{superSesi.judul}</h1>
           {superSesi.deskripsi && <p className="text-biru-muda text-sm mt-1.5">{superSesi.deskripsi}</p>}
           </div>
-          <div className="grid grid-cols-3 mt-4 pt-3.5 border-t border-white/15 lg:flex-[2] lg:mt-0 lg:pt-0 lg:border-t-0">
+          <div className="grid grid-cols-3 mt-4 pt-3.5 border-t border-white/15 lg:flex-1 lg:mt-0 lg:pt-0 lg:border-t-0">
             {([['Kiriman', jumlahKiriman], ['Murid', jumlahMurid], ['Terkunci', jumlahTerkunci]] as const).map(([label, n], i) => (
-              <div key={label} className={i === 0 ? '' : 'pl-3 lg:pl-6 border-l border-white/15'}>
-                <p className="text-3xl lg:text-[42px] font-extrabold tracking-tight leading-tight">{n}</p>
+              <div key={label} className={i === 0 ? '' : 'pl-3 lg:pl-5 border-l border-white/15'}>
+                <p className={`text-3xl lg:text-[38px] font-extrabold tracking-tight leading-tight ${label === 'Terkunci' && n > 0 ? 'lg:text-jingga-garis' : ''}`}>{n}</p>
                 <p className="text-[12.5px] text-biru-muda mt-0.5">{label}</p>
               </div>
             ))}
           </div>
+          {/* Desktop: Mulai ada di kepala kartu (di HP di dasar layar). */}
+          {mengumpulkan && (
+            <button type="button" disabled={belumAdaKiriman} onClick={() => setKonfirmasiMulai(true)}
+              className="max-lg:hidden shrink-0 h-12.5 px-5.5 rounded-[13px] bg-white text-tinta text-[15px] font-extrabold inline-flex items-center gap-2.25 hover:bg-biru-tint transition-colors disabled:opacity-50 disabled:pointer-events-none">
+              <Ikon nama="kirim" className="w-4.5 h-4.5" tebal={2.2} />Mulai Super Sesi
+            </button>
+          )}
         </div>
 
-        <Eyebrow className="mt-2 -mb-0.5 lg:mt-0 lg:-mb-3">Kiriman guru mapel · {jumlahKiriman}</Eyebrow>
+        <div className="flex items-baseline justify-between mt-2 -mb-0.5 lg:mt-0 lg:-mb-2">
+          <Eyebrow>Kiriman guru mapel · {jumlahKiriman}</Eyebrow>
+          <span className="hidden lg:block text-[13px] text-teks-3">
+            {mengumpulkan ? 'Kiriman baru masuk otomatis sampai kamu menekan Mulai' : 'Diperbarui otomatis tiap 10 detik'}
+          </span>
+        </div>
 
         {memuatSubmisi && submisi === null ? (
           <div className="py-8 flex justify-center">
@@ -102,7 +110,7 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
           </div>
         ) : (
           <div className="flex flex-col gap-3 lg:gap-0 lg:bg-white lg:border lg:border-garis lg:rounded-[18px] lg:overflow-hidden">
-            <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-4 px-6 h-11.5`}>
+            <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 h-10 bg-isian`}>
               {['Mapel & kelas', 'Soal dari', 'Pengawas', 'Kode', 'Murid', 'Status', ''].map((t, i) => (
                 <span key={i} className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-teks-3">{t}</span>
               ))}
@@ -114,16 +122,35 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
         {galat && <p className="text-sm font-medium text-jingga-gelap px-1">{galat}</p>}
 
         {mengumpulkan && (
-          <Button size="lg" fullWidth disabled={belumAdaKiriman} onClick={() => setKonfirmasiMulai(true)} className="mt-1">
+          <Button size="lg" fullWidth disabled={belumAdaKiriman} onClick={() => setKonfirmasiMulai(true)} className="mt-1 lg:hidden">
             <Ikon nama="kirim" className="w-4.5 h-4.5" />Mulai Super Sesi
           </Button>
+        )}
+
+        {/* Desktop: kenapa tidak ada langkah "tunjuk pengawas" -- klaim bebas (SS9). */}
+        {mengumpulkan && (
+          <div className="hidden lg:flex gap-3 items-start rounded-2xl bg-biru-tipis border border-biru-muda px-5 py-4">
+            <Ikon nama="galat" className="w-5 h-5 text-biru mt-px shrink-0" tebal={2} />
+            <p className="text-[13.5px] leading-relaxed text-tinta-2">
+              <strong className="text-tinta">Tidak perlu menunjuk pengawas.</strong> Setelah kamu menekan Mulai, tiap kiriman jadi
+              satu kelas yang bisa diambil guru mana pun di sekolahmu. Siapa yang mengambil duluan, dialah pengawasnya.
+            </p>
+          </div>
         )}
       </div>
 
       {konfirmasiMulai && (
         <LembarKonfirmasi
           judul="Mulai Super Sesi sekarang?"
-          pesan="Soal akan didistribusikan jadi kelas yang bisa langsung diambil guru mana pun di sekolahmu. Siapa yang mengklaim duluan, dialah pengawasnya. Kiriman baru tidak lagi bisa masuk sesudah ini."
+          pesan={<>
+            Soal akan didistribusikan jadi kelas yang bisa langsung diambil guru mana pun di sekolahmu. Siapa yang mengklaim duluan, dialah pengawasnya. Kiriman baru tidak lagi bisa masuk sesudah ini.
+            {jumlahKiriman > 0 && (
+              <span className="block mt-3 rounded-xl bg-isian border border-garis-2 px-3.5 py-2.5 text-[13.5px]">
+                <strong className="text-tinta">{jumlahKiriman} kiriman</strong> akan menjadi {jumlahKiriman} kelas
+              </span>
+            )}
+          </>}
+          nada="biasa"
           labelAksi="Mulai"
           sibuk={sibuk}
           onAksi={() => void mulai()}
@@ -186,7 +213,7 @@ function KartuSubmisi({ submisi }: { submisi: SubmisiSuperSesi }) {
         </div>
 
         {/* Desktop: satu baris tabel, tiap kolom sel sendiri. */}
-        <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-4 px-6 min-h-17.5`}>
+        <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 min-h-16`}>
           <span className="min-w-0">
             <span className="block text-[15.5px] font-extrabold tracking-tight text-tinta">{submisi.mapel || submisi.judul}</span>
             {submisi.kelas && <span className="block text-[13px] text-teks-3 mt-px">{submisi.kelas}</span>}
@@ -254,7 +281,7 @@ function PengawasanKelas({ submisi }: { submisi: SubmisiSuperSesi }) {
       {submisi.murid.length === 0 ? (
         <p className="text-[13px] text-teks-3 px-4 py-3">Belum ada murid bergabung.</p>
       ) : (
-        <div className="divide-y divide-garis-2 border-t border-garis-2">
+        <div className="divide-y divide-garis-2 border-t border-garis-2 lg:divide-y-0 lg:grid lg:grid-cols-2 lg:gap-2 lg:p-4 lg:bg-isian">
           {submisi.murid.map(m => <BarisMuridSuper key={m.muridId} murid={m} sesiId={submisi.sesiId!} />)}
         </div>
       )}
@@ -282,7 +309,8 @@ function BarisMuridSuper({ murid, sesiId }: { murid: MuridSuperSesi; sesiId: str
   ].filter(Boolean).join(' · ')
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-2.5 ${terkunci ? 'bg-jingga-tipis' : ''}`}>
+    <div className={`flex items-center gap-3 px-4 py-2.5 lg:rounded-xl lg:border ${
+      terkunci ? 'bg-jingga-tipis lg:border-jingga-garis' : 'lg:bg-white lg:border-garis-2'}`}>
       <div className={`w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0 text-sm font-extrabold ${
         terkunci ? 'bg-jingga-tint text-jingga-gelap' : 'bg-biru-tint text-biru'}`}>
         {murid.nama.charAt(0).toUpperCase()}
