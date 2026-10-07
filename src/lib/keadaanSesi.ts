@@ -16,6 +16,16 @@ export function statusSesi(s: SesiKelas): { label: string; warna: WarnaBadge } {
   return { label: 'Menunggu', warna: 'slate' }
 }
 
+/**
+ * Boleh tombol "hapus" tampil untuk sesi ini (H1)? HANYA yang sudah selesai dan BUKAN
+ * kelas Super Sesi -- kelas itu dihapus bersama Super Sesinya oleh kepala sekolah.
+ * Server menegakkan aturan yang sama (hapus_sesi + trigger jaga_hapus_sesi); ini cuma
+ * menyembunyikan tombol yang pasti ditolak.
+ */
+export function sesiBisaDihapus(s: Pick<SesiKelas, 'status' | 'superSesiId'>): boolean {
+  return s.status === 'selesai' && s.superSesiId === null
+}
+
 /** Keadaan satu murid saat INI. */
 export function keadaanPeserta(p: PesertaSesi, sesi: SesiKelas) {
   const aktif = sesi.status === 'aktif'

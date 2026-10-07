@@ -44,6 +44,8 @@ export interface DbSesiKelas {
   selesai_pada: string | null
   kunci_layar: boolean
   kunci_layar_sejak: string | null
+  /** Sesudah mulai, identitas BARU tetap boleh bergabung (gabung_sesi, T1). */
+  terima_terlambat: boolean
   created_at: string
   /** Non-null = lahir dari mulai_super_sesi(), lihat SesiKelas.superSesiId. */
   super_sesi_id: string | null

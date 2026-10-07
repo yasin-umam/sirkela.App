@@ -127,6 +127,7 @@ export function KartuKunciLayar({ sesi }: { sesi: SesiKelas }) {
           </span>
           <span className="block text-[13px] text-tinta-2 mt-0.5 leading-relaxed">
             Sesi ini bagian dari Super Sesi. Kepala sekolah yang mengatur kunci layar dan membuka kunci murid, bukan kamu.
+            {sesi.kunciLayar && ' Murid yang masuk sesudah sesi dimulai juga tampil terkunci sampai kepala sekolah membukanya.'}
           </span>
         </span>
       </div>
@@ -166,6 +167,54 @@ export function KartuKunciLayar({ sesi }: { sesi: SesiKelas }) {
           )}
         </div>
       )}
+      {galat && <p className="text-xs font-medium text-jingga-gelap px-4 pb-3">{galat}</p>}
+    </div>
+  )
+}
+
+// ─── Murid terlambat ─────────────────────────────────────────────────────────
+// Sesudah Mulai, gabung_sesi() menolak identitas BARU (T1): kunci layar menempel
+// pada identitas di perangkat murid, jadi pintu yang terbuka lebar membiarkan
+// murid terkunci masuk lagi sebagai orang baru. Sakelar ini jalan keluar untuk
+// murid yang benar-benar telat atau HP-nya mati. Menyala = pintu terbuka, jadi
+// kartunya ikut jingga seperti kunci layar yang sedang aktif. Cuma tampil
+// SESUDAH Mulai (SesiAktifView / SesiDesktop): sebelumnya semua orang boleh
+// masuk dan sakelarnya tidak berarti apa-apa. Berlaku juga untuk sesi Super
+// Sesi: pengawas yang berdiri di depan kelas tahu siapa yang terlambat --
+// KECUALI kunci layar Super Sesi menyala (T3): murid baru lalu masuk terkunci dan
+// kepala sekolah yang membukanya, jadi kartu ini tidak punya apa-apa untuk diatur
+// dan disembunyikan (penjelasannya sudah di KartuKunciLayar, bukan kartu kedua).
+
+export function KartuMuridTerlambat({ sesi }: { sesi: SesiKelas }) {
+  const { aturTerimaTerlambat } = useSesi()
+  const [sibuk, setSibuk] = useState(false)
+  const [galat, setGalat] = useState<string | null>(null)
+
+  async function ubah(aktif: boolean) {
+    setSibuk(true); setGalat(null)
+    try { await aturTerimaTerlambat(sesi.id, aktif) }
+    catch (e) { setGalat(e instanceof Error ? e.message : 'Gagal, coba lagi.') }
+    finally { setSibuk(false) }
+  }
+
+  if (sesi.superSesiId != null && sesi.kunciLayar) return null
+
+  return (
+    <div className={`rounded-[18px] border overflow-hidden ${
+      sesi.terimaTerlambat ? 'bg-jingga-tipis border-jingga-garis' : 'bg-white border-garis'}`}>
+      <div className="px-4 py-3.5 flex items-start gap-3">
+        <Ikon nama="orang" className={`w-5.5 h-5.5 mt-0.5 shrink-0 ${sesi.terimaTerlambat ? 'text-jingga' : 'text-teks-3'}`} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-bold text-tinta">Izinkan murid terlambat</p>
+          <p className="text-[13px] text-tinta-2 mt-0.5 leading-relaxed">
+            {sesi.terimaTerlambat
+              ? 'Pintu terbuka: murid baru bisa bergabung. Matikan lagi begitu murid yang terlambat sudah masuk.'
+              : 'Sesi sudah dimulai, jadi murid baru ditolak. Murid yang sudah bergabung tetap bisa kembali, dan kuncinya ikut.'}
+          </p>
+        </div>
+        <Sakelar aktif={sesi.terimaTerlambat} warna="jingga" label="Izinkan murid terlambat" disabled={sibuk}
+          onUbah={v => void ubah(v)} />
+      </div>
       {galat && <p className="text-xs font-medium text-jingga-gelap px-4 pb-3">{galat}</p>}
     </div>
   )

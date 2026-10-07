@@ -90,7 +90,7 @@ function sesi(p: Partial<SesiKelas> & Pick<SesiKelas, 'id' | 'judul' | 'kodeJoin
   return {
     formulirId: null, deskripsi: '', durasiMenit: 45, mulaiPada: null, selesaiPada: null, status: 'aktif',
     kontenList: [{ id: 'k1', tipe: 'soal', judul: p.judul, data: HASIL_SOAL }],
-    kunciLayar: false, muridJoined: [], dibuatPada: menitLalu(60), superSesiId: null, superSesiJudul: null,
+    kunciLayar: false, terimaTerlambat: false, muridJoined: [], dibuatPada: menitLalu(60), superSesiId: null, superSesiJudul: null,
     ...p,
   }
 }
@@ -134,10 +134,10 @@ export function hasilUji(p: PesertaSesi[]): JawabanSoalMurid[] {
 export function superSesiUji(): SuperSesi[] {
   return [
     { id: 'ss1', judul: 'PAS Ganjil 2026/2027', deskripsi: 'Penilaian Akhir Semester Ganjil, kelas X sampai XII',
-      status: 'berjalan', mulaiPada: menitLalu(7), dibuatPada: hariLalu(5) },
+      status: 'berjalan', mulaiPada: menitLalu(7), dibuatPada: hariLalu(5), kunciLayar: true },
     { id: 'ss2', judul: 'Ujian Praktik Kejuruan', deskripsi: 'Praktik kejuruan kelas XI dan XII',
-      status: 'mengumpulkan', mulaiPada: null, dibuatPada: hariLalu(8) },
-    { id: 'ss3', judul: 'PTS Ganjil 2026/2027', deskripsi: '', status: 'selesai', mulaiPada: hariLalu(21), dibuatPada: hariLalu(21) },
+      status: 'mengumpulkan', mulaiPada: null, dibuatPada: hariLalu(8), kunciLayar: false },
+    { id: 'ss3', judul: 'PTS Ganjil 2026/2027', deskripsi: '', status: 'selesai', mulaiPada: hariLalu(21), dibuatPada: hariLalu(21), kunciLayar: false },
   ]
 }
 

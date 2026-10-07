@@ -10,7 +10,7 @@ import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Badge } from '../../components/ui/Badge'
 import { BagikanSesi } from '../../components/BagikanSesi'
-import { KartuDurasi, KartuKunciLayar, KonfirmasiAkhiri } from './SesiKartu'
+import { KartuDurasi, KartuKunciLayar, KartuMuridTerlambat, KonfirmasiAkhiri } from './SesiKartu'
 import { useSisaDetik, menitDetik } from '../../lib/waktuSesi'
 import { LihatJawaban } from './LihatJawaban'
 import { SesiDesktop } from './SesiDesktop'
@@ -236,6 +236,8 @@ function SesiAktifView({ sesi, onLihatJawaban }: {
         {aktif && !sesi.mulaiPada && <KartuDurasi sesi={sesi} />}
 
         {aktif && <KartuKunciLayar sesi={sesi} />}
+
+        {aktif && sesi.mulaiPada && <KartuMuridTerlambat sesi={sesi} />}
 
         {/* Daftar murid */}
         <div className="bg-white rounded-[18px] border border-garis overflow-hidden">

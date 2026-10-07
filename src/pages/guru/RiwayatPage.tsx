@@ -3,11 +3,12 @@ import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
 import { jamMenit, labelWaktu } from '../../lib/soal'
 import { NAMA_APLIKASI } from '../../lib/aplikasi'
-import { statusSesi } from '../../lib/keadaanSesi'
+import { sesiBisaDihapus, statusSesi } from '../../lib/keadaanSesi'
 import { useDesktop } from '../../lib/useDesktop'
 import { useKirimanSuper } from '../../lib/useKirimanSuper'
 import { Ikon } from '../../components/ui/Ikon'
 import { Spinner } from '../../components/ui/Spinner'
+import { KonfirmasiHapus } from '../../components/KonfirmasiHapus'
 import { Badge } from '../../components/ui/Badge'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { RiwayatDesktop } from './RiwayatDesktop'
@@ -25,6 +26,21 @@ import { RiwayatDesktop } from './RiwayatDesktop'
 // mana yang bisa ia sunting.
 
 type Pil = 'formulir' | 'sesi'
+
+// Hapus riwayat (H1/H2): formulir kapan pun; sesi lewat sesiBisaDihapus() (lib/keadaanSesi).
+type TargetHapus =
+  | { jenis: 'formulir'; id: string; judul: string; jumlahSoal: number }
+  | { jenis: 'sesi'; id: string; judul: string; kode: string; jumlahMurid: number }
+
+/** Sel di kanan baris (bukan di dalam tombol baris: tombol tak boleh bersarang). */
+function SelHapus({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} title={label}
+      className="w-12 shrink-0 border-l border-garis-2 flex items-center justify-center text-teks-3 hover:bg-jingga-tint hover:text-jingga-gelap active:bg-jingga-tint active:text-jingga-gelap transition-colors">
+      <Ikon nama="hapus" className="w-4.5 h-4.5" />
+    </button>
+  )
+}
 
 function Chevron() {
   return <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
@@ -44,9 +60,10 @@ function RiwayatHp({ onBukaFormulir, onBukaSesi }: {
   onBukaFormulir: (formulirId: string) => void
   onBukaSesi: (sesiId: string) => void
 }) {
-  const { daftar, memuat } = useFormulir()
-  const { semuaSesi } = useSesi()
+  const { daftar, memuat, hapusFormulir } = useFormulir()
+  const { semuaSesi, hapusSesi } = useSesi()
   const [pil, setPil] = useState<Pil>('formulir')
+  const [hapus, setHapus] = useState<TargetHapus | null>(null)
   // Formulir yang PERNAH dikirim ke sebuah Super Sesi -- cuma penanda ringan,
   // bukan status penuh (itu ada di layar kepala sekolah).
   const superSesiKirim = useKirimanSuper()
@@ -92,8 +109,9 @@ function RiwayatHp({ onBukaFormulir, onBukaSesi }: {
             ) : (
               <div className="bg-white rounded-[18px] border border-garis overflow-hidden divide-y divide-garis-2">
                 {daftar.map(f => (
-                  <button key={f.id} type="button" onClick={() => onBukaFormulir(f.id)}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
+                  <div key={f.id} className="flex items-stretch">
+                  <button type="button" onClick={() => onBukaFormulir(f.id)}
+                    className="flex-1 min-w-0 text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
                     <span className="w-11 h-11 rounded-xl bg-biru-tint text-biru flex items-center justify-center shrink-0">
                       <Ikon nama="dokumen" className="w-5.5 h-5.5" />
                     </span>
@@ -113,6 +131,9 @@ function RiwayatHp({ onBukaFormulir, onBukaSesi }: {
                     </span>
                     <Chevron />
                   </button>
+                  <SelHapus label={`Hapus formulir ${f.judul.trim() || 'tanpa judul'}`}
+                    onClick={() => setHapus({ jenis: 'formulir', id: f.id, judul: f.judul.trim() || 'Formulir tanpa judul', jumlahSoal: f.jumlahSoal })} />
+                  </div>
                 ))}
               </div>
             )
@@ -124,8 +145,9 @@ function RiwayatHp({ onBukaFormulir, onBukaSesi }: {
               {semuaSesi.map(s => {
                 const st = statusSesi(s)
                 return (
-                  <button key={s.id} type="button" onClick={() => onBukaSesi(s.id)}
-                    className="w-full text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
+                  <div key={s.id} className="flex items-stretch">
+                  <button type="button" onClick={() => onBukaSesi(s.id)}
+                    className="flex-1 min-w-0 text-left flex items-center gap-3 px-4 py-3.5 active:bg-isian transition-colors">
                     <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
                       s.status === 'aktif' ? 'bg-hijau-tint text-hijau' : 'bg-garis-2 text-teks-3'}`}>
                       <Ikon nama="sesi" className="w-5.5 h-5.5" />
@@ -145,12 +167,35 @@ function RiwayatHp({ onBukaFormulir, onBukaSesi }: {
                     </span>
                     <Chevron />
                   </button>
+                  {sesiBisaDihapus(s) && (
+                    <SelHapus label={`Hapus sesi ${s.judul}`}
+                      onClick={() => setHapus({ jenis: 'sesi', id: s.id, judul: s.judul, kode: s.kodeJoin, jumlahMurid: s.muridJoined.length })} />
+                  )}
+                  </div>
                 )
               })}
             </div>
           )}
         </div>
       </div>
+
+      {hapus && (
+        <KonfirmasiHapus
+          judul={hapus.jenis === 'formulir' ? 'Hapus formulir ini?' : 'Hapus sesi ini?'}
+          pesan={hapus.jenis === 'formulir' ? (
+            <>
+              “{hapus.judul}” dan {hapus.jumlahSoal} pertanyaannya dihapus. Sesi yang sudah lahir dari formulir ini tetap ada.
+              <strong className="block mt-3 text-tinta">Tidak bisa dibatalkan.</strong>
+            </>
+          ) : (
+            <>
+              “{hapus.judul}” (kode {hapus.kode}) dihapus bersama {hapus.jumlahMurid} murid yang bergabung, jawaban, dan nilainya.
+              <strong className="block mt-3 text-tinta">Tidak bisa dibatalkan.</strong>
+            </>
+          )}
+          onHapus={() => hapus.jenis === 'formulir' ? hapusFormulir(hapus.id) : hapusSesi(hapus.id)}
+          onTutup={() => setHapus(null)} />
+      )}
     </div>
   )
 }

@@ -44,7 +44,9 @@ export function SuperSesiDesktop({ onBuat }: { onBuat: () => void }) {
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex">
-          <nav aria-label="Daftar Super Sesi" className="w-64 min-[1400px]:w-75 shrink-0 bg-white border-r border-garis px-4 py-5 overflow-y-auto overscroll-contain hide-scrollbar flex flex-col gap-1.5">
+          {/* Lebar kolom menyempit di bawah xl (1280px) bersama sidebar yang jadi rel ikon, supaya
+              kontainer "Murid terkunci" di DetailSuperSesi tetap muat di samping tabel kiriman. */}
+          <nav aria-label="Daftar Super Sesi" className="w-52 xl:w-64 min-[1400px]:w-75 shrink-0 bg-white border-r border-garis px-3 xl:px-4 py-5 overflow-y-auto overscroll-contain hide-scrollbar flex flex-col gap-1.5">
             <button type="button" onClick={onBuat}
               className="h-11 mb-2 rounded-xl border-[1.5px] border-dashed border-pinggir text-sm font-bold text-biru flex items-center justify-center gap-1.75 hover:bg-biru-tipis transition-colors">
               <Ikon nama="tambah" className="w-3.75 h-3.75" tebal={2.4} />Super Sesi baru
@@ -57,11 +59,12 @@ export function SuperSesiDesktop({ onBuat }: { onBuat: () => void }) {
                   className={`w-full flex flex-col items-start gap-1.5 px-3.5 py-3 rounded-xl text-left transition-colors ${
                     terpilih ? 'bg-biru-tipis ring-[1.5px] ring-inset ring-biru' : 'hover:bg-isian'}`}>
                   <span className="text-[14.5px] font-bold leading-snug text-tinta">{s.judul}</span>
-                  <span className="flex items-center gap-2.5 text-[12.5px] text-teks-3">
+                  {/* flex-wrap: di kolom 208px lencana dan tanggal tidak muat sebaris; tanggal turun utuh. */}
+                  <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-teks-3">
                     <span className={`inline-flex items-center gap-1.5 px-2.25 py-0.5 rounded-full text-xs font-bold ${st.kelas}`}>
                       {s.status === 'berjalan' && <span className="w-1.5 h-1.5 rounded-full bg-hijau" />}{st.label}
                     </span>
-                    {labelWaktu(s.dibuatPada)}
+                    <span className="whitespace-nowrap">{labelWaktu(s.dibuatPada)}</span>
                   </span>
                 </button>
               )

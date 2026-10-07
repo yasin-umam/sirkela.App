@@ -24,6 +24,8 @@ interface SesiContextValue {
   aturDurasiSesi: (id: string, menit: number) => Promise<void>
   /** Mematikan = membebaskan semua murid yang sedang terkunci (atur_kunci_layar). */
   aturKunciLayar: (id: string, aktif: boolean) => Promise<void>
+  /** Sesudah mulai, izinkan identitas BARU bergabung (gabung_sesi, T1). Murid lama selalu boleh kembali. */
+  aturTerimaTerlambat: (id: string, aktif: boolean) => Promise<void>
   bukaKunciMurid: (sesiId: string, muridId: string) => Promise<void>
   bukaKunciSemua: (sesiId: string) => Promise<void>
   /**
@@ -36,6 +38,16 @@ interface SesiContextValue {
   kelasTersedia: KelasSuperSesiTersedia[]
   /** MELEMPAR "Kelas ini sudah diambil guru lain" kalau kalah rebutan (SS9). */
   klaimKelasSuper: (sesiId: string) => Promise<SesiKelas>
+  /**
+   * Hapus PERMANEN satu sesi yang sudah SELESAI beserta murid, jawaban, dan nilainya
+   * (H1). MELEMPAR pesan server kalau belum selesai atau kelas Super Sesi.
+   */
+  hapusSesi: (id: string) => Promise<void>
+  /**
+   * Buang dari daftar LOKAL semua kelas milik satu Super Sesi yang baru dihapus kepala
+   * sekolah (H2) -- server sudah menghapusnya, tapi daftar ini dimuat sekali saat login.
+   */
+  lepasSesiSuperSesi: (superSesiId: string) => void
 }
 
 // Jenis peristiwa yang dihitung di baris peserta. Peristiwa lain (kembali_*,
@@ -57,6 +69,7 @@ function petakanSesi(s: DbSesiKelas, peserta: PesertaSesi[]): SesiKelas {
     // saat membacanya untuk murid (ambil_konten_sesi).
     kontenList: s.konten_list as KontenItem[],
     kunciLayar: s.kunci_layar,
+    terimaTerlambat: s.terima_terlambat,
     muridJoined: peserta,
     dibuatPada: s.created_at,
     superSesiId: s.super_sesi_id,
@@ -96,10 +109,13 @@ export function SesiProvider({ children }: { children: ReactNode }) {
       akhiriSesi: async id => { ubah(id, s => ({ ...s, status: 'selesai' })) },
       aturDurasiSesi: async (id, menit) => { ubah(id, s => ({ ...s, durasiMenit: menit })) },
       aturKunciLayar: async (id, aktif) => { ubah(id, s => ({ ...s, kunciLayar: aktif })) },
+      aturTerimaTerlambat: async (id, aktif) => { ubah(id, s => ({ ...s, terimaTerlambat: aktif })) },
       bukaKunciMurid: async () => {},
       bukaKunciSemua: async () => {},
       kelasTersedia: kelasTersediaUji,
       klaimKelasSuper: async () => semuaSesi[0],
+      hapusSesi: async id => { setSemuaSesi(prev => prev.filter(s => s.id !== id)) },
+      lepasSesiSuperSesi: superSesiId => { setSemuaSesi(prev => prev.filter(s => s.superSesiId !== superSesiId)) },
     }
     return <SesiContext.Provider value={value}>{children}</SesiContext.Provider>
   }
@@ -280,6 +296,15 @@ export function SesiProvider({ children }: { children: ReactNode }) {
     ubahSesi(id, s => ({ ...s, kunciLayar: aktif }))
   }, [ubahSesi])
 
+  const aturTerimaTerlambat = useCallback(async (id: string, aktif: boolean) => {
+    const { error } = await supabase.rpc('atur_terima_terlambat', { p_sesi_id: id, p_aktif: aktif })
+    // Layar pengawas tidak menyegarkan diri: kalau kepala sekolah baru saja
+    // menyalakan kunci layar Super Sesi (T3), kalimat server yang menjelaskan, bukan "gagal".
+    if (error) throw new Error(/kepala sekolah/i.test(error.message)
+      ? error.message : 'Gagal mengubah pengaturan murid terlambat. Coba lagi.')
+    ubahSesi(id, s => ({ ...s, terimaTerlambat: aktif }))
+  }, [ubahSesi])
+
   const bukaKunciMurid = useCallback(async (sesiId: string, muridId: string) => {
     const { error } = await supabase.rpc('buka_kunci_murid', { p_sesi_id: sesiId, p_murid_id: muridId })
     if (error) throw new Error('Gagal membuka kunci. Coba lagi.')
@@ -301,12 +326,26 @@ export function SesiProvider({ children }: { children: ReactNode }) {
     return sesi
   }, [])
 
+  // H1: pesan server diteruskan ("Akhiri sesi dulu...", "bagian dari Super Sesi...").
+  // Nol baris terhapus tidak mungkin diam-diam: RPC-nya MELEMPAR kalau bukan sesi milikmu.
+  const hapusSesi = useCallback(async (id: string) => {
+    const { error } = await supabase.rpc('hapus_sesi', { p_sesi_id: id })
+    if (error) throw new Error(/fetch|network/i.test(error.message) ? 'Tidak ada koneksi. Coba lagi.' : error.message)
+    setSemuaSesi(prev => prev.filter(s => s.id !== id))
+    setFokusId(prev => prev === id ? null : prev)
+  }, [])
+
+  // `fokus` diturunkan dari daftar ini, jadi sesi yang difokuskan otomatis jadi null.
+  const lepasSesiSuperSesi = useCallback((superSesiId: string) => {
+    setSemuaSesi(prev => prev.filter(s => s.superSesiId !== superSesiId))
+  }, [])
+
   const value = useMemo<SesiContextValue>(() => ({
     semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi,
-    aturDurasiSesi, aturKunciLayar, bukaKunciMurid, bukaKunciSemua,
-    kelasTersedia, klaimKelasSuper,
-  }), [semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi, aturDurasiSesi, aturKunciLayar, bukaKunciMurid, bukaKunciSemua,
-      kelasTersedia, klaimKelasSuper])
+    aturDurasiSesi, aturKunciLayar, aturTerimaTerlambat, bukaKunciMurid, bukaKunciSemua,
+    kelasTersedia, klaimKelasSuper, hapusSesi, lepasSesiSuperSesi,
+  }), [semuaSesi, fokus, fokuskan, bukaSesi, mulaiSesi, akhiriSesi, aturDurasiSesi, aturKunciLayar, aturTerimaTerlambat,
+      bukaKunciMurid, bukaKunciSemua, kelasTersedia, klaimKelasSuper, hapusSesi, lepasSesiSuperSesi])
 
   return <SesiContext.Provider value={value}>{children}</SesiContext.Provider>
 }

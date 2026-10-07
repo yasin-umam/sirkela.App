@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { SuperSesi, SubmisiSuperSesi, MuridSuperSesi } from '../../types'
+import type { SuperSesi, SubmisiSuperSesi } from '../../types'
 import { useSuperSesi } from '../../context/SuperSesiContext'
 import { useKembali } from '../../context/NavContext'
 import { Ikon } from '../../components/ui/Ikon'
@@ -8,21 +8,29 @@ import { Badge } from '../../components/ui/Badge'
 import { Eyebrow } from '../../components/ui/Eyebrow'
 import { Sakelar } from '../../components/ui/Sakelar'
 import { LembarKonfirmasi } from '../../components/LembarKonfirmasi'
+import { KonfirmasiHapus } from '../../components/KonfirmasiHapus'
 import { kelasJurusan } from '../../lib/soal'
 
-// Kolom tabel kiriman di desktop (kartu bertumpuk di HP).
-// Panel detail desktop berbagi lebar dengan daftar Super Sesi di kiri, jadi kolom
-// tetapnya dijaga kecil supaya kolom Mapel tetap lega (>= 200px di layar 1440px).
-const KOLOM_KIRIMAN = 'grid-cols-[minmax(0,1fr)_104px_108px_84px_68px_124px_20px]'
+// Tabel kiriman menyesuaikan diri dengan lebar PEMBUNGKUSNYA (container query, bukan
+// lebar layar), karena kontainer "Murid terkunci" duduk di sampingnya dan lebar yang
+// tersisa berubah-ubah. Tiga bentuk, dipilih oleh lebar pembungkus (`@container`):
+//   >= 820px  tabel penuh, 6 kolom
+//   >= 560px  tabel ringkas, 4 kolom: "Soal dari" dan "Kode" dilipat ke baris kedua Mapel
+//   <  560px  kartu bertumpuk (bentuk HP)
+// Kolom tetapnya dijaga kecil supaya kolom Mapel tetap lega.
+const KOLOM_KIRIMAN =
+  'grid-cols-[minmax(0,1fr)_108px_68px_124px] @min-[820px]:grid-cols-[minmax(0,1fr)_104px_108px_84px_68px_124px]'
 
 export function DetailSuperSesi({ superSesi, onKembali }: {
   superSesi: SuperSesi
   onKembali: () => void
 }) {
-  const { submisi, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi } = useSuperSesi()
+  const { submisi, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi, aturKunciLayarSuper, hapusSuperSesi } = useSuperSesi()
+  const [konfirmasiHapus, setKonfirmasiHapus] = useState(false)
   const [konfirmasiMulai, setKonfirmasiMulai] = useState(false)
   const [konfirmasiAkhiri, setKonfirmasiAkhiri] = useState(false)
   const [sibuk, setSibuk] = useState(false)
+  const [sibukKunci, setSibukKunci] = useState(false)
   const [galat, setGalat] = useState<string | null>(null)
 
   useKembali(() => {
@@ -33,6 +41,7 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
 
   const mengumpulkan = superSesi.status === 'mengumpulkan'
   const berjalan = superSesi.status === 'berjalan'
+  const selesai = superSesi.status === 'selesai'
   // Tidak ada lagi pengecekan "semua kiriman sudah punya pengawas" -- sejak
   // klaim bebas, siapa yang mengawas ditentukan belakangan oleh guru sendiri.
   const belumAdaKiriman = !submisi || submisi.length === 0
@@ -50,6 +59,16 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
   const kelasAktif = (submisi ?? []).filter(s => s.sesiStatus === 'aktif')
   const kelasBelumDiambil = kelasAktif.filter(s => !s.pengawasId).length
   const muridDiKelasAktif = kelasAktif.reduce((n, s) => n + s.jumlahMurid, 0)
+  // Untuk kalimat konfirmasi hapus: semua kelas yang pernah lahir, bukan cuma yang aktif.
+  const kelasTerbentuk = (submisi ?? []).filter(s => s.sesiId !== null).length
+  const muridSemua = (submisi ?? []).reduce((n, s) => n + s.jumlahMurid, 0)
+
+  async function ubahKunci(aktif: boolean) {
+    setSibukKunci(true); setGalat(null)
+    try { await aturKunciLayarSuper(superSesi.id, aktif) }
+    catch (e) { setGalat(e instanceof Error ? e.message : 'Gagal mengubah kunci layar. Coba lagi.') }
+    finally { setSibukKunci(false) }
+  }
 
   async function mulai() {
     setSibuk(true); setGalat(null)
@@ -89,7 +108,7 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 flex flex-col gap-3 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-300 lg:px-8 lg:pt-6 lg:pb-10 lg:gap-5">
+      <div className="flex-1 overflow-y-auto overscroll-contain hide-scrollbar px-4 py-4 pb-24 flex flex-col gap-3 desktop:max-w-2xl desktop:w-full desktop:mx-auto lg:max-w-300 lg:px-6 xl:px-8 lg:pt-6 lg:pb-10 lg:gap-5">
         <div className="rounded-[20px] bg-tinta text-white p-[18px] lg:px-7.5 lg:py-6.5 lg:flex lg:items-center lg:gap-8">
           <div className="lg:flex-[1.4] min-w-0">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 font-mono text-[11.5px] uppercase tracking-[0.12em]">
@@ -116,30 +135,68 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
           )}
         </div>
 
-        <div className="flex items-baseline justify-between mt-2 -mb-0.5 lg:mt-0 lg:-mb-2">
-          <Eyebrow>Kiriman guru mapel · {jumlahKiriman}</Eyebrow>
-          <span className="hidden lg:block text-[13px] text-teks-3">
-            {mengumpulkan ? 'Kiriman baru masuk otomatis sampai kamu menekan Mulai' : 'Diperbarui otomatis tiap 10 detik'}
-          </span>
+        {/* Kiriman di kiri, murid terkunci di kanan, mulai lg (1024px). Cuma di bawah itu
+            (HP, tablet) kontainer terkunci turun ke bawah tabel. Supaya muat di 1024-1279px,
+            sidebar menciut jadi rel ikon dan kolom daftar Super Sesi menyempit (lihat
+            SidebarGuru, SuperSesiDesktop), dan kontainernya 240px (256px mulai xl). Kolom kiri
+            adalah `@container` yang menentukan bentuk tabel kiriman (lihat KOLOM_KIRIMAN). */}
+        <div className={`grid grid-cols-1 gap-3 lg:gap-5 ${
+          berjalan ? 'lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_256px] lg:items-start' : ''}`}>
+          <div className="@container min-w-0 flex flex-col gap-3 lg:gap-5">
+            <div className="flex items-baseline justify-between mt-2 -mb-0.5 lg:mt-0 lg:-mb-2">
+              <Eyebrow>Kiriman guru mapel · {jumlahKiriman}</Eyebrow>
+              <span className="hidden lg:block text-[13px] text-teks-3">
+                {mengumpulkan ? 'Kiriman baru masuk otomatis sampai kamu menekan Mulai' : 'Diperbarui otomatis tiap 10 detik'}
+              </span>
+            </div>
+
+            {memuatSubmisi && submisi === null ? (
+              <div className="py-8 flex justify-center">
+                <div className="w-6 h-6 border-2 border-biru-muda border-t-biru rounded-full animate-spin" />
+              </div>
+            ) : !submisi || submisi.length === 0 ? (
+              <div className="bg-white rounded-[18px] border border-garis flex flex-col items-center gap-1.5 py-8 text-center px-4">
+                <Ikon nama="dokumen" className="w-8 h-8 text-pinggir-2" tebal={1.5} />
+                <p className="text-[13px] text-teks-3">Belum ada guru mapel yang mengirim soal ke sini</p>
+              </div>
+            ) : (
+              // shrink-0: pembungkus ini `overflow-hidden` di dalam kolom flex yang tingginya
+              // terbatas, jadi tanpa ini ia MENGERUT begitu satu kelas dibuka dan baris-barisnya
+              // saling menimpa alih-alih halaman menggulir.
+              <div className="shrink-0 flex flex-col gap-3 @min-[560px]:gap-0 @min-[560px]:bg-white @min-[560px]:border @min-[560px]:border-garis @min-[560px]:rounded-[18px] @min-[560px]:overflow-hidden">
+                <div className={`hidden @min-[560px]:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 h-10 bg-isian`}>
+                  {/* 'Soal dari' dan 'Kode' cuma jadi kolom di bentuk penuh. */}
+                  {['Mapel & kelas', 'Soal dari', 'Pengawas', 'Kode', 'Murid', 'Status'].map((t, i) => (
+                    <span key={i} className={`font-mono text-[11.5px] uppercase tracking-[0.14em] text-teks-3 ${
+                      t === 'Soal dari' || t === 'Kode' ? 'hidden @min-[820px]:block' : ''}`}>{t}</span>
+                  ))}
+                </div>
+                {submisi.map(s => <KartuSubmisi key={s.id} submisi={s} />)}
+              </div>
+            )}
+          </div>
+
+          {berjalan && <KontainerTerkunci submisi={submisi} />}
         </div>
 
-        {memuatSubmisi && submisi === null ? (
-          <div className="py-8 flex justify-center">
-            <div className="w-6 h-6 border-2 border-biru-muda border-t-biru rounded-full animate-spin" />
-          </div>
-        ) : !submisi || submisi.length === 0 ? (
-          <div className="bg-white rounded-[18px] border border-garis flex flex-col items-center gap-1.5 py-8 text-center px-4">
-            <Ikon nama="dokumen" className="w-8 h-8 text-pinggir-2" tebal={1.5} />
-            <p className="text-[13px] text-teks-3">Belum ada guru mapel yang mengirim soal ke sini</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 lg:gap-0 lg:bg-white lg:border lg:border-garis lg:rounded-[18px] lg:overflow-hidden">
-            <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 h-10 bg-isian`}>
-              {['Mapel & kelas', 'Soal dari', 'Pengawas', 'Kode', 'Murid', 'Status', ''].map((t, i) => (
-                <span key={i} className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-teks-3">{t}</span>
-              ))}
+        {/* Kunci layar (T3): SATU sakelar untuk semua kelas Super Sesi ini, bukan per kelas.
+            Menyala juga berarti kepala sekolah yang memegang izin masuk kembali murid.
+            Bisa dinyalakan sebelum Mulai (kelas yang lahir mewarisinya) maupun sesudahnya;
+            kontainer sendiri, sejajar dengan sakelar "Super Sesi berjalan" di bawahnya. */}
+        {!selesai && (
+          <div className={`flex items-start gap-3.5 rounded-[18px] border px-4 py-3.5 lg:px-5 lg:py-4 ${
+            superSesi.kunciLayar ? 'bg-jingga-tipis border-jingga-garis' : 'bg-white border-garis'}`}>
+            <Ikon nama="kunci" className={`w-5 h-5 mt-0.5 shrink-0 ${superSesi.kunciLayar ? 'text-jingga' : 'text-teks-3'}`} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-tinta">Kunci layar murid</p>
+              <p className="text-[13px] text-tinta-2 mt-0.5 leading-relaxed">
+                {superSesi.kunciLayar
+                  ? 'Berlaku di semua kelas. Murid yang keluar dari layar, atau masuk sesudah sesi dimulai, terkunci sampai kamu mengizinkannya masuk. Pengawas tidak bisa. Waktu tetap berjalan, dan mematikan kunci membebaskan semua murid.'
+                  : 'Nyalakan supaya murid yang keluar dari layar atau membuka aplikasi lain terkunci di semua kelas, dan hanya kamu yang bisa mengizinkan mereka masuk kembali. Waktu tetap berjalan.'}
+              </p>
             </div>
-            {submisi.map(s => <KartuSubmisi key={s.id} submisi={s} />)}
+            <Sakelar aktif={superSesi.kunciLayar} warna="jingga" label="Kunci layar murid" disabled={sibukKunci}
+              onUbah={v => void ubahKunci(v)} />
           </div>
         )}
 
@@ -156,6 +213,21 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
             </div>
             <Sakelar aktif={berjalan} label="Super Sesi berjalan" disabled={!berjalan || sibuk}
               onUbah={() => setKonfirmasiAkhiri(true)} />
+          </div>
+        )}
+
+        {/* Hapus riwayat (H2): HANYA Super Sesi yang sudah selesai. Kontainer sendiri, sejajar
+            dengan kartu "Super Sesi sudah diakhiri" di atasnya. */}
+        {selesai && (
+          <div className="flex items-center gap-3.5 bg-white rounded-[18px] border border-garis px-4 py-3.5 lg:px-5 lg:py-4">
+            <Ikon nama="hapus" className="w-5 h-5 shrink-0 text-teks-3" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-tinta">Hapus riwayat Super Sesi</p>
+              <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">
+                Menghapus Super Sesi ini beserta semua kelas, murid, jawaban, dan nilainya
+              </p>
+            </div>
+            <Button size="sm" variant="danger-garis" onClick={() => setKonfirmasiHapus(true)}>Hapus</Button>
           </div>
         )}
 
@@ -215,16 +287,25 @@ export function DetailSuperSesi({ superSesi, onKembali }: {
           onBatal={() => setKonfirmasiAkhiri(false)}
         />
       )}
+
+      {konfirmasiHapus && (
+        <KonfirmasiHapus
+          judul="Hapus Super Sesi ini?"
+          pesan={<>
+            “{superSesi.judul}” dihapus bersama semua kelasnya, murid yang bergabung, jawaban, dan nilainya. Nilai itu juga hilang dari layar guru pengawas.
+            <span className="block mt-3 rounded-xl bg-isian border border-garis-2 px-3.5 py-2.5 text-[13.5px]">
+              <strong className="text-tinta">{kelasTerbentuk} kelas</strong> · {muridSemua} murid
+            </span>
+            <strong className="block mt-3 text-tinta">Tidak bisa dibatalkan.</strong>
+          </>}
+          onHapus={() => hapusSuperSesi(superSesi.id)}
+          onTutup={() => setKonfirmasiHapus(false)} />
+      )}
     </div>
   )
 }
 
 function KartuSubmisi({ submisi }: { submisi: SubmisiSuperSesi }) {
-  const [terbuka, setTerbuka] = useState(false)
-
-  // Cuma sesi Super Sesi yang SUDAH lahir & masih berjalan yang punya sesuatu
-  // untuk diawasi -- lihat SS2/K1 di CLAUDE.md.
-  const bisaDiawasi = submisi.sesiId !== null && submisi.sesiStatus === 'aktif'
   const jumlahTerkunci = submisi.murid.filter(m => m.terkunciPada !== null).length
 
   const badge = submisi.sesiId ? (
@@ -240,155 +321,123 @@ function KartuSubmisi({ submisi }: { submisi: SubmisiSuperSesi }) {
   )
 
   return (
-    <div className={`bg-white rounded-[18px] overflow-hidden lg:rounded-none lg:ring-0 lg:border-0 lg:border-t lg:border-garis-2 ${
-      terbuka ? 'border border-biru ring-4 ring-biru-tint' : 'border border-garis'}`}>
-      <button type="button" disabled={!bisaDiawasi} onClick={() => setTerbuka(v => !v)} aria-expanded={terbuka}
-        className="w-full text-left disabled:cursor-default lg:hover:bg-isian lg:disabled:hover:bg-transparent transition-colors">
-        {/* HP: kartu dengan teks di kiri dan status di kanan. */}
-        <div className="flex items-start gap-3 px-4 py-3.5 lg:hidden">
-          <div className="flex-1 min-w-0">
-            <p className="text-base font-extrabold tracking-tight text-tinta break-words">
-              {submisi.mapel || submisi.judul}
+    <div className="bg-white rounded-[18px] overflow-hidden border border-garis @min-[560px]:rounded-none @min-[560px]:border-0 @min-[560px]:border-t @min-[560px]:border-garis-2">
+      {/* Sempit (< 560px, termasuk HP): kartu dengan teks di kiri dan status di kanan. */}
+      <div className="flex items-start gap-3 px-4 py-3.5 @min-[560px]:hidden">
+        <div className="flex-1 min-w-0">
+          <p className="text-base font-extrabold tracking-tight text-tinta break-words">
+            {submisi.mapel || submisi.judul}
+          </p>
+          <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">
+            {kelasJurusan(submisi.kelas, submisi.jurusan) && `${kelasJurusan(submisi.kelas, submisi.jurusan)} · `}Soal: {submisi.guruMapelNama}
+            {submisi.sesiId && ` · Pengawas: ${submisi.pengawasNama ?? 'belum diambil'}`}
+          </p>
+          {submisi.sesiId && (
+            <p className="text-[13.5px] text-tinta-2 mt-2">
+              {submisi.kodeJoin && <span className="font-mono font-medium">{submisi.kodeJoin} · </span>}
+              {submisi.jumlahMurid} murid
+              {jumlahTerkunci > 0 && <span className="text-jingga-gelap font-bold"> · {jumlahTerkunci} terkunci</span>}
             </p>
-            <p className="text-[13px] text-teks-3 mt-0.5 leading-snug">
-              {kelasJurusan(submisi.kelas, submisi.jurusan) && `${kelasJurusan(submisi.kelas, submisi.jurusan)} · `}Soal: {submisi.guruMapelNama}
-              {submisi.sesiId && ` · Pengawas: ${submisi.pengawasNama ?? 'belum diambil'}`}
-            </p>
-            {submisi.sesiId && (
-              <p className="text-[13.5px] text-tinta-2 mt-2">
-                {submisi.kodeJoin && <span className="font-mono font-medium">{submisi.kodeJoin} · </span>}
-                {submisi.jumlahMurid} murid
-                {jumlahTerkunci > 0 && <span className="text-jingga-gelap font-bold"> · {jumlahTerkunci} terkunci</span>}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {badge}
-            {bisaDiawasi && (
-              <Ikon nama={terbuka ? 'bawah' : 'kanan'} className="w-4.5 h-4.5 text-pinggir" tebal={2.2} />
-            )}
-          </div>
+          )}
         </div>
+        <div className="shrink-0">{badge}</div>
+      </div>
 
-        {/* Desktop: satu baris tabel, tiap kolom sel sendiri. */}
-        <div className={`hidden lg:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 min-h-16`}>
-          <span className="min-w-0">
-            <span className="block text-[15.5px] font-extrabold tracking-tight text-tinta">{submisi.mapel || submisi.judul}</span>
-            {kelasJurusan(submisi.kelas, submisi.jurusan) && (
-              <span className="block text-[13px] text-teks-3 mt-px">{kelasJurusan(submisi.kelas, submisi.jurusan)}</span>
-            )}
+      {/* Lebar (>= 560px): satu baris tabel, tiap kolom sel sendiri. */}
+      <div className={`hidden @min-[560px]:grid ${KOLOM_KIRIMAN} items-center gap-x-3 px-5 py-2.5 min-h-16`}>
+        <span className="min-w-0">
+          <span className="block text-[15.5px] font-extrabold tracking-tight text-tinta">{submisi.mapel || submisi.judul}</span>
+          {kelasJurusan(submisi.kelas, submisi.jurusan) && (
+            <span className="block text-[13px] text-teks-3 mt-px">{kelasJurusan(submisi.kelas, submisi.jurusan)}</span>
+          )}
+          {/* Bentuk ringkas: dua kolom yang dilipat ke sini. */}
+          <span className="block text-[12.5px] text-teks-3 mt-px truncate @min-[820px]:hidden">
+            Soal: {submisi.guruMapelNama}{submisi.kodeJoin && ` · ${submisi.kodeJoin}`}
           </span>
-          <span className="text-sm text-tinta-2 truncate">{submisi.guruMapelNama}</span>
-          <span className={`text-sm ${submisi.sesiId && !submisi.pengawasNama ? 'font-bold text-jingga-gelap' : 'text-tinta-2'}`}>
-            {submisi.sesiId ? (submisi.pengawasNama ?? 'Belum diambil') : '–'}
-          </span>
-          <span className="font-mono text-sm font-medium text-tinta">{submisi.kodeJoin ?? '–'}</span>
-          <span className="text-sm text-tinta-2">
-            {submisi.sesiId ? submisi.jumlahMurid : '–'}
-            {jumlahTerkunci > 0 && <span className="ml-1.5 text-xs font-bold text-jingga-gelap">{jumlahTerkunci} terkunci</span>}
-          </span>
-          <span>{badge}</span>
-          {bisaDiawasi
-            ? <Ikon nama={terbuka ? 'bawah' : 'kanan'} className="w-4.5 h-4.5 text-pinggir" tebal={2.2} />
-            : <span />}
-        </div>
-      </button>
-
-      {bisaDiawasi && terbuka && <PengawasanKelas submisi={submisi} />}
+        </span>
+        <span className="hidden @min-[820px]:block text-sm text-tinta-2 truncate">{submisi.guruMapelNama}</span>
+        <span className={`text-sm ${submisi.sesiId && !submisi.pengawasNama ? 'font-bold text-jingga-gelap' : 'text-tinta-2'}`}>
+          {submisi.sesiId ? (submisi.pengawasNama ?? 'Belum diambil') : '–'}
+        </span>
+        <span className="hidden @min-[820px]:block font-mono text-sm font-medium text-tinta">{submisi.kodeJoin ?? '–'}</span>
+        <span className="text-sm text-tinta-2">
+          {submisi.sesiId ? submisi.jumlahMurid : '–'}
+          {jumlahTerkunci > 0 && <span className="ml-1.5 text-xs font-bold text-jingga-gelap">{jumlahTerkunci} terkunci</span>}
+        </span>
+        <span>{badge}</span>
+      </div>
     </div>
   )
 }
 
-// ─── Pengawasan satu kelas (murid keluar/terkunci) ───────────────────────────
+// ─── Murid terkunci (semua kelas) ────────────────────────────────────────────
 // Wewenang buka kunci untuk sesi Super Sesi ADA DI SINI, bukan di pengawas
 // (permintaan pemilik produk) -- pengawas tetap lihat sesinya seperti biasa
 // (mulai/akhiri, jawaban, nilai), tapi tombol buka kunci di SesiPage disembunyikan
-// untuk sesi jenis ini, lihat catatan di sana. Kuncinya PER KELAS (per sesi):
-// server tidak punya sakelar serentak untuk seluruh Super Sesi.
+// untuk sesi jenis ini, lihat catatan di sana. Kunci layarnya SATU untuk seluruh
+// Super Sesi (kartu "Kunci layar murid", T3), dan murid yang terkunci dikumpulkan
+// di SATU kontainer ini untuk semua kelas -- cuma nama, kelas, dan sakelar Buka --
+// itulah "izin masuk kembali". Dirangkum dari `submisi` yang sudah dipoling.
+//
+// Bentuknya KEMBAR kontainer kiriman di sebelahnya: judul kecil di atas kartu (baris
+// yang sama tinggi, supaya tepi atas kedua kartu sejajar), kartu putih bersudut sama,
+// dan keadaan kosong yang sama. Barisnya memakai ukuran huruf kartu kiriman.
 
-function PengawasanKelas({ submisi }: { submisi: SubmisiSuperSesi }) {
-  const { aturKunciLayarSuper, bukaKunciSemuaSuper } = useSuperSesi()
-  const [sibuk, setSibuk] = useState(false)
-  const [galat, setGalat] = useState<string | null>(null)
-  const jumlahTerkunci = submisi.murid.filter(m => m.terkunciPada !== null).length
-
-  async function jalankan(aksi: () => Promise<void>) {
-    setSibuk(true); setGalat(null)
-    try { await aksi() } catch (e) { setGalat(e instanceof Error ? e.message : 'Gagal, coba lagi.') }
-    finally { setSibuk(false) }
-  }
-
-  return (
-    <div className="border-t border-garis-2">
-      <div className={`px-4 py-3 flex items-center gap-3 ${submisi.kunciLayar ? 'bg-jingga-tipis' : 'bg-isian'}`}>
-        <Ikon nama="kunci" className={`w-5 h-5 shrink-0 ${submisi.kunciLayar ? 'text-jingga' : 'text-teks-3'}`} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-tinta">Kunci layar {submisi.kunciLayar ? 'aktif' : 'nonaktif'}</p>
-          {jumlahTerkunci > 0 && (
-            <p className="text-xs text-jingga-gelap font-bold">{jumlahTerkunci} murid terkunci</p>
-          )}
-        </div>
-        {jumlahTerkunci > 0 && (
-          <Button size="sm" variant="danger-garis" disabled={sibuk}
-            onClick={() => void jalankan(() => bukaKunciSemuaSuper(submisi.sesiId!))}>
-            Buka semua
-          </Button>
-        )}
-        <Sakelar aktif={submisi.kunciLayar} warna="jingga" label="Kunci layar kelas ini" disabled={sibuk}
-          onUbah={v => void jalankan(() => aturKunciLayarSuper(submisi.sesiId!, v))} />
-      </div>
-
-      {submisi.murid.length === 0 ? (
-        <p className="text-[13px] text-teks-3 px-4 py-3">Belum ada murid bergabung.</p>
-      ) : (
-        <div className="divide-y divide-garis-2 border-t border-garis-2 lg:divide-y-0 lg:grid lg:grid-cols-2 lg:gap-2 lg:p-4 lg:bg-isian">
-          {submisi.murid.map(m => <BarisMuridSuper key={m.muridId} murid={m} sesiId={submisi.sesiId!} />)}
-        </div>
-      )}
-      {galat && <p className="text-xs font-medium text-jingga-gelap px-4 py-2">{galat}</p>}
-    </div>
-  )
-}
-
-function BarisMuridSuper({ murid, sesiId }: { murid: MuridSuperSesi; sesiId: string }) {
+function KontainerTerkunci({ submisi }: { submisi: SubmisiSuperSesi[] | null }) {
   const { bukaKunciMuridSuper } = useSuperSesi()
-  const [membuka, setMembuka] = useState(false)
-  const [gagal, setGagal] = useState(false)
-  const terkunci = murid.terkunciPada !== null
+  // Yang sedang dibuka: sakelarnya tampil menyala sampai baris itu hilang dari poling berikutnya.
+  const [membuka, setMembuka] = useState<ReadonlySet<string>>(new Set())
+  const [galat, setGalat] = useState<string | null>(null)
 
-  async function buka() {
-    setMembuka(true); setGagal(false)
-    try { await bukaKunciMuridSuper(sesiId, murid.muridId) }
-    catch { setGagal(true) }
-    finally { setMembuka(false) }
+  // Yang paling lama menunggu di atas.
+  const terkunci = (submisi ?? [])
+    .flatMap(s => s.sesiId !== null && s.sesiStatus === 'aktif'
+      ? s.murid.filter(m => m.terkunciPada !== null).map(m => ({
+          kunci: `${s.sesiId}|${m.muridId}`, sesiId: s.sesiId!, muridId: m.muridId, nama: m.nama,
+          kelas: kelasJurusan(s.kelas, s.jurusan) || s.mapel || s.judul,
+          sejak: new Date(m.terkunciPada!).getTime(),
+        }))
+      : [])
+    .sort((a, b) => a.sejak - b.sejak)
+
+  async function buka(t: (typeof terkunci)[number]) {
+    setMembuka(prev => new Set(prev).add(t.kunci)); setGalat(null)
+    try { await bukaKunciMuridSuper(t.sesiId, t.muridId) }
+    catch { setGalat(`Gagal membuka kunci ${t.nama}. Coba lagi.`) }
+    finally {
+      setMembuka(prev => { const n = new Set(prev); n.delete(t.kunci); return n })
+    }
   }
 
-  const sinyal = [
-    murid.keluarLayar > 0 && `${murid.keluarLayar}× keluar layar`,
-    murid.hilangFokus > 0 && `${murid.hilangFokus}× aplikasi lain`,
-  ].filter(Boolean).join(' · ')
-
   return (
-    <div className={`flex items-center gap-3 px-4 py-2.5 lg:rounded-xl lg:border ${
-      terkunci ? 'bg-jingga-tipis lg:border-jingga-garis' : 'lg:bg-white lg:border-garis-2'}`}>
-      <div className={`w-9 h-9 rounded-[11px] flex items-center justify-center shrink-0 text-sm font-extrabold ${
-        terkunci ? 'bg-jingga-tint text-jingga-gelap' : 'bg-biru-tint text-biru'}`}>
-        {murid.nama.charAt(0).toUpperCase()}
+    <section aria-label="Murid terkunci" className="min-w-0 flex flex-col gap-3 lg:gap-5 lg:sticky lg:top-0">
+      <div className="flex items-baseline justify-between mt-2 -mb-0.5 lg:mt-0 lg:-mb-2">
+        <Eyebrow>Murid terkunci · {terkunci.length}</Eyebrow>
+        {/* Tak terlihat saat kosong (bukan dihapus): tinggi baris judul harus sama dengan
+            baris di kolom kiri supaya tepi atas kedua kartu sejajar. */}
+        <span className={`text-[13px] text-teks-3 ${terkunci.length === 0 ? 'invisible' : ''}`}>Buka</span>
       </div>
-      <span className="flex-1 min-w-0">
-        <span className="block text-sm font-bold text-tinta truncate">{murid.nama}</span>
-        {(sinyal || terkunci) && (
-          <span className="block text-xs text-teks-3">
-            {terkunci && <span className="text-jingga-gelap font-bold">Terkunci</span>}{terkunci && sinyal && ' · '}{sinyal}
-          </span>
-        )}
-        {gagal && <span className="block text-xs font-medium text-jingga-gelap">Gagal membuka kunci</span>}
-      </span>
-      {terkunci && (
-        <Button size="sm" variant="danger-garis" disabled={membuka} onClick={() => void buka()}>
-          {membuka ? '...' : 'Buka'}
-        </Button>
+
+      {terkunci.length === 0 ? (
+        <div className="bg-white rounded-[18px] border border-garis flex flex-col items-center gap-1.5 py-8 text-center px-4">
+          <Ikon nama="kunci" className="w-8 h-8 text-pinggir-2" tebal={1.5} />
+          <p className="text-[13px] text-teks-3">Tidak ada murid yang terkunci</p>
+        </div>
+      ) : (
+        <ul className="bg-white rounded-[18px] border border-garis overflow-hidden divide-y divide-garis-2">
+          {terkunci.map(t => (
+            <li key={t.kunci} className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-extrabold tracking-tight text-tinta truncate">{t.nama}</p>
+                <p className="text-[13px] text-teks-3 mt-0.5 truncate">{t.kelas}</p>
+              </div>
+              <Sakelar aktif={membuka.has(t.kunci)} warna="jingga" label={`Buka kunci ${t.nama}`}
+                disabled={membuka.has(t.kunci)} onUbah={() => void buka(t)} />
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+      {galat && <p className="text-xs font-medium text-jingga-gelap px-1">{galat}</p>}
+    </section>
   )
 }

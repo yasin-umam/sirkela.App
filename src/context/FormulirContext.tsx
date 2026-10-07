@@ -136,7 +136,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
   if (import.meta.env.VITE_UJI_TAMPILAN) {
     // Data contoh di lib/ujiTampilan.ts. Memilih formulir BENAR-BENAR berpindah
     // supaya alur Kirim dari Riwayat/Menu bisa dilihat; selebihnya tidak menulis apa pun.
-    const [daftar] = useState(formulirUji)
+    const [daftar, setDaftar] = useState(formulirUji)
     const [aktifId, setAktifId] = useState('f1')
     const aktifRingkas = daftar.find(f => f.id === aktifId) ?? daftar[0]
     const aktif: Formulir = aktifRingkas
@@ -145,7 +145,7 @@ export function FormulirProvider({ children }: { children: ReactNode }) {
       daftar, memuat: false, aktif, soal, memuatSoal: false,
       statusSimpan: 'tersimpan', galatSimpan: null, punyaPerubahan: false,
       pilihFormulir: setAktifId, buatFormulir: async () => aktif.id, ubahFormulir: () => {},
-      hapusFormulir: async () => {}, tambahSoal: () => '', ubahSoal: () => {}, hapusSoal: () => null,
+      hapusFormulir: async id => { setDaftar(p => p.filter(f => f.id !== id)) }, tambahSoal: () => '', ubahSoal: () => {}, hapusSoal: () => null,
       duplikatSoal: () => null, pindahSoal: () => {}, imporSoal: async () => {},
       batalkanPerubahan: () => {}, simpanSekarang: async () => true,
     }

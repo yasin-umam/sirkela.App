@@ -121,6 +121,16 @@ export interface SesiKelas {
   kontenList: KontenItem[]
   kodeJoin: string
   kunciLayar: boolean
+  /**
+   * Sesudah mulai, murid dengan identitas BARU ditolak kecuali ini true (T1).
+   * Murid yang sudah terdaftar selalu boleh kembali ke barisnya sendiri.
+   */
+  /**
+   * Pintu murid dengan identitas baru sesudah Mulai (T1/T2). Di sesi Super Sesi
+   * yang kunci layarnya menyala (superSesiId != null && kunciLayar) pintu ini
+   * tidak berlaku: murid baru masuk terkunci dan kepala sekolah yang membukanya (T3).
+   */
+  terimaTerlambat: boolean
   muridJoined: PesertaSesi[]
   /** ISO `created_at`. Pembeda dua sesi dari formulir yang sama. */
   dibuatPada: string
@@ -147,6 +157,11 @@ export interface SuperSesi {
   status: 'mengumpulkan' | 'berjalan' | 'selesai'
   mulaiPada: string | null
   dibuatPada: string
+  /**
+   * Kunci layar untuk SEMUA kelas Super Sesi ini (T3). Menyala juga berarti izin
+   * masuk kembali murid ada di kepala sekolah, bukan pengawas.
+   */
+  kunciLayar: boolean
 }
 
 /** Bentuk ringkas dipakai DialogKirim untuk memilih tujuan kirim. */

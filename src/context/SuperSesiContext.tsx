@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { SuperSesi, SubmisiSuperSesi, MuridSuperSesi } from '../types'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { useSesi } from './SesiContext'
 import { PERAN_UJI, submisiUji, superSesiUji } from '../lib/ujiTampilan'
 
 // ─── Super Sesi milik kepala sekolah ─────────────────────────────────────────
@@ -19,6 +20,7 @@ interface DbSuperSesi {
   status: 'mengumpulkan' | 'berjalan' | 'selesai'
   mulai_pada: string | null
   created_at: string
+  kunci_layar: boolean
 }
 
 interface MuridServer {
@@ -83,12 +85,25 @@ interface SuperSesiContextValue {
   /**
    * Wewenang buka kunci untuk sesi hasil Super Sesi ADA DI SINI, bukan di
    * pengawas (permintaan pemilik produk) -- lihat migrasi
-   * 20260924300000_pengawasan_super_sesi.sql. Ketiganya me-refresh `submisi`
-   * langsung sesudah sukses, tidak menunggu jeda poling berikutnya.
+   * 20260924300000_pengawasan_super_sesi.sql. Me-refresh `submisi` langsung
+   * sesudah sukses, tidak menunggu jeda poling berikutnya. (`buka_kunci_semua_kepsek`
+   * masih ada di server tapi tak dipakai klien: daftar murid terkunci cuma membuka
+   * satu per satu.)
    */
   bukaKunciMuridSuper: (sesiId: string, muridId: string) => Promise<void>
-  bukaKunciSemuaSuper: (sesiId: string) => Promise<void>
-  aturKunciLayarSuper: (sesiId: string, aktif: boolean) => Promise<void>
+  /**
+   * Kunci layar untuk SELURUH Super Sesi (T3), bukan per kelas: server menyebarkannya
+   * ke semua kelas aktif dan ke kelas yang lahir sesudahnya. Menyala juga berarti
+   * izin masuk kembali murid ada di kepala sekolah. Mematikan membebaskan semua murid
+   * yang sedang terkunci. Me-refresh `semuaSuperSesi` dan `submisi` sesudahnya.
+   */
+  aturKunciLayarSuper: (id: string, aktif: boolean) => Promise<void>
+  /**
+   * Hapus PERMANEN satu Super Sesi yang sudah SELESAI beserta semua kelasnya -- murid,
+   * jawaban, dan nilai di layar pengawas ikut hilang (H2). MELEMPAR pesan server kalau
+   * belum selesai. Kelas milik kepala sekolah sendiri juga dibuang dari SesiContext.
+   */
+  hapusSuperSesi: (id: string) => Promise<void>
 }
 
 const SuperSesiContext = createContext<SuperSesiContextValue | null>(null)
@@ -98,7 +113,7 @@ const JEDA_POLING_MS = 10_000
 function petakanSuperSesi(s: DbSuperSesi): SuperSesi {
   return {
     id: s.id, judul: s.judul, deskripsi: s.deskripsi, status: s.status,
-    mulaiPada: s.mulai_pada, dibuatPada: s.created_at,
+    mulaiPada: s.mulai_pada, dibuatPada: s.created_at, kunciLayar: s.kunci_layar ?? false,
   }
 }
 
@@ -124,6 +139,8 @@ function petakanKiriman(k: KirimanServer): SubmisiSuperSesi {
 }
 
 export function SuperSesiProvider({ children }: { children: ReactNode }) {
+  // Di atas cabang uji: nilainya konstanta per build, jadi urutan hook tetap.
+  const { lepasSesiSuperSesi } = useSesi()
   if (import.meta.env.VITE_UJI_TAMPILAN) {
     // Data contoh di lib/ujiTampilan.ts; tidak menyentuh server.
     const [semuaSuperSesi, setSemuaSuperSesi] = useState<SuperSesi[]>(() => (PERAN_UJI === 'kepala_sekolah' ? superSesiUji() : []))
@@ -131,18 +148,31 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
     const fokus = semuaSuperSesi.find(s => s.id === fokusId) ?? null
     const bawaan = semuaSuperSesi.find(s => s.status === 'berjalan') ?? semuaSuperSesi.find(s => s.status === 'mengumpulkan') ?? null
     const idPantau = fokusId ?? bawaan?.id ?? null
-    const tak = async () => {}
+    // Kunci layar kiriman mengikuti sakelar Super Sesi-nya, seperti di server (T3).
+    const kunciSuper = semuaSuperSesi.find(s => s.id === idPantau)?.kunciLayar ?? false
+    // Murid yang sudah dibuka ("sesi|murid"), supaya daftar terkunci bisa dicoba tanpa server.
+    const [dibuka, setDibuka] = useState<ReadonlySet<string>>(new Set())
     const value: SuperSesiContextValue = {
       semuaSuperSesi, memuat: false, fokus, fokuskan: setFokusId, bawaan,
       buatSuperSesi: async (judul, deskripsi) => {
-        const baru: SuperSesi = { id: `ss${Date.now()}`, judul, deskripsi, status: 'mengumpulkan', mulaiPada: null, dibuatPada: new Date().toISOString() }
+        const baru: SuperSesi = { id: `ss${Date.now()}`, judul, deskripsi, status: 'mengumpulkan', mulaiPada: null, dibuatPada: new Date().toISOString(), kunciLayar: false }
         setSemuaSuperSesi(p => [baru, ...p])
         return baru.id
       },
-      submisi: idPantau ? submisiUji(idPantau) : null, submisiId: idPantau, memuatSubmisi: false,
+      submisi: idPantau ? submisiUji(idPantau).map(s => ({
+        ...s, kunciLayar: kunciSuper,
+        murid: s.murid.map(m => dibuka.has(`${s.sesiId}|${m.muridId}`) ? { ...m, terkunciPada: null } : m),
+      })) : null,
+      submisiId: idPantau, memuatSubmisi: false,
       mulaiSuperSesi: async id => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, status: 'berjalan', mulaiPada: new Date().toISOString() } : s)) },
       akhiriSuperSesi: async id => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, status: 'selesai' } : s)) },
-      bukaKunciMuridSuper: tak, bukaKunciSemuaSuper: tak, aturKunciLayarSuper: tak,
+      bukaKunciMuridSuper: async (sesiId, muridId) => { setDibuka(p => new Set(p).add(`${sesiId}|${muridId}`)) },
+      aturKunciLayarSuper: async (id, aktif) => { setSemuaSuperSesi(p => p.map(s => s.id === id ? { ...s, kunciLayar: aktif } : s)) },
+      hapusSuperSesi: async id => {
+        lepasSesiSuperSesi(id)
+        setSemuaSuperSesi(p => p.filter(s => s.id !== id))
+        setFokusId(prev => prev === id ? null : prev)
+      },
     }
     return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>
   }
@@ -238,24 +268,32 @@ export function SuperSesiProvider({ children }: { children: ReactNode }) {
     await muatSubmisiRef.current()
   }, [])
 
-  const bukaKunciSemuaSuper = useCallback(async (sesiId: string) => {
-    const { error } = await supabase.rpc('buka_kunci_semua_kepsek', { p_sesi_id: sesiId })
-    if (error) throw new Error('Gagal membuka kunci. Coba lagi.')
+  // T3: satu sakelar untuk seluruh Super Sesi; server menyebarkannya ke tiap kelas.
+  const aturKunciLayarSuper = useCallback(async (id: string, aktif: boolean) => {
+    const { error } = await supabase.rpc('atur_kunci_layar_super', { p_super_sesi_id: id, p_aktif: aktif })
+    if (error) throw new Error('Gagal mengubah kunci layar. Coba lagi.')
+    setSemuaSuperSesi(prev => prev.map(s => s.id === id ? { ...s, kunciLayar: aktif } : s))
     await muatSubmisiRef.current()
   }, [])
 
-  const aturKunciLayarSuper = useCallback(async (sesiId: string, aktif: boolean) => {
-    const { error } = await supabase.rpc('atur_kunci_layar_kepsek', { p_sesi_id: sesiId, p_aktif: aktif })
-    if (error) throw new Error('Gagal mengubah kunci layar. Coba lagi.')
-    await muatSubmisiRef.current()
-  }, [])
+  // H2: pesan server diteruskan ("Akhiri Super Sesi dulu sebelum menghapusnya").
+  const hapusSuperSesi = useCallback(async (id: string) => {
+    const { error } = await supabase.rpc('hapus_super_sesi', { p_super_sesi_id: id })
+    if (error) throw new Error(/fetch|network/i.test(error.message) ? 'Tidak ada koneksi. Coba lagi.' : error.message)
+    // Kelas yang dipegang akun ini sendiri (kepala sekolah juga bisa jadi pengawas)
+    // sudah terhapus di server; daftar sesinya dimuat sekali saat login.
+    lepasSesiSuperSesi(id)
+    setSemuaSuperSesi(prev => prev.filter(s => s.id !== id))
+    // Fokus yang hilang membuat idPantau berganti, dan efek poling mengosongkan submisi.
+    setFokusId(prev => prev === id ? null : prev)
+  }, [lepasSesiSuperSesi])
 
   const value = useMemo<SuperSesiContextValue>(() => ({
     semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi,
     submisi, submisiId, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi,
-    bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper,
+    bukaKunciMuridSuper, aturKunciLayarSuper, hapusSuperSesi,
   }), [semuaSuperSesi, memuat, fokus, fokuskan, bawaan, buatSuperSesi, submisi, submisiId, memuatSubmisi, mulaiSuperSesi, akhiriSuperSesi,
-      bukaKunciMuridSuper, bukaKunciSemuaSuper, aturKunciLayarSuper])
+      bukaKunciMuridSuper, aturKunciLayarSuper, hapusSuperSesi])
 
   return <SuperSesiContext.Provider value={value}>{children}</SuperSesiContext.Provider>
 }

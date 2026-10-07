@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useFormulir, type RingkasFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
 import { useAksiGuru } from '../../context/AksiGuruContext'
-import { statusSesi } from '../../lib/keadaanSesi'
+import { sesiBisaDihapus, statusSesi } from '../../lib/keadaanSesi'
 import { jamMenit, kelasJurusan, labelWaktu, tanggalLengkap, waktuRingkas } from '../../lib/soal'
 import { supabase } from '../../lib/supabase'
 import { soalUji } from '../../lib/ujiTampilan'
@@ -11,8 +11,9 @@ import { useKirimanSuper } from '../../lib/useKirimanSuper'
 import { BilahAtas } from '../../components/BilahAtas'
 import { BarisTabel, KepalaTabel } from '../../components/TabelDesktop'
 import { Badge } from '../../components/ui/Badge'
-import { Ikon } from '../../components/ui/Ikon'
+import { Ikon, TombolIkon } from '../../components/ui/Ikon'
 import { Spinner } from '../../components/ui/Spinner'
+import { KonfirmasiHapus } from '../../components/KonfirmasiHapus'
 
 // ─── Riwayat desktop (≥ 1024px): tabel + panel detail ────────────────────────
 // Master-detail: tabel di kiri memilih, panel di kanan menjelaskan satu formulir
@@ -23,6 +24,11 @@ import { Spinner } from '../../components/ui/Spinner'
 // dimuat. HP tetap memakai RiwayatPage.
 
 type Pil = 'formulir' | 'sesi'
+
+// Hapus riwayat (H1/H2): formulir kapan pun; sesi lewat sesiBisaDihapus() (lib/keadaanSesi).
+type TargetHapus =
+  | { jenis: 'formulir'; id: string; judul: string; jumlahSoal: number }
+  | { jenis: 'sesi'; id: string; judul: string; kode: string; jumlahMurid: number }
 
 const KOLOM_FORMULIR = 'grid-cols-[minmax(0,1fr)_88px_56px_112px_96px]'
 const KOLOM_SESI = 'grid-cols-[minmax(0,1fr)_120px_100px_190px_150px_24px]'
@@ -51,9 +57,10 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
   onBukaFormulir: (formulirId: string) => void
   onBukaSesi: (sesiId: string) => void
 }) {
-  const { daftar, memuat } = useFormulir()
-  const { semuaSesi } = useSesi()
+  const { daftar, memuat, hapusFormulir } = useFormulir()
+  const { semuaSesi, hapusSesi } = useSesi()
   const kirimanSuper = useKirimanSuper()
+  const [hapus, setHapus] = useState<TargetHapus | null>(null)
   const [pil, setPil] = useState<Pil>('formulir')
   const [q, setQ] = useState('')
   const [kelas, setKelas] = useState('')
@@ -148,7 +155,10 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
                     {adaSaringan ? `${formulirTampil.length} dari ${daftar.length} formulir` : `${daftar.length} formulir`} · ketuk dua kali untuk membuka editor
                   </p>
                 </section>
-                {dipilih && <DetailFormulir key={dipilih.id} f={dipilih} onBukaFormulir={onBukaFormulir} onBukaSesi={onBukaSesi} />}
+                {dipilih && (
+                  <DetailFormulir key={dipilih.id} f={dipilih} onBukaFormulir={onBukaFormulir} onBukaSesi={onBukaSesi}
+                    onHapus={() => setHapus({ jenis: 'formulir', id: dipilih.id, judul: dipilih.judul.trim() || 'Formulir tanpa judul', jumlahSoal: dipilih.jumlahSoal })} />
+                )}
               </div>
             )
           ) : semuaSesi.length === 0 ? (
@@ -160,8 +170,14 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
               <KepalaTabel kolom={KOLOM_SESI} judul={['Judul', 'Kode', 'Murid', 'Dibuat', 'Status', '']} />
               {sesiTampil.map(s => {
                 const st = statusSesi(s)
+                const bisaHapus = sesiBisaDihapus(s)
                 return (
-                  <BarisTabel key={s.id} kolom={KOLOM_SESI} onClick={() => onBukaSesi(s.id)}>
+                  <BarisTabel key={s.id} kolom={KOLOM_SESI} onClick={() => onBukaSesi(s.id)}
+                    aksi={bisaHapus ? (
+                      <TombolIkon nama="hapus" label={`Hapus sesi ${s.judul}`} ukuran="w-4.5 h-4.5"
+                        className="hover:bg-jingga-tint hover:text-jingga-gelap"
+                        onClick={() => setHapus({ jenis: 'sesi', id: s.id, judul: s.judul, kode: s.kodeJoin, jumlahMurid: s.muridJoined.length })} />
+                    ) : undefined}>
                     <span className="flex items-center gap-3.5 min-w-0">
                       <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                         s.status === 'aktif' ? 'bg-hijau-tint text-hijau' : 'bg-garis-2 text-teks-3'}`}>
@@ -179,7 +195,8 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
                     <span className="text-sm text-tinta-2">{s.muridJoined.length} murid</span>
                     <span className="text-sm text-teks-3">{labelWaktu(s.dibuatPada)} {jamMenit(s.dibuatPada)}</span>
                     <span><Badge warna={st.warna} titik={st.label === 'Berjalan'}>{st.label}</Badge></span>
-                    <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />
+                    {/* Baris yang bisa dihapus: tombol hapus melayang di kolom ini. */}
+                    {bisaHapus ? <span /> : <Ikon nama="kanan" className="w-4.5 h-4.5 text-pinggir shrink-0" tebal={2.2} />}
                   </BarisTabel>
                 )
               })}
@@ -187,6 +204,24 @@ export function RiwayatDesktop({ onBukaFormulir, onBukaSesi }: {
           )}
         </div>
       </div>
+
+      {hapus && (
+        <KonfirmasiHapus
+          judul={hapus.jenis === 'formulir' ? 'Hapus formulir ini?' : 'Hapus sesi ini?'}
+          pesan={hapus.jenis === 'formulir' ? (
+            <>
+              “{hapus.judul}” dan {hapus.jumlahSoal} pertanyaannya dihapus. Sesi yang sudah lahir dari formulir ini tetap ada.
+              <strong className="block mt-3 text-tinta">Tidak bisa dibatalkan.</strong>
+            </>
+          ) : (
+            <>
+              “{hapus.judul}” (kode {hapus.kode}) dihapus bersama {hapus.jumlahMurid} murid yang bergabung, jawaban, dan nilainya.
+              <strong className="block mt-3 text-tinta">Tidak bisa dibatalkan.</strong>
+            </>
+          )}
+          onHapus={() => hapus.jenis === 'formulir' ? hapusFormulir(hapus.id) : hapusSesi(hapus.id)}
+          onTutup={() => setHapus(null)} />
+      )}
     </div>
   )
 }
@@ -202,10 +237,11 @@ function Meta({ label, nilai }: { label: string; nilai: ReactNode }) {
   )
 }
 
-function DetailFormulir({ f, onBukaFormulir, onBukaSesi }: {
+function DetailFormulir({ f, onBukaFormulir, onBukaSesi, onHapus }: {
   f: RingkasFormulir
   onBukaFormulir: (id: string) => void
   onBukaSesi: (id: string) => void
+  onHapus: () => void
 }) {
   const { semuaSesi } = useSesi()
   const { mulaiSesiBaru } = useAksiGuru()
@@ -247,6 +283,10 @@ function DetailFormulir({ f, onBukaFormulir, onBukaSesi }: {
         <button type="button" onClick={() => mulaiSesiBaru(f.id)}
           className="h-11 px-4 rounded-xl border-[1.5px] border-pinggir-2 bg-white text-[14.5px] font-bold text-tinta inline-flex items-center gap-2 hover:bg-isian transition-colors">
           <Ikon nama="kirim" className="w-4 h-4" tebal={2} />Kirim
+        </button>
+        <button type="button" onClick={onHapus} aria-label="Hapus formulir" title="Hapus formulir"
+          className="h-11 w-11 shrink-0 rounded-xl border-[1.5px] border-pinggir-2 bg-white text-teks-3 inline-flex items-center justify-center hover:bg-jingga-tint hover:border-jingga-garis hover:text-jingga-gelap transition-colors">
+          <Ikon nama="hapus" className="w-4.5 h-4.5" />
         </button>
       </div>
 

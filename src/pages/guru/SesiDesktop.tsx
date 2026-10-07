@@ -12,7 +12,7 @@ import { BagikanSesi } from '../../components/BagikanSesi'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Ikon } from '../../components/ui/Ikon'
-import { KartuDurasi, KartuKunciLayar, KonfirmasiAkhiri } from './SesiKartu'
+import { KartuDurasi, KartuKunciLayar, KartuMuridTerlambat, KonfirmasiAkhiri } from './SesiKartu'
 
 // ─── Layar Sesi desktop (≥ 1024px): daftar + kendali ─────────────────────────
 // Master-detail: daftar semua sesi tetap di kiri (yang berjalan paling atas),
@@ -236,6 +236,7 @@ function Kendali({ sesi, onLihatJawaban }: { sesi: SesiKelas; onLihatJawaban: ()
             </div>
             {!mulai && <KartuDurasi sesi={sesi} />}
             <KartuKunciLayar sesi={sesi} />
+            {mulai && <KartuMuridTerlambat sesi={sesi} />}
           </div>
         )}
       </div>

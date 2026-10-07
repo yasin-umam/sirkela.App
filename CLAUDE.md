@@ -32,7 +32,11 @@ Sesi tetap hanya lahir lewat Kirim (F2); ini cuma jalan pintas dari Menu. Layar 
 sidebar desktop. Kepala Menu HP cuma lambang + sapaan: pintasan ikon dokumen ke
 Riwayat dibuang (tab Riwayat sudah ada di bilah bawah).
 Tab **Riwayat** (`RiwayatPage.tsx`) adalah arsip lengkap dengan dua pil
-(Formulir/Sesi), pengganti laci ☰ lama. Tab **Saya** (`ProfilePage.tsx`) adalah
+(Formulir/Sesi), pengganti laci ☰ lama. Dari sini riwayat bisa DIHAPUS (2026-10-07, H1-H3):
+formulir kapan pun, sesi hanya yang sudah selesai dan bukan kelas Super Sesi -- ikon tempat
+sampah di ujung baris (HP: sel terpisah di kanan; desktop: melayang di kolom terakhir tabel sesi,
+tombol di panel detail untuk formulir). Super Sesi yang selesai dihapus dari layar Super Sesi
+kepala sekolah. Tab **Saya** (`ProfilePage.tsx`) adalah
 akun: kartu profil + angka ringkas, lalu grup baris (Akun Saya, Akses — tempat
 setelan otorisasi nanti dibangun, Keluar).
 
@@ -115,9 +119,10 @@ di ≥ 640px; bilah tab bawah menandai slot aktif dengan pil `biru-tint`; judul 
 penuh (Sesi, Nilai, Super Sesi, editor) memakai bilah putih tipis dengan panah kembali.
 
 **Beda dari kanvas desain, sengaja:** editor TIDAK punya tab Setelan (dibuang
-2026-09-22); kunci layar Super Sesi per KELAS (per sesi), bukan satu sakelar serentak,
-karena server tidak punya RPC untuk itu; dialog Kirim langsung menjalankan pilihan
-yang diketuk (tidak ada tombol "Buka sesi" terpisah) seperti sebelumnya.
+2026-09-22); kunci layar Super Sesi SATU sakelar untuk seluruh Super Sesi (sejak
+2026-10-07, T3; sebelumnya per kelas karena server belum punya RPC serentak);
+dialog Kirim langsung menjalankan pilihan yang diketuk (tidak ada tombol "Buka
+sesi" terpisah) seperti sebelumnya.
 
 ### Tampilan desktop v2: "Meja Pengawas" (2026-10-06)
 
@@ -139,7 +144,10 @@ dipusatkan (`desktop:max-w-2xl`).
   `kepsek/SuperSesiDesktop`, `ProfilDesktop`). Markup HP-nya sudah dibersihkan dari
   kelas desktop; jangan menambahkan `lg:` ke sana lagi.
 - **Kerangka:** `SidebarGuru` 232px (navigasi saja; Sesi & Super Sesi item sendiri,
-  lencana hijau = jumlah yang aktif) + **`BilahAtas`** (`components/BilahAtas.tsx`).
+  lencana hijau = jumlah yang aktif; di 1024-1279px menciut jadi REL IKON 72px tanpa
+  label/nama aplikasi/nama akun, lencana jadi titik hijau, nama item tetap di
+  `aria-label`/`title` -- 2026-10-07, supaya Super Sesi muat memasang kontainer murid
+  terkunci di samping tabel) + **`BilahAtas`** (`components/BilahAtas.tsx`).
   Bilah atas dipasang oleh TIAP halaman di bagian paling atasnya (bukan sekali di
   GuruHome) supaya halaman yang menentukan judul/jejaknya (`jejak` di Jawaban &
   nilai: Sesi › judul › Jawaban & nilai); di HP ia tidak dirender. Isinya: judul,
@@ -171,7 +179,7 @@ dipusatkan (`desktop:max-w-2xl`).
   `SesiPage` memilihkan sesi berjalan (kalau tidak ada, yang terbaru) lewat
   `fokuskan`, jadi Realtime-nya tetap hidup. Menekan item Sesi di sidebar
   mengembalikan ke pilihan bawaan itu. Kartu bersama HP/desktop (Durasi, Kunci
-  layar, Konfirmasi akhiri) ada di `SesiKartu.tsx`; hitungan terkunci/senyap di
+  layar, Murid terlambat, Konfirmasi akhiri) ada di `SesiKartu.tsx`; hitungan terkunci/senyap di
   `lib/keadaanSesi.ts` (`keadaanPeserta`, `hitungPeserta`) -- satu-satunya tempat
   "terkunci/senyap" dihitung, dipakai konsol Menu, pil bilah atas, penyaring, dan
   baris murid. Penyaring murid cuma di desktop dan hanya menyaring tampilan.
@@ -230,7 +238,9 @@ dipusatkan (`desktop:max-w-2xl`).
   TIDAK menyembunyikannya (yang dipakai: `max-lg:hidden`). Kelas yang dibuang
   Tailwind diam-diam tidak ketahuan sampai dilihat di layar: setelah menambah kelas
   baru, bandingkan semua kelas di berkas yang berubah dengan CSS hasil `npm run
-  build`.
+  build`. Jebakan lain: anak flex-column yang `overflow-hidden` MENGERUT (min-height
+  jadi 0) kalau induknya berukuran tetap -- tabel kiriman di `DetailSuperSesi`
+  menimpa baris-barisnya sendiri begitu satu kelas dibuka sampai diberi `shrink-0`.
 
 ## Stack & perintah
 
@@ -511,20 +521,59 @@ ulangan serentak, bukan tergantung kebijakan masing-masing pengawas.
   `bebaskan_kunci_semua()` (internal, tidak digrant ke siapa pun) supaya
   jalur guru (ditolak untuk Super Sesi) dan jalur kepala sekolah (baru) tidak
   menduplikasi UPDATE/INSERT yang sama.
-- Server, jalur BARU: `buka_kunci_murid_kepsek()`/`buka_kunci_semua_kepsek()`/
-  `atur_kunci_layar_kepsek()` — kepala sekolah, dicek lewat `adalah_kepsek()`
-  DAN kepemilikan `super_sesi` yang menaungi sesi itu (lewat `super_sesi_soal.sesi_id`).
+- Server, jalur BARU: `buka_kunci_murid_kepsek()`/`buka_kunci_semua_kepsek()` —
+  kepala sekolah, dicek lewat `adalah_kepsek()` DAN kepemilikan `super_sesi` yang
+  menaungi sesi itu (lewat `super_sesi_soal.sesi_id`). `atur_kunci_layar_kepsek()`
+  (per kelas) DIBUANG 2026-10-07: kunci layar kini diatur untuk seluruh Super Sesi
+  lewat `atur_kunci_layar_super()` (lihat "Kunci layar Super Sesi" di bawah).
 - `pantau_super_sesi()` ikut membawa `kunci_layar` sesi & daftar `murid` per
   kiriman (`terkunci_pada`, `terakhir_denyut`, hitungan `keluar_layar`/
   `hilang_fokus` dari `sesi_peristiwa` — laporan KESAKSIAN yang sama dengan
   yang dilihat pengawas, A4 tetap berlaku) supaya kepala sekolah "menerima
   laporan murid keluar dari sesi" tanpa RLS baru ke `sesi_murid`/`sesi_peristiwa`.
-- Klien: `DetailSuperSesi.tsx` (kepsek) — tiap kiriman yang sudah berjalan
-  bisa dibuka (`PengawasanKelas`) untuk lihat daftar murid, nyalakan/matikan
-  kunci layar, dan buka kunci per murid atau semua sekaligus. `SuperSesiContext`
-  menambah `bukaKunciMuridSuper`/`bukaKunciSemuaSuper`/`aturKunciLayarSuper`,
-  masing-masing me-refresh `submisi` langsung sesudah sukses (tidak menunggu
-  jeda poling 10 detik).
+- Klien: `DetailSuperSesi.tsx` (kepsek) — murid terkunci dibuka lewat
+  `KontainerTerkunci` (lihat di bawah). Baris kiriman TIDAK bisa dibuka lagi
+  (panel daftar murid per kelas dibuang 2026-10-07). `SuperSesiContext` menambah `bukaKunciMuridSuper`/
+  `aturKunciLayarSuper` (`buka_kunci_semua_kepsek` masih ada di server tapi tak dipakai klien), masing-masing me-refresh `submisi`
+  langsung sesudah sukses (tidak menunggu jeda poling 10 detik).
+
+**Kunci layar Super Sesi (2026-10-07, T3/T4):** SATU sakelar `super_sesi.kunci_layar`,
+kartu "Kunci layar murid" di `DetailSuperSesi` dalam kontainer sendiri tepat di atas
+kartu "Super Sesi berjalan" (bisa dinyalakan sebelum maupun sesudah Mulai). Menyala:
+(1) kunci berlaku di SEMUA kelas, yang aktif sekarang maupun yang lahir sesudahnya;
+(2) izin masuk kembali murid ada di kepala sekolah, bukan pengawas. "Izin masuk
+kembali" = sakelar Buka di `KontainerTerkunci`; murid dengan identitas BARU yang
+bergabung sesudah Mulai tidak ditolak melainkan masuk dalam keadaan TERKUNCI (tercatat
+`dikunci` di log), jadi muncul di daftar kepala sekolah dan menunggu Buka. Tidak ada
+sakelar pintu per kelas. Sempat ada tiga sakelar ("Izin kepala sekolah", pintu per
+kelas, kunci per kelas) tapi dibuang karena artinya tumpang tindih dan membingungkan.
+`KontainerTerkunci` (kontainer baru, 2026-10-07) mengumpulkan murid terkunci dari SEMUA
+kelas dalam satu daftar: hanya nama, kelas, dan sakelar Buka (yang paling lama menunggu
+di atas; tidak ada "Buka semua"). Di layar >= 1024px (`lg`) ia SELALU duduk di
+kanan tabel kiriman (240px, 256px mulai `xl`); cuma di HP dan tablet (< 1024px) ia turun
+ke bawah tabel. Agar muat di 1024-1279px, sidebar menciut jadi rel ikon (lihat Kerangka)
+dan kolom daftar Super Sesi menyempit (`w-52`, lalu `xl:w-64`, `min-[1400px]:w-75`) --
+permintaan pemilik produk: yang dikorbankan lebar menu & riwayat, bukan letak kontainer. Karena lebar yang tersisa untuk
+tabel berubah-ubah, TABEL KIRIMAN MENYESUAIKAN DIRI dengan lebar pembungkusnya lewat
+container query (`@container` di kolom kiri, variannya `@min-[560px]:`/`@min-[820px]:`),
+bukan lebar layar: >= 820px tabel penuh 6 kolom; >= 560px tabel ringkas 4 kolom
+("Soal dari" dan "Kode" dilipat jadi baris kedua kolom Mapel); < 560px kartu bertumpuk
+(bentuk HP). Ini pengecualian dari aturan "lg: untuk beda ukuran biasa" di bagian desktop
+v2 -- cuma untuk bagian dalam tabel kiriman; sisa halaman tetap
+`lg:`/`xl:`. Akibatnya tablet (container >= 560px) kini juga mendapat tabel ringkas.
+Dirangkum dari `submisi` yang sudah dipoling, tanpa panggilan server baru.
+Bentuknya KEMBAR kontainer kiriman di sebelahnya: judul kecil (Eyebrow) di baris yang sama tingginya di atas kartu, kartu putih `rounded-[18px]`, huruf
+baris sama dengan kartu kiriman, dan keadaan kosong berikon. Tulisan "Buka" di baris
+judul `invisible` (bukan dihapus) saat kosong supaya tepi atas kedua kartu tetap sejajar.
+Sebelumnya ada daftar "Murid yang keluar"/"Masih di layar" per kelas yang terbuka dari baris
+kiriman; dibuang atas permintaan pemilik produk (informasi murid yang keluar tapi tidak
+terkunci, mis. saat kunci layar mati, tidak lagi ditampilkan di mana pun untuk kepala
+sekolah). Datanya sudah ada di `pantau_super_sesi()` sejak SS6. Di layar
+pengawas `KartuKunciLayar` menjelaskan bahwa kunci dipegang kepala sekolah, dan
+`KartuMuridTerlambat` disembunyikan selama kunci Super Sesi menyala. Layar pengawas
+tidak menyegarkan diri (sesi dimuat sekali), jadi pengawas yang layarnya basi mendapat
+pesan server ("Kunci layar Super Sesi menyala: kepala sekolah yang mengizinkan…")
+kalau mengetuk sakelar pintu yang sudah tidak berlaku.
 
 **Sekolah sebagai batas isolasi**: satu project Supabase sekarang bisa
 menampung LEBIH dari satu sekolah. `profiles.sekolah_id` (WAJIB untuk
@@ -646,7 +695,7 @@ src/
     BottomNav (HP: Riwayat · Menu · Saya, Sesi menumpang sorotan Menu) · SidebarGuru (desktop: Sesi & Super Sesi item sendiri)
     BilahAtas (desktop: judul/jejak + pil sesi berjalan + Formulir baru ▾, dipasang tiap halaman)
     KartuKodeSekolah (kepala sekolah: kode sekolah + Salin, di Menu HP & desktop)
-    TabelDesktop (KepalaTabel/BarisTabel, grid CSS)
+    TabelDesktop (KepalaTabel/BarisTabel + `aksi` melayang di ujung kanan, grid CSS) · KonfirmasiHapus (lembar konfirmasi hapus riwayat: formulir, sesi, Super Sesi)
     BagikanSesi (kode + QR + link) · LembarKonfirmasi · ScannerQr · TombolZoom
   pages/
     auth/    AuthPages (login, daftar + Kode Sekolah, Hubungkan ke Sekolah untuk guru lama, lupa & reset password) — guru & kepala sekolah
@@ -676,6 +725,10 @@ supabase/migrations/
   20261006100000_gabung_sekolah.sql   # SK4, perlu_kode_sekolah() & gabung_sekolah(): guru lama keluar dari 'Sekolah Default'
   20261006200000_akhiri_super_sesi.sql # SS10, akhiri_super_sesi() + klaim_kelas_super_sesi() menolak kelas yang sudah berakhir
   20261006300000_jurusan.sql          # formulir.jurusan & super_sesi_soal.jurusan; kirim_ke_super_sesi/pantau_super_sesi/ambil_kelas_tersedia_super_sesi membawanya
+  20261007000000_murid_terlambat.sql  # T1-T2, sesi_kelas.terima_terlambat, gabung_sesi() menolak identitas baru sesudah Mulai, atur_terima_terlambat()
+  20261007100000_izin_kepsek.sql      # (SEBAGIAN DIBONGKAR 20261007200000) sakelar "izin kepala sekolah" + pintu per kelas; pantau_super_sesi() membawa terima_terlambat (field ini tak dipakai klien lagi)
+  20261007200000_kunci_layar_super_sesi.sql # T3-T4, super_sesi.kunci_layar, atur_kunci_layar_super(), trigger warisi/sebar/jaga, gabung_sesi() memasukkan murid baru dalam keadaan terkunci
+  20261007300000_hapus_riwayat.sql    # H1-H2, hapus_sesi() & hapus_super_sesi() (hanya yang selesai), trigger jaga_hapus_sesi & hapus_kelas_super_sesi
 scripts/
   buat-kepala-sekolah.mjs             # pemilik produk: sekolah + akun kepala sekolah (service role), `npm run kepsek`
   env.rahasia.contoh                  # contoh .env.rahasia (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -788,6 +841,31 @@ juga tanpa padanan di Luang.
 | G2 | Hanya `adalah_guru()` yang bisa mengunggah, dan hanya ke folder bernama id-nya sendiri; murid anonim tidak punya jalan menulis ke bucket |
 | G3 | `bank_soal.gambar` dibatasi CHECK ke `<uuid>/<uuid>.jpg` (huruf kecil). Path itu disalin ke murid dan disambung ke URL storage di klien — kolom bebas membiarkan guru menyelipkan `../` atau path bucket lain. Bucket PUBLIK: path tak bisa ditebak dan hanya sampai ke murid lewat `ambil_konten_sesi()`, tapi siapa pun yang memegang URL-nya bisa membukanya |
 
+Baris `T*` ditambahkan 2026-10-07 (migrasi `20261007000000_murid_terlambat.sql`), juga
+tanpa padanan di Luang. Kunci layar menempel pada identitas anonim di perangkat murid
+(K1), jadi murid yang terkunci bisa membuang identitasnya (hapus data situs, mode
+privat, browser/HP lain), bergabung lagi sebagai orang baru, dan terbebas dari kunci.
+Murid yang sudah mengirim bisa mengulang ujian dengan cara yang sama (identitasnya
+dibuang sesudah dinilai).
+
+| T1 | Sesudah sesi DIMULAI (`mulai_pada` terisi), `gabung_sesi()` hanya menerima identitas yang SUDAH punya baris di `sesi_murid` untuk sesi itu (kembali ke baris sendiri, kuncinya ikut). Identitas baru ditolak dengan "Sesi sudah dimulai dan tidak menerima murid baru…", kecuali `sesi_kelas.terima_terlambat`. Sebelum Mulai semua orang boleh masuk. Sesi yang sudah berjalan saat migrasi masuk di-backfill `true` supaya tidak menolak murid di tengah ulangan |
+| T2 | `terima_terlambat` hanya diubah guru pemegang sesi lewat `atur_terima_terlambat()` (security definer, `guru_id = auth.uid()`). Berlaku juga untuk sesi hasil Super Sesi: pengawas yang di depan kelas tahu siapa yang terlambat, jadi ini BUKAN wewenang kepala sekolah seperti kunci layar (SS5) -- kecuali kunci layar Super Sesi menyala (T3), saat pintu ini tak berlaku dan RPC-nya menolak. Klien: `KartuMuridTerlambat` di `SesiKartu.tsx`, hanya tampil sesudah Mulai |
+
+Baris `T3`/`T4` ditambahkan 2026-10-07 (migrasi `20261007200000_kunci_layar_super_sesi.sql`, menggantikan
+rancangan "izin kepala sekolah" dari `20261007100000_izin_kepsek.sql`): kunci layar Super Sesi satu
+sakelar, dan izin masuk kembali murid ikut di tangan kepala sekolah.
+
+| T3 | `super_sesi.kunci_layar` (bawaan mati), dinyalakan kepala sekolah pemilik lewat `atur_kunci_layar_super()` selama Super Sesi belum `selesai`. Trigger `sebar_kunci_layar_super` menyebarkannya ke semua kelas AKTIF (menyala juga menutup lagi pintu T2 yang dibuka pengawas; mati membebaskan semua murid yang terkunci, seperti `atur_kunci_layar()`), dan trigger `warisi_kunci_layar_super` membuat kelas yang lahir sesudahnya mewarisinya -- menimpa `kunci_layar` bawaan formulir: di Super Sesi kepala sekolah yang memutuskan (SS5). Di kelas Super Sesi yang kunci layarnya menyala, `gabung_sesi()` TIDAK menolak identitas baru sesudah Mulai (T1) melainkan membuat barisnya TERKUNCI (`terkunci_pada = now()`, log `dikunci`), jadi kepala sekolah yang memutuskan lewat Buka. Murid lama yang kembali ke barisnya tidak dikunci ulang. Kunci efektif tetap butuh sakelar darurat global (K1) |
+| T4 | Karena guru bisa meng-UPDATE barisnya sendiri lewat REST (`sesi_kelas_guru_all`), trigger `jaga_kunci_layar_super` menolak perubahan `sesi_kelas.kunci_layar` pada kelas Super Sesi oleh siapa pun selain kepala sekolah pemilik Super Sesi-nya (`auth.uid()` null = SQL editor/service role lewat; kolom lain tetap bebas). Ini menutup celah SS5 yang tadinya hanya dijaga RPC. `atur_terima_terlambat()` (pengawas) menolak selagi kunci Super Sesi menyala. Klien: kartu "Kunci layar murid" di `DetailSuperSesi`, `KontainerTerkunci` (nama, kelas, sakelar Buka), `KartuMuridTerlambat` disembunyikan untuk pengawas |
+
+Baris `H*` ditambahkan 2026-10-07 (migrasi `20261007300000_hapus_riwayat.sql`) untuk hapus riwayat.
+Formulir sudah bisa dihapus kapan pun sejak awal (menu editor; sesi yang lahir darinya tidak ikut
+terhapus, A6) dan kini juga dari tab Riwayat -- tidak ada aturan baru di database untuknya.
+
+| H1 | Sesi hanya bisa dihapus kalau `status = 'selesai'` DAN bukan kelas Super Sesi (`super_sesi_id` null), oleh guru pemiliknya lewat `hapus_sesi()`. Menghapus sesi MENGHAPUS PERMANEN murid yang bergabung, jawaban, log pengawasan, dan nilai (semuanya `on delete cascade`); tidak ada tong sampah. Karena guru bisa meng-DELETE barisnya sendiri lewat REST (`sesi_kelas_guru_all`), trigger `jaga_hapus_sesi` menolak DELETE sesi yang belum selesai dan DELETE kelas Super Sesi oleh siapa pun selain kepala sekolah pemiliknya (`auth.uid()` null = SQL editor/service role/cascade hapus akun lewat) |
+| H2 | Super Sesi hanya bisa dihapus kalau `status = 'selesai'`, oleh kepala sekolah pemilik lewat `hapus_super_sesi()`. Kelasnya dihapus IKUT -- murid, jawaban, dan nilai di layar pengawas juga hilang. Alasannya struktural: `super_sesi_soal.sesi_id` cuma `set null` (kiriman kembali tampil "Menunggu dimulai"), dan `sesi_kelas.super_sesi_id` `set null` melanggar CHECK `sesi_kelas_guru_id_super_sesi` untuk kelas yang tak pernah diklaim. Jadi trigger `hapus_kelas_super_sesi` menghapus kelasnya DULU, dan menolak Super Sesi yang belum selesai -- berlaku juga untuk DELETE langsung lewat REST. Kelas Super Sesi tidak bisa dihapus sendirian (H1) karena alasan yang sama |
+| H3 | Klien tidak menebak aturan ini: tombol hapus sesi tampil lewat `sesiBisaDihapus()` (`lib/keadaanSesi.ts`), tombol hapus Super Sesi cuma di Super Sesi `selesai`, tapi penolakan sebenarnya selalu dari server dan pesannya diteruskan ke lembar konfirmasi (`KonfirmasiHapus`) |
+
 Kunci efektif = sakelar darurat DAN `sesi_kelas.kunci_layar` DAN `terkunci_pada`
 terisi. Kunci pertama baru bisa lahir 30 dtk (`kunci_layar_jeda_detik()`) setelah
 kunci dinyalakan, supaya murid tidak terkunci oleh aturan yang belum ia lihat.
@@ -805,7 +883,10 @@ terpasang di project Supabase `lpddqyfarfdakmudfhbf`; `murid_tanpa_akun` dan
 bisa bergabung lagi sebagai identitas baru (identitasnya dibuang sesudah dinilai;
 mode privat juga cukup). Guru melihatnya sebagai dua baris dengan nama sama dan
 bisa mem-veto. Pilihan sebaliknya (identitas dipertahankan) membuat murid kedua di
-HP yang sama mewarisi jawaban & nilai murid pertama.
+HP yang sama mewarisi jawaban & nilai murid pertama. Sejak 2026-10-07 celah itu
+ditutup SESUDAH sesi dimulai (T1): identitas baru ditolak kecuali guru menyalakan
+"Izinkan murid terlambat". SEBELUM Mulai celahnya tetap terbuka (lihat "Yang belum
+ditangani").
 
 **Menghapus formulir tidak menghapus sesinya** (`sesi_kelas.formulir_id` on delete
 set null). Sesi yatim itu tetap muncul sebagai baris biasa di layar Sesi maupun
@@ -896,6 +977,17 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
 - CAPTCHA untuk login anonim (disarankan Supabase untuk mencegah pembuatan akun
   massal) — belum dipasang.
 - PWA (manifest + service worker), hapus akun.
+- Murid masih bisa memegang dua identitas SEBELUM sesi dimulai (bergabung dari dua
+  browser di ruang tunggu), lalu pindah ke identitas kedua begitu yang pertama
+  terkunci. T1 hanya menutup identitas BARU sesudah Mulai. Tandanya di layar guru:
+  dua baris bernama sama sebelum Mulai ditekan. Menutupnya sepenuhnya butuh
+  identitas yang diikat ke daftar murid (NIS/PIN), yang membalik keputusan "murid
+  tanpa akun". Celah yang sama terbuka selama guru lupa mematikan "Izinkan murid
+  terlambat" (tidak mati sendiri) di sesi yang BUKAN Super Sesi berkunci. Di Super
+  Sesi berkunci celah ini tertutup (T3: murid baru masuk terkunci), tapi murid yang
+  bergabung dua kali SEBELUM Mulai tetap lolos, dan kepala sekolah tidak bisa
+  membedakan murid baru yang terkunci karena terlambat dari yang terkunci karena
+  keluar layar kecuali lewat jumlah sinyalnya (yang pertama bernol).
 - `kode_sekolah` umur panjang, tanpa rotasi/kedaluwarsa (beda dari kode sesi 3
   jam) — bocor berarti orang luar bisa mendaftar jadi guru sekolah itu terus-
   menerus sampai diputar manual lewat SQL (`update sekolah set kode_sekolah=...`).
@@ -906,8 +998,11 @@ jadi sesi yatim tidak butuh tempat berbeda dari sesi lain.
   tetap tidak ada tombol "batalkan satu kelas ini".
 - Super Sesi yang masih `mengumpulkan` tidak punya jalan keluar sama sekali:
   `akhiri_super_sesi()` menolaknya ("belum dimulai"), dan tidak ada hapus/tutup
-  untuknya di UI. Yang tidak dipakai lagi menumpuk di daftar dan di pilihan
-  "Kirim ke Super Sesi" milik guru.
+  untuknya di UI (hapus riwayat, H2, hanya untuk yang `selesai`). Yang tidak dipakai lagi
+  menumpuk di daftar dan di pilihan "Kirim ke Super Sesi" milik guru.
+- Hapus riwayat (H1-H2) permanen: tidak ada tong sampah, urungkan, maupun ekspor nilai
+  sebelum dihapus. Konfirmasinya menyebut jumlah murid (dan kelas, untuk Super Sesi) supaya
+  tidak kaget. Berkas gambar di bucket `gambar-soal` tidak ikut terhapus (G1).
 - `mulai_super_sesi()` sengaja TIDAK idempoten (beda dari A8) — panggilan
   kedua gagal jelas ("sudah dimulai") alih-alih diam-diam membuat sesi dobel;
   tombol "Mulai Super Sesi" di klien harus tetap disabled selama panggilan
