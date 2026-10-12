@@ -6,6 +6,7 @@ import { MAKS_PILIHAN, masalahSoal } from '../../lib/soal'
 import { catatUnggahan, unggahGambarSoal } from '../../lib/gambarSoal'
 import { Gelembung, HURUF_OPSI } from '../../components/Gelembung'
 import { GambarSoal } from '../../components/GambarSoal'
+import { TeksSoal } from '../../components/TeksSoal'
 import { Ikon, TombolIkon } from '../../components/ui/Ikon'
 import { Spinner } from '../../components/ui/Spinner'
 import { TeksOtomatis } from '../../components/ui/TeksOtomatis'
@@ -197,9 +198,9 @@ export function KartuPertanyaan({
           tandaiMasalah && masalah ? 'border-[1.5px] border-jingga' : 'border border-garis'}`}>
         <div className="flex gap-3 items-start">
           {lencanaNomor}
-          <p className={`flex-1 min-w-0 text-[15px] font-semibold leading-snug whitespace-pre-wrap break-words ${
+          <p className={`flex-1 min-w-0 text-[15px] font-semibold leading-snug break-words ${
             soal.pertanyaan.trim() ? 'text-tinta' : 'text-teks-3'}`}>
-            {soal.pertanyaan.trim() || 'Pertanyaan'}
+            {soal.pertanyaan.trim() ? <TeksSoal teks={soal.pertanyaan} /> : 'Pertanyaan'}
           </p>
         </div>
         {soal.gambar && (
@@ -220,7 +221,7 @@ export function KartuPertanyaan({
                 <Gelembung indeks={j} status={kunci ? 'benar' : 'kosong'} />
                 <span className={`flex-1 min-w-0 text-[14.5px] break-words ${
                   !p.trim() ? 'text-teks-3 italic' : kunci ? 'text-tinta font-bold' : 'text-tinta-2'}`}>
-                  {p.trim() || 'Opsi kosong'}
+                  {p.trim() ? <TeksSoal teks={p} besar /> : 'Opsi kosong'}
                 </span>
                 {kunci && <span className="text-xs font-bold text-hijau shrink-0">Kunci</span>}
               </div>
@@ -242,8 +243,8 @@ export function KartuPertanyaan({
           </p>
           <div className="mt-3 flex gap-3 items-start">
             {lencanaNomor}
-            <p className="flex-1 min-w-0 text-[15px] font-semibold leading-snug text-tinta whitespace-pre-wrap break-words">
-              {soal.pertanyaan.trim() || 'Pertanyaan'}
+            <p className="flex-1 min-w-0 text-[15px] font-semibold leading-snug text-tinta break-words">
+              {soal.pertanyaan.trim() ? <TeksSoal teks={soal.pertanyaan} /> : 'Pertanyaan'}
             </p>
           </div>
           {soal.gambar && <GambarSoal path={soal.gambar} ukuran="kecil" className="mt-3" />}
@@ -257,7 +258,7 @@ export function KartuPertanyaan({
                     benar ? 'bg-hijau-tint border-hijau' : 'bg-white border-garis active:bg-isian'}`}>
                   <Gelembung indeks={j} ukuran="lg" status={benar ? 'benar' : 'kosong'} />
                   <span className={`flex-1 min-w-0 text-[15px] break-words ${benar ? 'text-tinta font-bold' : 'text-tinta'}`}>
-                    {p.trim() || 'Opsi kosong'}
+                    {p.trim() ? <TeksSoal teks={p} besar /> : 'Opsi kosong'}
                   </span>
                   {benar && <span className="text-xs font-bold text-hijau shrink-0">Kunci</span>}
                 </button>

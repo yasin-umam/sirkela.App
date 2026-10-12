@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Gelembung } from './Gelembung'
 import { GambarSoal } from './GambarSoal'
+import { TeksSoal } from './TeksSoal'
 
 // ─── Kerangka layar murid ────────────────────────────────────────────────────
 // Dipakai layar murid (MuridSesiPage, KerjakanSesi) DAN pratinjau guru, supaya
@@ -65,8 +66,8 @@ export function KartuSoalMurid({ nomor, pertanyaan, gambar, pilihan, dipilih, on
             {String(nomor).padStart(2, '0')}
           </span>
         )}
-        <p className="flex-1 min-w-0 text-base lg:text-lg font-semibold text-tinta whitespace-pre-wrap leading-relaxed break-words">
-          {pertanyaan}
+        <p className="flex-1 min-w-0 text-base lg:text-lg font-semibold text-tinta leading-relaxed break-words">
+          <TeksSoal teks={pertanyaan} />
         </p>
       </div>
       {gambar && <GambarSoal path={gambar} />}
@@ -78,7 +79,9 @@ export function KartuSoalMurid({ nomor, pertanyaan, gambar, pilihan, dipilih, on
               className={`flex items-center gap-3 lg:gap-3.5 w-full min-h-13.5 lg:min-h-14.5 px-3.5 lg:px-4.5 py-2.5 rounded-[14px] border-[1.5px] text-left transition-colors ${
                 nyala ? 'bg-biru-tint border-biru' : 'bg-white border-garis active:bg-isian'}`}>
               <Gelembung indeks={j} ukuran="lg" status={nyala ? 'dipilih' : 'kosong'} />
-              <span className="flex-1 text-[15px] lg:text-base leading-snug text-tinta min-w-0 break-words">{p}</span>
+              <span className="flex-1 text-[15px] lg:text-base leading-snug text-tinta min-w-0 break-words">
+                <TeksSoal teks={p} besar />
+              </span>
             </button>
           )
         })}

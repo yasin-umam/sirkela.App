@@ -4,8 +4,11 @@ import { useDesktop } from '../../lib/useDesktop'
 import { useFormulir } from '../../context/FormulirContext'
 import { uraikanTempelan } from '../../lib/tempelSoal'
 import { imporPdf } from '../../lib/imporPdf'
-import { generateSoal, MAKS_JUMLAH_SOAL, MAKS_PANJANG_TOPIK, type Kesulitan } from '../../lib/generateSoal'
+import { generateSoal, MAKS_JUMLAH_SOAL, MAKS_PANJANG_TOPIK, MAKS_PANJANG_TP, MAKS_JUMLAH_OPSI, type Kesulitan } from '../../lib/generateSoal'
 import { buatUuid } from '../../lib/soal'
+import { normalisasiSoal } from '../../lib/teksMatematika'
+import { HURUF_OPSI } from '../../components/Gelembung'
+import { pastikanRumusValid } from '../../lib/katexMuat'
 import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
 import { Ikon, type NamaIkon } from '../../components/ui/Ikon'
@@ -133,6 +136,7 @@ function PanelImporDesktop({ metode, onMetode, sibuk, judul, onTutup, label, non
 }
 
 const JUMLAH_CEPAT = [5, 10, 15, 20]
+const JUMLAH_OPSI_PILIHAN = [4, MAKS_JUMLAH_OPSI] // 4 (A-D) atau 5 (A-E)
 const KESULITAN: { id: Kesulitan; label: string }[] = [
   { id: 'mudah', label: 'Mudah' },
   { id: 'sedang', label: 'Sedang' },
@@ -160,7 +164,9 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
   const [berkas, setBerkas] = useState<File | null>(null)
   const [mengonversi, setMengonversi] = useState(false)
   const [topik, setTopik] = useState('')
+  const [tp, setTp] = useState('')
   const [jumlah, setJumlah] = useState(5)
+  const [jumlahOpsi, setJumlahOpsi] = useState(4)
   const [kesulitan, setKesulitan] = useState<Kesulitan>('sedang')
   const [draf, setDraf] = useState<Soal[] | null>(null)
   const [dilewati, setDilewati] = useState<{ alasan: string; jumlah: number }[]>([])
@@ -172,6 +178,23 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
   function terimaHasil(soal: { pertanyaan: string; pilihan: string[]; jawabanBenar: number | null }[], dilewatiBaru: { alasan: string; jumlah: number }[]) {
     setDraf(soal.map((s, i): Soal => ({ id: buatUuid(), formulirId: '', pertanyaan: s.pertanyaan, pilihan: s.pilihan, jawabanBenar: s.jawabanBenar, gambar: null, urutan: i })))
     setDilewati(dilewatiBaru)
+  }
+
+  // Generate dari topik menulis rumus sebagai LaTeX (ATURAN_LATEX_SOAL di
+  // generate-soal/index.ts). normalisasiSoal memperbaiki backslash yang mentah
+  // kena JSON.parse; pastikanRumusValid mencoba tiap rumus lewat KaTeX dan
+  // menurunkannya ke Unicode kalau AI menulis LaTeX yang tidak valid -- guru
+  // tidak boleh melihat rumus merah di layar Tinjau. Teks tempel & impor PDF
+  // tidak lewat sini: keduanya bukan keluaran model yang diminta menulis LaTeX.
+  async function rapikanTeksAi(teks: string): Promise<string> {
+    return pastikanRumusValid(normalisasiSoal(teks))
+  }
+  async function rapikanSoalAi(soal: { pertanyaan: string; pilihan: string[]; jawabanBenar: number | null }[]) {
+    return Promise.all(soal.map(async s => ({
+      ...s,
+      pertanyaan: await rapikanTeksAi(s.pertanyaan),
+      pilihan: await Promise.all(s.pilihan.map(p => rapikanTeksAi(p))),
+    })))
   }
 
   function uraikan() {
@@ -201,8 +224,9 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
     if (!topik.trim()) return
     setMengonversi(true); setGalat(null)
     try {
-      const r = await generateSoal(topik, jumlah, kesulitan)
-      terimaHasil(r.soal, r.dilewati)
+      const r = await generateSoal(topik, jumlah, kesulitan, tp, jumlahOpsi)
+      const soalRapi = await rapikanSoalAi(r.soal)
+      terimaHasil(soalRapi, r.dilewati)
     } catch (e) {
       setGalat(e instanceof Error ? e.message : 'Gagal generate soal')
     } finally {
@@ -273,6 +297,12 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
         placeholder="Contoh: Perkalian pecahan untuk kelas 5 SD"
         className="mt-1.5 w-full resize-y py-2.5 px-3 bg-isian rounded-xl text-sm text-tinta placeholder:text-teks-3 outline-none border border-garis focus:border-biru transition-colors" />
 
+      <label className="block mt-4 text-sm font-semibold text-tinta">Tujuan pembelajaran <span className="font-normal text-teks-3">(opsional)</span></label>
+      <textarea value={tp} onChange={e => { setTp(e.target.value); setGalat(null) }} rows={2}
+        maxLength={MAKS_PANJANG_TP}
+        placeholder="Contoh: Murid dapat menghitung volume kubus dan balok"
+        className="mt-1.5 w-full resize-y py-2.5 px-3 bg-isian rounded-xl text-sm text-tinta placeholder:text-teks-3 outline-none border border-garis focus:border-biru transition-colors" />
+
       <label className="block mt-4 text-sm font-semibold text-tinta">Jumlah soal</label>
       <div className="mt-1.5 grid grid-cols-4 gap-2">
         {JUMLAH_CEPAT.map(n => (
@@ -291,6 +321,17 @@ export function DialogImpor({ tujuan, metodeAwal, onTutup, onSelesai }: {
           className="w-16 px-2 py-1.5 rounded-lg border border-garis text-sm text-right text-tinta outline-none focus:border-biru" />
         <span className="text-xs text-teks-3">soal</span>
       </label>
+
+      <label className="block mt-4 text-sm font-semibold text-tinta">Jumlah pilihan jawaban</label>
+      <div className="mt-1.5 grid grid-cols-2 gap-2">
+        {JUMLAH_OPSI_PILIHAN.map(n => (
+          <button key={n} type="button" onClick={() => setJumlahOpsi(n)}
+            className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors ${
+              jumlahOpsi === n ? 'bg-biru text-white border-biru' : 'bg-white text-tinta-2 border-garis hover:border-biru'}`}>
+            {n} ({HURUF_OPSI[0]}-{HURUF_OPSI[n - 1]})
+          </button>
+        ))}
+      </div>
 
       <label className="block mt-4 text-sm font-semibold text-tinta">Tingkat kesulitan</label>
       <div className="mt-1.5 grid grid-cols-3 gap-2">

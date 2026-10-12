@@ -3,6 +3,7 @@ import type { HasilSoal, PesertaSesi, SesiKelas } from '../../types'
 import { bacaHasilSoalSesi, ratakanSoalGuru, vetoNilaiSesi, type JawabanSoalMurid } from '../../lib/sesiGuru'
 import { Gelembung, type StatusGelembung } from '../../components/Gelembung'
 import { GambarSoal } from '../../components/GambarSoal'
+import { TeksSoal } from '../../components/TeksSoal'
 import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Spinner } from '../../components/ui/Spinner'
@@ -232,7 +233,7 @@ function Ringkasan({ soalList, hasil }: { soalList: HasilSoal[]; hasil: JawabanS
             <div className="flex gap-3">
               <LabelNomor n={i + 1} />
               <div className="flex-1 min-w-0">
-                <p className="text-[14.5px] font-semibold leading-snug text-tinta whitespace-pre-wrap break-words">{s.pertanyaan}</p>
+                <p className="text-[14.5px] font-semibold leading-snug text-tinta break-words"><TeksSoal teks={s.pertanyaan} /></p>
                 <p className="text-[13px] text-teks-3 mt-1">
                   {pilihanMurid.length === 0 ? 'Belum ada yang menjawab' : `${benar} dari ${pilihanMurid.length} jawaban benar`}
                 </p>
@@ -248,7 +249,7 @@ function Ringkasan({ soalList, hasil }: { soalList: HasilSoal[]; hasil: JawabanS
                   <div key={j}>
                     <div className="flex items-center gap-2.5 text-sm">
                       <Gelembung indeks={j} status={kunci ? 'benar' : 'kosong'} />
-                      <span className={`flex-1 min-w-0 break-words text-sm text-tinta ${kunci ? 'font-bold' : ''}`}>{p}</span>
+                      <span className={`flex-1 min-w-0 break-words text-sm text-tinta ${kunci ? 'font-bold' : ''}`}><TeksSoal teks={p} besar /></span>
                       <span className="text-[13px] text-tinta-2 tabular-nums shrink-0">{jumlah} ({persen}%)</span>
                     </div>
                     <div className={`mt-1.5 ml-8.5 h-1.75 rounded-full overflow-hidden ${kunci ? 'bg-hijau-tint' : 'bg-biru-tint'}`}>
@@ -463,7 +464,7 @@ function JawabanMurid({ hasil, soalList, onVeto, kelas = 'px-4 pt-3 pb-4' }: {
           <div key={s.id} className="rounded-[14px] bg-white border border-garis p-3">
             <div className="flex gap-2.5 items-start">
               <LabelNomor n={i + 1} />
-              <p className="flex-1 min-w-0 text-[13.5px] font-semibold leading-snug text-tinta whitespace-pre-wrap break-words">{s.pertanyaan}</p>
+              <p className="flex-1 min-w-0 text-[13.5px] font-semibold leading-snug text-tinta break-words"><TeksSoal teks={s.pertanyaan} /></p>
               {dipilih === undefined && <span className="text-xs font-bold text-jingga-gelap shrink-0">Tidak dijawab</span>}
             </div>
             {s.gambar && <GambarSoal path={s.gambar} ukuran="kecil" className="mt-2" />}
@@ -480,7 +481,7 @@ function JawabanMurid({ hasil, soalList, onVeto, kelas = 'px-4 pt-3 pb-4' }: {
                       ? (kunci ? 'bg-hijau-tint lg:border-hijau' : 'bg-jingga-tint lg:border-jingga-garis')
                       : kunci ? 'lg:border-hijau' : 'lg:border-transparent'}`}>
                     <Gelembung indeks={j} ukuran="sm" status={status} />
-                    <span className={`flex-1 min-w-0 text-[13.5px] text-tinta break-words ${pilihMurid || kunci ? 'font-bold' : ''}`}>{p}</span>
+                    <span className={`flex-1 min-w-0 text-[13.5px] text-tinta break-words ${pilihMurid || kunci ? 'font-bold' : ''}`}><TeksSoal teks={p} besar /></span>
                     {kata && (
                       <span className={`text-xs font-bold shrink-0 ${pilihMurid && !kunci ? 'text-jingga-gelap' : 'text-hijau-teks'}`}>
                         {kata}

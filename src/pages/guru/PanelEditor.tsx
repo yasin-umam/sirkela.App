@@ -2,6 +2,8 @@ import type { Formulir, Soal } from '../../types'
 import { kelasButuhJurusan, masalahFormulir, masalahSoal } from '../../lib/soal'
 import { Gelembung } from '../../components/Gelembung'
 import { GambarSoal } from '../../components/GambarSoal'
+import { TeksSoal } from '../../components/TeksSoal'
+import { teksPolosSoal } from '../../lib/teksMatematika'
 import { Ikon } from '../../components/ui/Ikon'
 import { Button } from '../../components/ui/Button'
 import { Eyebrow } from '../../components/ui/Eyebrow'
@@ -56,7 +58,7 @@ export function RelPertanyaan({ soal, aktifId, onPilih, onTambah }: {
             </span>
             <span className={`flex-1 min-w-0 text-[13.5px] leading-snug line-clamp-3 break-words ${
               s.pertanyaan.trim() ? (nyala ? 'font-bold text-tinta' : 'text-tinta') : 'text-teks-3 italic'}`}>
-              {s.pertanyaan.trim() || 'Pertanyaan kosong'}
+              {s.pertanyaan.trim() ? teksPolosSoal(s.pertanyaan) : 'Pertanyaan kosong'}
             </span>
             {masalah
               ? <Ikon nama="galat" className="w-4.5 h-4.5 text-jingga shrink-0" tebal={2.2} />
@@ -132,13 +134,17 @@ export function PanelKirim({ formulir, soal, aktifId, onKirim }: {
                 <span className="shrink-0 rounded-[5px] bg-tinta px-1.5 py-px font-mono text-[10.5px] font-medium text-white">
                   {String(soal.indexOf(contoh) + 1).padStart(2, '0')}
                 </span>
-                <p className="text-[12.5px] font-semibold leading-snug text-tinta break-words">{contoh.pertanyaan.trim() || 'Pertanyaan'}</p>
+                <p className="text-[12.5px] font-semibold leading-snug text-tinta break-words">
+                  {contoh.pertanyaan.trim() ? <TeksSoal teks={contoh.pertanyaan} /> : 'Pertanyaan'}
+                </p>
               </div>
               {contoh.gambar && <GambarSoal path={contoh.gambar} ukuran="kecil" />}
               {contoh.pilihan.map((p, j) => (
                 <div key={j} className="flex items-center gap-2 rounded-lg border border-garis px-2 py-1.5">
                   <Gelembung indeks={j} ukuran="sm" />
-                  <span className="text-xs text-tinta break-words min-w-0">{p.trim() || 'Opsi kosong'}</span>
+                  <span className="text-xs text-tinta break-words min-w-0">
+                    {p.trim() ? <TeksSoal teks={p} besar /> : 'Opsi kosong'}
+                  </span>
                 </div>
               ))}
             </div>

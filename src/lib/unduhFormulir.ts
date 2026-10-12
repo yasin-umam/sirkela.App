@@ -3,6 +3,7 @@ import type { Formulir, Soal } from '../types'
 import { HURUF_OPSI } from '../components/Gelembung'
 import { urlGambarSoal } from './gambarSoal'
 import { JUDUL_BAWAAN, kelasJurusan } from './soal'
+import { teksPolosSoal } from './teksMatematika'
 
 // ─── Unduh formulir sebagai .docx ─────────────────────────────────────────────
 // Murni klien (paket `docx`, di-pack ke Blob lewat Packer.toBlob) -- tidak ada
@@ -52,9 +53,13 @@ export async function unduhFormulirDocx(formulir: Formulir, soal: Soal[]): Promi
     paragraf.push(new Paragraph({ text: formulir.deskripsi.trim(), spacing: { after: 200 } }))
   }
 
+  // Rumus LaTeX (lihat lib/teksMatematika.ts) diturunkan ke Unicode satu baris
+  // di sini -- BUKAN persamaan Word asli (OMML). Dokumen .docx tetap terbaca,
+  // cuma pecahan/akar tampil `a/b`/`√(...)` alih-alih bertingkat seperti di layar.
   soal.forEach((s, i) => {
+    const pertanyaan = teksPolosSoal(s.pertanyaan).trim()
     paragraf.push(new Paragraph({
-      children: [new TextRun({ text: `${i + 1}. ${s.pertanyaan.trim() || '(pertanyaan kosong)'}`, bold: true })],
+      children: [new TextRun({ text: `${i + 1}. ${pertanyaan || '(pertanyaan kosong)'}`, bold: true })],
       spacing: { before: 200 },
     }))
     if (s.gambar) {
@@ -79,7 +84,8 @@ export async function unduhFormulirDocx(formulir: Formulir, soal: Soal[]): Promi
       }
     }
     s.pilihan.forEach((p, j) => {
-      paragraf.push(new Paragraph({ text: `${HURUF_OPSI[j] ?? j + 1}. ${p.trim() || '(opsi kosong)'}`, indent: { left: 360 } }))
+      const opsi = teksPolosSoal(p).trim()
+      paragraf.push(new Paragraph({ text: `${HURUF_OPSI[j] ?? j + 1}. ${opsi || '(opsi kosong)'}`, indent: { left: 360 } }))
     })
   })
 

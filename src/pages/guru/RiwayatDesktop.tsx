@@ -5,6 +5,7 @@ import { useSesi } from '../../context/SesiContext'
 import { useAksiGuru } from '../../context/AksiGuruContext'
 import { sesiBisaDihapus, statusSesi } from '../../lib/keadaanSesi'
 import { jamMenit, kelasJurusan, labelWaktu, tanggalLengkap, waktuRingkas } from '../../lib/soal'
+import { teksPolosSoal } from '../../lib/teksMatematika'
 import { supabase } from '../../lib/supabase'
 import { soalUji } from '../../lib/ujiTampilan'
 import { useKirimanSuper } from '../../lib/useKirimanSuper'
@@ -309,7 +310,7 @@ function DetailFormulir({ f, onBukaFormulir, onBukaSesi, onHapus }: {
               {soalAwal.map((p, i) => (
                 <li key={i} className="flex gap-2.5 items-start">
                   <span className="shrink-0 mt-px rounded-[7px] bg-tinta px-1.75 py-px font-mono text-xs font-medium text-white">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="text-[13.5px] leading-snug text-tinta-2 line-clamp-2">{p.trim() || 'Pertanyaan kosong'}</span>
+                  <span className="text-[13.5px] leading-snug text-tinta-2 line-clamp-2">{p.trim() ? teksPolosSoal(p) : 'Pertanyaan kosong'}</span>
                 </li>
               ))}
             </ol>

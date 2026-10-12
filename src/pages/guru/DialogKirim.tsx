@@ -4,6 +4,7 @@ import { useFormulir } from '../../context/FormulirContext'
 import { useSesi } from '../../context/SesiContext'
 import { supabase } from '../../lib/supabase'
 import { masalahSoal, masalahFormulir } from '../../lib/soal'
+import { teksPolosSoal } from '../../lib/teksMatematika'
 import { Dialog } from '../../components/ui/Dialog'
 import { Button } from '../../components/ui/Button'
 import { Ikon } from '../../components/ui/Ikon'
@@ -155,17 +156,20 @@ export function DialogKirim({ onTutup, onPerbaiki, onPantauSesi }: {
         </>}>
         <p>{bermasalah.length} pertanyaan belum lengkap:</p>
         <ul className="mt-3 flex flex-col gap-1.5">
-          {bermasalah.slice(0, 5).map(({ s, i, masalah }) => (
-            <li key={s.id} className="flex gap-2 rounded-xl bg-jingga-tint px-3 py-2.5">
-              <Ikon nama="galat" className="w-4 h-4 mt-0.5 text-jingga shrink-0" />
-              <span className="min-w-0 break-words text-xs text-tinta">
-                Pertanyaan {i + 1}
-                {s.pertanyaan.trim() && (
-                  <span className="text-teks-3"> ({s.pertanyaan.trim().slice(0, 40)}{s.pertanyaan.trim().length > 40 ? '…' : ''})</span>
-                )}: {masalah}
-              </span>
-            </li>
-          ))}
+          {bermasalah.slice(0, 5).map(({ s, i, masalah }) => {
+            const polos = teksPolosSoal(s.pertanyaan)
+            return (
+              <li key={s.id} className="flex gap-2 rounded-xl bg-jingga-tint px-3 py-2.5">
+                <Ikon nama="galat" className="w-4 h-4 mt-0.5 text-jingga shrink-0" />
+                <span className="min-w-0 break-words text-xs text-tinta">
+                  Pertanyaan {i + 1}
+                  {polos && (
+                    <span className="text-teks-3"> ({polos.slice(0, 40)}{polos.length > 40 ? '…' : ''})</span>
+                  )}: {masalah}
+                </span>
+              </li>
+            )
+          })}
           {bermasalah.length > 5 && <li className="text-xs text-teks-3 px-1">dan {bermasalah.length - 5} lainnya</li>}
         </ul>
       </Dialog>
